@@ -1,0 +1,3 @@
+
+%run ./fetch_sha_data.py -t targets.txt -o ucd_data
+
