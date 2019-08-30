@@ -260,6 +260,24 @@ targets += [coord.SkyCoord(x) for x in contents]
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
+## Flavor-specific storage path for a known output basename:
+def make_storage_relpath(save_name):
+    imname = os.path.basename(save_name)
+    subdir = None
+    impath = os.path.join(subdir, imname) if subdir else imname
+    return impath
+
+def make_flavor_imname(item, suffix):
+    return item['ibase'].replace('_bcd.fits', suffix)
+
+#def make_storage_relpath(save_name, suffix):
+#    imname = os.path.basename(save_name).replace('_bcd.fits', suffix)
+#    imname = 
+#    subdir = None
+#    impath = os.path.join(subdir, imname) if subdir else imname
+#    return impath
+
+
 ## Retrieve item+ancillary and save zip archive:
 def get_all_as_zip(item, save_path,
         urlkey='accessWithAnc1Url', tpath='./.spitzer'):
@@ -278,10 +296,12 @@ def unzip_and_move_by_suffix(zfile, suffix, outdir):
     with ZipFile(zfile, 'r') as zz:
         for zi in zz.infolist():
             if zi.filename.endswith(suffix):
-                zi.filename = os.path.basename(zi.filename)
+                #zi.filename = os.path.basename(zi.filename)
+                zi.filename = make_storage_relpath(zi.filename)
                 zz.extract(zi, outdir)
     return
 
+## Driver routine to retrieve zip file and unpack desired flavors:
 def retrieve_anc_zip(item, suff_list, outdir):
     tzpath = 'temp.zip'
     if not get_all_as_zip(item, tzpath):
@@ -292,7 +312,18 @@ def retrieve_anc_zip(item, suff_list, outdir):
     os.unlink(tzpath)
     return True
 
+## Check whether files already retrieved:
+def already_have_data(item, suff_list, outdir):
+    found = []
+    for suffix in suff_list:
+        flav_name = make_flavor_imname(item, suffix)
+        flav_path = os.path.join(outdir, make_storage_relpath(flav_name))
+        found.append(os.path.isfile(flav_path))
+    return all(found)
 
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
 ## Search for results:
@@ -301,6 +332,7 @@ max_objs = 0
 tmp_zsave = 'temp.zip'
 wanted_instruments = ['I1', 'I2']
 wanted_image_types = ['_bcd.fits', '_cbcd.fits']
+#data_storage_specs = {'bcd':'_bcd.fits', 'cbcd':'_cbcd.fits'}
 for nn,targ in enumerate(targets, 1):
     sys.stderr.write("%s\n" % fulldiv)
 
@@ -332,11 +364,9 @@ for nn,targ in enumerate(targets, 1):
     # retrieve everything:
     n_retrieved = 0
     for ii,item in enumerate(images, 1):
-        cbcd_name = item['ibase'].replace('_bcd.fits', '_cbcd.fits')
-        cbcd_path = os.path.join(context.output_dir, cbcd_name)
-        sys.stderr.write("\rFile %d of %d: %s ... " % (ii, nfound, cbcd_path))
-        if os.path.isfile(cbcd_path):
-            sys.stderr.write("exists!     ")
+        sys.stderr.write("\rFile %d of %d: %s ... " % (ii, nfound, item['ibase']))
+        if already_have_data(item, wanted_image_types, context.output_dir):
+            sys.stderr.write("already retrieved!     ")
             continue
         n_retrieved += 1
 
@@ -354,57 +384,6 @@ for nn,targ in enumerate(targets, 1):
         sys.stderr.write("Stopping early (max_objs=%d)\n" % max_objs)
         break
 
-        #break
-        ##imurl = item['accessUrl'].strip()
-        #imurl = item['accessWithAnclUrl'].strip()
-        #fname = os.path.basename(item['externalname'].strip())
-        #fbase = fname[:-5] if fname.endswith('.fits') else fname
-        #spath = os.path.join(context.output_dir, fname)
-        #sys.stderr.write("\rFile %d of %d: %s ... " % (ii, nfound, spath))
-        ##if (imurl == 'NONE'):
-        ##    sys.stderr.write("No URL provided!\n")
-        ##    continue
-        #if os.path.isfile(spath):
-        #    sys.stderr.write("exists!     ")
-        #    continue
-        ##sys.stderr.write("not found.\n")
-        #n_retrieved += 1
-
-        ## Download image:
-        #sys.stderr.write("downloading ... ")
-        #try:
-        #    #sha.save_file(imurl, out_dir='./', out_name=fbase)
-        #    if not get_all_as_zip(item, 'temp.zip'):
-        #        sys.stderr.write("unknown download problem ... \n")
-        #        sys.exit(1)
-        #except:
-        #    sys.stderr.write("error retrieving file ...\n")
-        #    sys.exit(1)
-
-        ## move file to storage:
-        #if not os.path.isfile(fname):
-        #    sys.stderr.write("Error: can't find %s ...\n" % fname)
-        #    sys.stderr.write("Something is amiss in the download script ...\n")
-        #    sys.exit(1)
-        #sys.stderr.write("moving to %s ... " % context.output_dir)
-        #try:
-        #    shutil.move(fname, spath)
-        #except:
-        #    sys.stderr.write("Move failed? Shouldn't happen ...\n")
-        #    sys.exit(1)
-        #sys.stderr.write("done.\n") 
-        #if (max_imgs > 0) and (n_retrieved >= max_imgs):
-        #    sys.stderr.write("Stopping early (max_imgs=%d)\n" % max_imgs)
-        #    break
-
-    #sys.stderr.write("\n")
-    #if (max_objs > 0) and (nn >= max_objs):
-    #    sys.stderr.write("Stopping early (max_objs=%d)\n" % max_objs)
-    #    break
-
-
-
-
 
 ######################################################################
 # CHANGELOG (fetch_hsa_data.py):
@@ -412,6 +391,9 @@ for nn,targ in enumerate(targets, 1):
 #
 #  2019-08-29:
 #     -- Increased __version__ to 0.3.0.
+#     -- Cleaned up lots of no-longer-useful code.
+#     -- Added support for future separation of flavors into subfolders.
+#     -- Check for existing files now covers all wanted image types.
 #     -- Now keep both _bcd and _cbcd FITS files.
 #
 #  2019-08-28:
