@@ -260,20 +260,6 @@ targets += [coord.SkyCoord(x) for x in contents]
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
-## Selector for download:
-#def select_for_download(query_results, want_prefix='SPITZER_I',
-#                                        want_suffix='bcd.fits'):
-#    keepers = []
-#    for item in query_results:
-#        ibase = os.path.basename(item['externalname'].strip())
-#        if ibase.startswith(want_prefix) and ibase.endswith(want_suffix):
-#            keepers.append(item)
-#    return keepers
-
-#def selector(item, want_prefix='SPITZER_I', want_suffix='bcd.fits'):
-#    ibase = os.path.basename(item['externalname'].strip())
-#    return (ibase.startswith(want_prefix) and ibase.endswith(want_suffix))
-
 ## Retrieve item+ancillary and save zip archive:
 def get_all_as_zip(item, save_path,
         urlkey='accessWithAnc1Url', tpath='./.spitzer'):
@@ -287,22 +273,6 @@ def get_all_as_zip(item, save_path,
         return False
     shutil.move(_tmppath, save_path)
     return True
-
-#def old_unzip_and_move_by_suffix(zfile, suffix, outdir):
-#    tmpdir = '_unpack_%d' % os.getpid() # unique extraction folder
-#    with ZipFile(zfile, 'r') as zobj:
-#        content = zobj.namelist()
-#        keepers = [x for x in content if x.endswith(suffix)]
-#        for item in keepers:
-#            ibase = os.path.basename(item)
-#            spath = os.path.join(outdir, ibase)
-#            sys.stderr.write("spath: %s\n" % spath)
-#            if os.path.isfile(spath):
-#                os.unlink(spath)
-#            zobj.extract(item, path=tmpdir)
-#            sys.stderr.write("unpacked %s ... \n" % item)
-#            shutil.move(os.path.join(tmpdir, item), outdir)
-#    return keepers
 
 def unzip_and_move_by_suffix(zfile, suffix, outdir):
     with ZipFile(zfile, 'r') as zz:
