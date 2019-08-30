@@ -88,14 +88,14 @@ except ImportError:
     sys.stderr.write("\nError: astropy module not found!\n")
     sys.exit(1)
 
-## HSA retrieval module:
-try:
-    import download_sha
-    reload(download_sha)
-    dsha = download_sha.DownloadSHA()
-except ImportError:
-    sys.stderr.write("\nError: hsa_fetch module not found!\n")
-    sys.exit(1)
+### SHA retrieval module:
+#try:
+#    import download_sha
+#    reload(download_sha)
+#    dsha = download_sha.DownloadSHA()
+#except ImportError:
+#    sys.stderr.write("\nError: hsa_fetch module not found!\n")
+#    sys.exit(1)
 
 ##--------------------------------------------------------------------------##
 ## Colors for fancy terminal output:
