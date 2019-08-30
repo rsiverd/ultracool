@@ -1,0 +1,51 @@
+
+In [41]: hits[0].dtype                                                                                                                                                                                                                                                                                                                                                                                                                                                               
+Out[41]: dtype([('reqkey', '<i8'), ('modedisplayname', 'S16'), ('wavelength', 'S20'), ('cra', 'S12'), ('cdec', 'S12'), ('filetype', 'S9'), ('externalname', 'S67'), ('ptcomment', 'S56'), ('ra', '<f8'), ('dec', '<f8'), ('epoch', '<f8'), ('equinox', '<f8'), ('begintime', 'S20'), ('endtime', 'S20'), ('minwavelength', '<f8'), ('maxwavelength', '<f8'), ('pbcdid', '<i8'), ('filesize', '<i8'), ('campid', '<i8'), ('ra1', '<f8'), ('dec1', '<f8'), ('ra2', '<f8'), ('dec2', '<f8'), ('ra3', '<f8'), ('dec3', '<f8'), ('ra4', '<f8'), ('dec4', '<f8'), ('naxis1', '<i8'), ('naxis2', '<i8'), ('cdelt1', '<f8'), ('cdelt2', '<f8'), ('crota2', '<f8'), ('crpix1', '<f8'), ('crpix2', '<f8'), ('crval1', '<f8'), ('crval2', '<f8'), ('ctype1', 'S9'), ('ctype2', 'S9'), ('heritagefilename', 'S96'), ('hasAccess', 'S31'), ('accessUrl', 'S108'), ('accessWithAnc1Url', 'S121')])
+
+
+In [47]: hits.dtype.names                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+Out[47]: 
+('reqkey',
+ 'modedisplayname',
+ 'wavelength',
+ 'cra',
+ 'cdec',
+ 'filetype',
+ 'externalname',
+ 'ptcomment',
+ 'ra',
+ 'dec',
+ 'epoch',
+ 'equinox',
+ 'begintime',
+ 'endtime',
+ 'minwavelength',
+ 'maxwavelength',
+ 'pbcdid',
+ 'filesize',
+ 'campid',
+ 'ra1',
+ 'dec1',
+ 'ra2',
+ 'dec2',
+ 'ra3',
+ 'dec3',
+ 'ra4',
+ 'dec4',
+ 'naxis1',
+ 'naxis2',
+ 'cdelt1',
+ 'cdelt2',
+ 'crota2',
+ 'crpix1',
+ 'crpix2',
+ 'crval1',
+ 'crval2',
+ 'ctype1',
+ 'ctype2',
+ 'heritagefilename',
+ 'hasAccess',
+ 'accessUrl',
+ 'accessWithAnc1Url')
+
+
