@@ -254,12 +254,12 @@ tgtcoo = coord.SkyCoord(ra=context.RA_deg, dec=context.DE_deg,
 cone_radius = uu.Quantity(context.radius, uu.deg)
 
 ## Perform query:
-sys.stderr.write("Running query ... ")
+sys.stderr.write("Running query ... \n")
 tik  = time.time()
 qobj = Gaia.cone_search_async(tgtcoo, cone_radius)
 hits = qobj.get_results()
 tok  = time.time()
-sys.stderr.write("done. Took %.3f seconds.\n" % (tok-tik))
+sys.stderr.write("Query time: %.3f seconds.\n" % (tok-tik))
 
 ## Save results:
 if context.output_file:
