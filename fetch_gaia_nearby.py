@@ -255,9 +255,11 @@ cone_radius = uu.Quantity(context.radius, uu.deg)
 
 ## Perform query:
 sys.stderr.write("Running query ... ")
+tik  = time.time()
 qobj = Gaia.cone_search_async(tgtcoo, cone_radius)
 hits = qobj.get_results()
-sys.stderr.write("done.\n")
+tok  = time.time()
+sys.stderr.write("done. Took %.3f seconds.\n" % (tok-tik))
 
 ## Save results:
 if context.output_file:
