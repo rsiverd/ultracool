@@ -231,18 +231,6 @@ if __name__ == '__main__':
     #        help='KELT image with WCS')
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
-    ofgroup = parser.add_argument_group('Output format')
-    fmtparse = ofgroup.add_mutually_exclusive_group()
-    fmtparse.add_argument('--python', required=False, dest='output_mode',
-            help='Return Python dictionary with results [default]',
-            default='pydict', action='store_const', const='pydict')
-    bash_var = 'ARRAY_NAME'
-    bash_msg = 'output Bash code snippet (use with eval) to declare '
-    bash_msg += 'an associative array %s containing results' % bash_var
-    fmtparse.add_argument('--bash', required=False, default=None,
-            help=bash_msg, dest='bash_array', metavar=bash_var)
-    fmtparse.set_defaults(output_mode='pydict')
-    # ------------------------------------------------------------------
     # Miscellany:
     miscgroup = parser.add_argument_group('Miscellany')
     miscgroup.add_argument('--debug', dest='debug', default=False,
