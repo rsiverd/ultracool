@@ -2,3 +2,8 @@
 # Gaia cone search with astroquery:
 https://astroquery.readthedocs.io/en/latest/gaia/gaia.html#cone-search
 
+# Astropy conversion routines for various WCS components:
+https://docs.astropy.org/en/stable/wcs/
+* sip_pix2foc -- pixel to focal plane coordinates using SIP coefficients
+* sip_foc2pix -- reverse transformation focal plane to pixel
+
