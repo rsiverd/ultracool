@@ -8,5 +8,5 @@
 
 ----------------------------------------------------------------------- 
 
-%run ./compare_distortion.py -i ucd_data/SPITZER_I2_61246976_0004_0000_1_cbcd.fits
+./compare_distortion.py -i ucd_data/SPITZER_I2_61246976_0004_0000_1_cbcd.fits
 
