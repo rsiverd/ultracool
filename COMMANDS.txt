@@ -1,3 +1,7 @@
 
 %run ./fetch_sha_data.py -t targets.txt -o ucd_data
 
+----------------------------------------------------------------------- 
+
+%run ./compare_distortion.py -i ucd_data/SPITZER_I2_61246976_0004_0000_1_cbcd.fits
+
