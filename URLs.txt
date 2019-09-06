@@ -7,3 +7,6 @@ https://docs.astropy.org/en/stable/wcs/
 * sip_pix2foc -- pixel to focal plane coordinates using SIP coefficients
 * sip_foc2pix -- reverse transformation focal plane to pixel
 
+# Collection of astronomy/wcs tips for astropy.wcs:
+https://python4astronomers.github.io/astropy/wcs.html
+
