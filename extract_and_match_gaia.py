@@ -24,6 +24,7 @@ except NameError:
         from imp import reload          # Python 3.0 - 3.3
 
 ## Modules:
+import logging
 import argparse
 #import shutil
 #import resource
@@ -33,9 +34,6 @@ import gc
 import os
 import sys
 import time
-#import vaex
-#import calendar
-#import ephem
 import numpy as np
 #from numpy.lib.recfunctions import append_fields
 #import datetime as dt
@@ -46,28 +44,14 @@ import numpy as np
 #import scipy.optimize as opti
 #import scipy.interpolate as stp
 #import scipy.spatial.distance as ssd
-import matplotlib.pyplot as plt
-#import matplotlib.cm as cm
-#import matplotlib.ticker as mt
-#import matplotlib._pylab_helpers as hlp
-#from matplotlib.colors import LogNorm
-#from matplotlib import colors
-#import matplotlib.colors as mplcolors
-#import matplotlib.gridspec as gridspec
 #from functools import partial
 #from collections import OrderedDict
 #import multiprocessing as mp
 #np.set_printoptions(suppress=True, linewidth=160)
-#import pandas as pd
+import pandas as pd
 #import statsmodels.api as sm
 #import statsmodels.formula.api as smf
 #from statsmodels.regression.quantile_regression import QuantReg
-#import PIL.Image as pli
-#import seaborn as sns
-#import cmocean
-#import theil_sen as ts
-#import window_filter as wf
-#import itertools as itt
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
 ## Because obviously:
@@ -83,78 +67,31 @@ _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 #    import problem_child1, problem_child2
 
 ##--------------------------------------------------------------------------##
-## Projections with cartopy:
-#try:
-#    import cartopy.crs as ccrs
-#    from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
-#    from cartopy.feature.nightshade import Nightshade
-#    #from cartopy import config as cartoconfig
-#except ImportError:
-#    sys.stderr.write("Error: cartopy module not found!\n")
-#    sys.exit(1)
-
-##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
-#class Unbuffered(object):
-#   def __init__(self, stream):
-#       self.stream = stream
-#   def write(self, data):
-#       self.stream.write(data)
-#       self.stream.flush()
-#   def __getattr__(self, attr):
-#       return getattr(self.stream, attr)
-#
-#sys.stdout = Unbuffered(sys.stdout)
-#sys.stderr = Unbuffered(sys.stderr)
+class Unbuffered(object):
+   def __init__(self, stream):
+       self.stream = stream
+   def write(self, data):
+       self.stream.write(data)
+       self.stream.flush()
+   def __getattr__(self, attr):
+       return getattr(self.stream, attr)
+
+sys.stdout = Unbuffered(sys.stdout)
+sys.stderr = Unbuffered(sys.stderr)
 
 ##--------------------------------------------------------------------------##
-
-unlimited = (resource.RLIM_INFINITY, resource.RLIM_INFINITY)
-if (resource.getrlimit(resource.RLIMIT_DATA) == unlimited):
-    resource.setrlimit(resource.RLIMIT_DATA,  (3e9, 6e9))
-if (resource.getrlimit(resource.RLIMIT_AS) == unlimited):
-    resource.setrlimit(resource.RLIMIT_AS, (3e9, 6e9))
-
-## Memory management:
-#def get_memory():
-#    with open('/proc/meminfo', 'r') as mem:
-#        free_memory = 0
-#        for i in mem:
-#            sline = i.split()
-#            if str(sline[0]) in ('MemFree:', 'Buffers:', 'Cached:'):
-#                free_memory += int(sline[1])
-#    return free_memory
-#
-#def memory_limit():
-#    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
-#    resource.setrlimit(resource.RLIMIT_AS, (get_memory() * 1024 / 2, hard))
-
-### Measure memory used so far:
-#def check_mem_usage_MB():
-#    max_kb_used = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-#    return max_kb_used / 1000.0
-
 ##--------------------------------------------------------------------------##
 
 ## Home-brew robust statistics:
-#try:
-#    import robust_stats
-#    reload(robust_stats)
-#    rs = robust_stats
-#except ImportError:
-#    sys.stderr.write("\nError!  robust_stats module not found!\n"
-#           "Please install and try again ...\n\n")
-#    sys.exit(1)
-
-## Home-brew KDE:
-#try:
-#    import my_kde
-#    reload(my_kde)
-#    mk = my_kde
-#except ImportError:
-#    sys.stderr.write("\nError!  my_kde module not found!\n"
-#           "Please install and try again ...\n\n")
-#    sys.exit(1)
+try:
+    import robust_stats
+    reload(robust_stats)
+    rs = robust_stats
+except ImportError:
+    sys.stderr.write("\nError!  robust_stats module not found!\n"
+           "Please install and try again ...\n\n")
+    sys.exit(1)
 
 ## Fast FITS I/O:
 #try:
@@ -164,15 +101,15 @@ if (resource.getrlimit(resource.RLIMIT_AS) == unlimited):
 #    sys.exit(1)
 
 ## FITS I/O:
-#try:
-#    import astropy.io.fits as pf
-#except ImportError:
-#    try:
-#       import pyfits as pf
-#    except ImportError:
-#        sys.stderr.write("\nError!  No FITS I/O module found!\n"
-#               "Install either astropy.io.fits or pyfits and try again!\n\n")
-#        sys.exit(1)
+try:
+    import astropy.io.fits as pf
+except ImportError:
+    try:
+       import pyfits as pf
+    except ImportError:
+        sys.stderr.write("\nError!  No FITS I/O module found!\n"
+               "Install either astropy.io.fits or pyfits and try again!\n\n")
+        sys.exit(1)
 
 ## Various from astropy:
 #try:
@@ -187,13 +124,13 @@ if (resource.getrlimit(resource.RLIMIT_AS) == unlimited):
 #    sys.exit(1)
 
 ## Star extraction:
-#try:
-#    import easy_sep
-#    reload(easy_sep)
-#except ImportError:
-#    sys.stderr.write("Error: easy_sep module not found!\n\n")
-#    sys.exit(1)
-#pse = easy_sep.EasySEP()
+try:
+    import easy_sep
+    reload(easy_sep)
+except ImportError:
+    sys.stderr.write("Error: easy_sep module not found!\n\n")
+    sys.exit(1)
+pse = easy_sep.EasySEP()
 
 ##--------------------------------------------------------------------------##
 ## Colors for fancy terminal output:
@@ -223,14 +160,6 @@ degree_sign = u'\N{DEGREE SIGN}'
 ## Dividers:
 halfdiv = '-' * 40
 fulldiv = '-' * 80
-
-##--------------------------------------------------------------------------##
-## Catch interruption cleanly:
-def signal_handler(signum, frame):
-    sys.stderr.write("\nInterrupted!\n\n")
-    sys.exit(1)
-
-signal.signal(signal.SIGINT, signal_handler)
 
 ##--------------------------------------------------------------------------##
 ## Save FITS image with clobber (astropy / pyfits):
@@ -304,20 +233,8 @@ if __name__ == '__main__':
     #parser.add_argument('firstpos', help='first positional argument')
     #parser.add_argument('-w', '--whatever', required=False, default=5.0,
     #        help='some option with default [def: %(default)s]', type=float)
-    parser.add_argument('-n', '--number_of_days', default=1,
-            help='Number of days of data to retrieve.')
-    parser.add_argument('-o', '--output_file', 
-            default='observations.csv', help='Output filename.')
-    parser.add_argument('--start', type=str, default=None, 
-            help="Start time for date range query.")
-    parser.add_argument('--end', type=str, default=None,
-            help="End time for date range query.")
-    parser.add_argument('-d', '--dayshift', required=False, default=0,
-            help='Switch between days (1=tom, 0=today, -1=yest', type=int)
-    parser.add_argument('-e', '--encl', nargs=1, required=False,
-            help='Encl to make URL for', choices=all_encls, default=all_encls)
-    parser.add_argument('-s', '--site', nargs=1, required=False,
-            help='Site to make URL for', choices=all_sites, default=all_sites)
+    #parser.add_argument('-n', '--number_of_days', default=1,
+    #        help='Number of days of data to retrieve.')
     #parser.add_argument('remainder', help='other stuff', nargs='*')
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
@@ -347,6 +264,17 @@ if __name__ == '__main__':
     context.prog_name = prog_name
 
 ##--------------------------------------------------------------------------##
+##------------------       Load Gaia Sources from CSV       ----------------##
+##--------------------------------------------------------------------------##
+
+if not os.path.isfile(context.gaia_csv):
+    logging.error("file not found: %s\n" % context.gaia_csv)
+    sys.exit(1)
+try:
+    gdata = pd.read_csv(context.gaia_csv)
+except:
+    logging.error("failed to load sources from %s" % context.gaia_csv)
+    sys.exit(1)
 
 ##--------------------------------------------------------------------------##
 ## New-style string formatting (more at https://pyformat.info/):
