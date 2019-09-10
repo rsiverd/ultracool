@@ -1,6 +1,15 @@
 
+# -----------------------------------------------------------------------
+
+# List of NAIF ID codes:
+https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/req/naif_ids.html
+
+# -----------------------------------------------------------------------
+
 # Renormalised Unit Weight Error (RUWE) explanation and data:
 https://gea.esac.esa.int/archive/documentation/GDR2/Gaia_archive/chap_datamodel/sec_dm_main_tables/ssec_dm_ruwe.html
+
+# -----------------------------------------------------------------------
 
 # Gaia cone search with astroquery:
 https://astroquery.readthedocs.io/en/latest/gaia/gaia.html#cone-search
