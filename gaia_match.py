@@ -87,6 +87,8 @@ class GaiaMatch(object):
         self._angdev = 180.0
         return
 
+    ### FIXME: consider an alternative to pandas (astropy.table?) ###
+
     @staticmethod
     def _min_and_idx(a):
         """Return minimum value of array and index position of that value."""
@@ -114,10 +116,12 @@ class GaiaMatch(object):
         self._angdev = np.median(np.abs(dde - np.median(dde)))
         return
 
-    def nearest_star(self, ra, dec, toler=None):
+    def nearest_star_dumb(self, ra, dec):
+        #, toler=None):
         """
         Identify the source closest to the given position. RA and DE must
-        be given in decimal degrees. 
+        be given in decimal degrees. No accelerated look-up is performed
+        but a match is guaranteed.
 
         Params:
         -------
@@ -128,8 +132,8 @@ class GaiaMatch(object):
  
         Returns:
         --------
-        sep     -- distance in DEGREES to nearest match
-        info    -- record of nearest match from source data 
+        info    -- record of nearest match from source data
+                    (match distance recorded as 'dist' key)
         """
         if not self._have_sources():
             logging.error("No sources loaded. Load data and try again.")
@@ -137,35 +141,69 @@ class GaiaMatch(object):
         # Working coordinate arrays:
         sra = self._srcdata[self._ra_key].values
         sde = self._srcdata[self._de_key].values
-
-        ## Initial cut in Dec:
-        #use_tol = toler if toler else self._angdev
-        #decnear = (np.abs(self._srcdata[self._de_key] - dec) <= use_tol)
-        #subset  = self._srcdata[decnear].copy()
-
-        if toler:
-            use_tol = toler
-            #decnear = (np.abs(self._srcdata[self._de_key] - dec) <= use_tol)
-            decnear = (np.abs(sde - dec) <= use_tol)
-            wrk_idx = decnear.nonzero()[0]
-            #subset  = self._srcdata[decnear].copy()
-            #sys.stderr.write("nearidx: %s\n" % str(nearidx))
-            sub_ra  = sra[wrk_idx]
-            sub_de  = sde[wrk_idx]
-            #sys.stderr.write("winner: %d\n" % winner)
-        else:
-            #subset  = self._srcdata.copy()
-            wrk_idx = np.arange(len(sra))
-            sub_ra  = sra
-            sub_de  = sde
-
-        # Proper angular separation:
-        sep_deg = angle.dAngSep(ra, dec, sub_ra, sub_de)
-        hit_idx = np.argmin(sep_deg)      # best match index in subset
-        origidx = wrk_idx[hit_idx]        # best match index in dataset
+        sep_deg = angle.dAngSep(ra, dec, sra, sde)
+        origidx = np.argmin(sep_deg)      # best match index in subset
         match   = self._srcdata.iloc[[origidx]].copy()
-        match['dist'] = sep_deg[hit_idx]
+        match['dist'] = sep_deg[origidx]
         return match
+
+    def nearest_star(self, ra, dec, tol_deg):
+        #, toler=None):
+        """
+        Identify the source closest to the given position. RA and DE must
+        be given in decimal degrees. 
+
+        Params:
+        -------
+        ra      -- R.A. in decimal degrees
+        dec     -- Dec in decimal degrees
+        toler   -- maximum matching distance in degrees
+ 
+        Returns dictionary containing:
+        ------------------------------
+        match   -- True if match found, otherwise False
+        record  -- record of nearest match from source data when found
+                    (match distance recorded as 'dist' key). If no match,
+                    info will contain 'None'
+        """
+        if not self._have_sources():
+            logging.error("No sources loaded. Load data and try again.")
+        result = {'match':False, 'record':None}
+
+        # Working coordinate arrays:
+        sra = self._srcdata[self._ra_key].values
+        sde = self._srcdata[self._de_key].values
+
+        # Initial cut in Dec:
+        decnear = (np.abs(sde - dec) <= tol_deg)
+        sub_idx = decnear.nonzero()[0]
+        if sub_idx.size == 0:   # nothing within tolerance
+            return result
+
+        # Full trigonometric calculation:
+        sub_ra  = sra[sub_idx]
+        sub_de  = sde[sub_idx]
+        tru_sep = angle.dAngSep(ra, dec, sub_ra, sub_de)
+        sep, ix = self._min_and_idx(tru_sep)
+        if (sep > tol_deg):     # best match exceeds tolerance
+            return result
+
+        # Select matching record:
+        nearest = self._srcdata.iloc[[sub_idx[ix]]].copy()
+        nearest['dist'] = sep
+
+        # Return result:
+        result['match'] = True
+        result['record'] = nearest
+        return result
+
+        ## Proper angular separation:
+        #sep_deg = angle.dAngSep(ra, dec, sub_ra, sub_de)
+        #hit_idx = np.argmin(sep_deg)      # best match index in subset
+        #origidx = sub_idx[hit_idx]        # best match index in dataset
+        #match   = self._srcdata.iloc[[origidx]].copy()
+        #match['dist'] = sep_deg[hit_idx]
+        #return match
         ## Full calculation on remaining objects:
         #subset['dist'] = angle.dAngSep(ra, dec,
         #        subset[self._ra_key], subset[self._de_key])
