@@ -197,18 +197,9 @@ class GaiaMatch(object):
         result['record'] = nearest
         return result
 
-        ## Proper angular separation:
-        #sep_deg = angle.dAngSep(ra, dec, sub_ra, sub_de)
-        #hit_idx = np.argmin(sep_deg)      # best match index in subset
-        #origidx = sub_idx[hit_idx]        # best match index in dataset
-        #match   = self._srcdata.iloc[[origidx]].copy()
-        #match['dist'] = sep_deg[hit_idx]
-        #return match
-        ## Full calculation on remaining objects:
-        #subset['dist'] = angle.dAngSep(ra, dec,
-        #        subset[self._ra_key], subset[self._de_key])
-        #return subset.iloc[[subset.dist.values.argmin()]]
-        ##return subset[subset.dist == subset.dist.min()]
+    ### FIXME: implement bulk comparison. For performance reasons, it would
+    ### make more sense to identify the indexes of matches and do a single
+    ### subset selection from the master catalog (concatenation is slow).
 
 ##--------------------------------------------------------------------------##
 
