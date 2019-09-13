@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2019-08-27
-# Last modified: 2019-08-29
+# Last modified: 2019-09-11
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.3.0"
+__version__ = "0.3.5"
 
 ## Python version-agnostic module reloading:
 try:
@@ -198,8 +198,7 @@ if __name__ == '__main__':
     parser = MyParser(prog=prog_name, description=descr_txt,
                           formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
-    #parser.set_defaults(thing1='value1', thing2='value2')
-    parser.set_defaults(search_rad_deg=0.3)
+    #parser.set_defaults(search_rad_deg=0.1)
     # ------------------------------------------------------------------
     #parser.add_argument('firstpos', help='first positional argument')
     #parser.add_argument('-w', '--whatever', required=False, default=5.0,
@@ -218,6 +217,11 @@ if __name__ == '__main__':
     #        help='Output filename', type=str)
     #iogroup.add_argument('-R', '--ref_image', default=None, required=True,
     #        help='KELT image with WCS')
+    # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    srchgroup = parser.add_argument_group('Search Options')
+    srchgroup.add_argument('-R', '--radius', required=False, default=0.1,
+            dest='search_rad_deg', help='radius of search cone in DEGREES')
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
     # Miscellany:
@@ -331,7 +335,7 @@ max_imgs = 0
 max_objs = 0
 tmp_zsave = 'temp.zip'
 wanted_instruments = ['I1', 'I2']
-wanted_image_types = ['_bcd.fits', '_cbcd.fits']
+wanted_image_types = ['_bcd.fits', '_cbcd.fits', '_cbunc.fits']
 #data_storage_specs = {'bcd':'_bcd.fits', 'cbcd':'_cbcd.fits'}
 for nn,targ in enumerate(targets, 1):
     sys.stderr.write("%s\n" % fulldiv)
