@@ -11,8 +11,16 @@
 #**************************************************************************
 #--------------------------------------------------------------------------
 
+## Logging setup:
+import logging
+#logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+#logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
+
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.5"
 
 ## Python version-agnostic module reloading:
 try:
@@ -24,7 +32,6 @@ except NameError:
         from imp import reload          # Python 3.0 - 3.3
 
 ## Modules:
-import logging
 import argparse
 #import shutil
 #import resource
@@ -53,6 +60,15 @@ import pandas as pd
 #import statsmodels.formula.api as smf
 #from statsmodels.regression.quantile_regression import QuantReg
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
+
+## Easy Gaia source matching:
+try:
+    import gaia_match
+    reload(gaia_match)
+    gm = gaia_match.GaiaMatch()
+except ImportError:
+    logger.error("failed to import gaia_match module!")
+    sys.exit(1)
 
 ## Because obviously:
 #import warnings
@@ -89,8 +105,7 @@ try:
     reload(robust_stats)
     rs = robust_stats
 except ImportError:
-    sys.stderr.write("\nError!  robust_stats module not found!\n"
-           "Please install and try again ...\n\n")
+    logger.error("module robust_stats not found!  Install and retry.")
     sys.exit(1)
 
 ## Fast FITS I/O:
@@ -100,35 +115,25 @@ except ImportError:
 #    sys.stderr.write("\nError: fitsio module not found!\n")
 #    sys.exit(1)
 
-## FITS I/O:
-try:
-    import astropy.io.fits as pf
-except ImportError:
-    try:
-       import pyfits as pf
-    except ImportError:
-        sys.stderr.write("\nError!  No FITS I/O module found!\n"
-               "Install either astropy.io.fits or pyfits and try again!\n\n")
-        sys.exit(1)
-
 ## Various from astropy:
-#try:
+try:
 #    import astropy.io.ascii as aia
 #    import astropy.table as apt
 #    import astropy.time as astt
-#    import astropy.wcs as awcs
+    import astropy.io.fits as pf
+    import astropy.wcs as awcs
 #    from astropy import coordinates as coord
 #    from astropy import units as uu
-#except ImportError:
-#    sys.stderr.write("\nError: astropy module not found!\n")
-#    sys.exit(1)
+except ImportError:
+    logger.error("astropy module not found!  Install and retry.")
+    sys.exit(1)
 
 ## Star extraction:
 try:
     import easy_sep
     reload(easy_sep)
 except ImportError:
-    sys.stderr.write("Error: easy_sep module not found!\n\n")
+    logger.error("easy_sep module not found!  Install and retry.")
     sys.exit(1)
 pse = easy_sep.EasySEP()
 
@@ -163,17 +168,17 @@ fulldiv = '-' * 80
 
 ##--------------------------------------------------------------------------##
 ## Save FITS image with clobber (astropy / pyfits):
-#def qsave(iname, idata, header=None, padkeys=1000, **kwargs):
-#    this_func = sys._getframe().f_code.co_name
-#    parent_func = sys._getframe(1).f_code.co_name
-#    sys.stderr.write("Writing to '%s' ... " % iname)
-#    if header:
-#        while (len(header) < padkeys):
-#            header.append() # pad header
-#    if os.path.isfile(iname):
-#        os.remove(iname)
-#    pf.writeto(iname, idata, header=header, **kwargs)
-#    sys.stderr.write("done.\n")
+def qsave(iname, idata, header=None, padkeys=1000, **kwargs):
+    this_func = sys._getframe().f_code.co_name
+    parent_func = sys._getframe(1).f_code.co_name
+    sys.stderr.write("Writing to '%s' ... " % iname)
+    if header:
+        while (len(header) < padkeys):
+            header.append() # pad header
+    if os.path.isfile(iname):
+        os.remove(iname)
+    pf.writeto(iname, idata, header=header, **kwargs)
+    sys.stderr.write("done.\n")
 
 ##--------------------------------------------------------------------------##
 ## Save FITS image with clobber (fitsio):
@@ -264,20 +269,118 @@ if __name__ == '__main__':
     context.prog_name = prog_name
 
 ##--------------------------------------------------------------------------##
-##------------------       Load Gaia Sources from CSV       ----------------##
+##------------------       load Gaia sources from CSV       ----------------##
 ##--------------------------------------------------------------------------##
 
-if not os.path.isfile(context.gaia_csv):
-    logging.error("file not found: %s\n" % context.gaia_csv)
-    sys.exit(1)
 try:
-    gdata = pd.read_csv(context.gaia_csv)
+    logger.info("Loading sources from %s" % context.gaia_csv)
+    gm.load_sources_csv(context.gaia_csv)
 except:
-    logging.error("failed to load sources from %s" % context.gaia_csv)
+    logger.error("Yikes ...")
     sys.exit(1)
 
 ##--------------------------------------------------------------------------##
-## New-style string formatting (more at https://pyformat.info/):
+##------------------       load image / initialize WCS      ----------------##
+##--------------------------------------------------------------------------##
+
+try:
+    logger.info("Loading image %s" % context.input_image)
+    rdata, rhdrs = pf.getdata(context.input_image, header=True)
+    ihdrs = rhdrs.copy(strip=True)
+except:
+    logger.error("Unable to load image: %s" % context.input_image)
+    sys.exit(1)
+
+## Working copy of image data:
+idata = rdata.copy().astype('float32')
+
+## Initialize WCS:
+imwcs = awcs.WCS(ihdrs)
+
+
+##--------------------------------------------------------------------------##
+##------------------   as-needed image unit conversion      ----------------##
+##--------------------------------------------------------------------------##
+
+## Spitzer config:
+unit_key = 'BUNIT'
+conv_key = 'FLUXCONV'
+gain_key = 'GAIN'
+tele_key = 'TELESCOP'
+
+## Telescope-specific stuff:
+this_tele = ihdrs.get('TELESCOP', 'UNKNOWN')
+match_tol = 0.1
+if (this_tele == 'Spitzer'):
+    # Conversion below adopted from IRAC Instrument Handbook, p. 105:
+    # BUNIT gives the units (MJy/sr) of the images. For reference, 1 MJy/sr =
+    # 10–17 erg s–1 cm–2 Hz–1 sr–1. FLUXCONV is the calibration factor derived
+    # from standard star observations; its units are (MJy/sr)/(DN/s). The raw
+    # files are in “data numbers” (DN). To convert from MJy/sr back to DN,
+    # divide by FLUXCONV and multiply by EXPTIME. To convert DN to electrons,
+    # multiply by GAIN.
+    logger.info("Detected Spitzer image!")
+    idata *= float(ihdrs['EXPTIME']) / float(ihdrs['FLUXCONV']) # now in DN
+    idata *= float(ihdrs['GAIN'])       # now in electrons
+    match_tol = 10.0 / 3600.0           # 10 arcseconds in degrees
+
+## Mask hot/bad pixels and estimate background:
+tik = time.time()
+#bright_pixels = (raw_vals >= 50000)
+#pse.set_image(raw_vals, gain=gain)
+pse.set_image(idata, gain=1.0)
+pse.set_options(minpixels=5)
+#pse.set_mask(bright_pixels)
+
+## Extract stars:
+pix_origin = 1.0
+#useobjs = pse.analyze(sigthresh=3.0)
+useobjs = pse.analyze(sigthresh=3.0)
+badobjs = pse.badobjs
+allobjs = pse.allobjs
+ssub_data = pse.sub_data
+
+## X,Y,mag for astrometry:
+ccd_xx  = useobjs['x'] + pix_origin
+ccd_yy  = useobjs['y'] + pix_origin
+#ccd_mag = flux2mag(useobjs['flux'])
+tok = time.time()
+sys.stderr.write("SEP star extraction time: %.3f sec\n" % (tok-tik))
+logger.info("SEP star extraction time: %.3f sec\n" % (tok-tik))
+
+## Convert to RA/Dec using WCS:
+ccd_ra, ccd_de = imwcs.all_pix2world(ccd_xx, ccd_yy, pix_origin)
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+## Cross-match all detections against Gaia:
+#gaia_hits = []
+#for tra,tde in zip(ccd_ra, ccd_de):
+#    gaia_hits.append(
+#    pass
+sys.stderr.write("Initial match to Gaia sources ... ")
+tik = time.time()
+results = [gm.nearest_star(tra, tde, match_tol) \
+                for tra,tde in zip(ccd_ra, ccd_de)]
+matched = np.array([x['match'] for x in results])
+#records = [x['record'] for x in results if x['match']]
+#gaia_hits = pd.concat(records, ignore_index=True)
+
+### FIXME
+### the concatenation below should be replaced with a single batch
+### selection of rows from the parent table using indexes of objects
+### found to match. This will avoid a lot of overhead. MORE IMPORTANTLY,
+### that selection and construction logic should be hidden away inside
+### the source-matching module!!!
+gaia_hits = pd.concat([x['record'] for x in results if x['match']],
+                ignore_index=True)
+gaia_hits['xpix'] = ccd_xx[matched]
+gaia_hits['ypix'] = ccd_yy[matched]
+tok = time.time()
+sys.stderr.write("done. Found %d matches in %.3f seconds.\n"
+        % (len(gaia_hits), tok-tik))
+
+sys.exit(0)
 
 ##--------------------------------------------------------------------------##
 ## Quick ASCII I/O:
@@ -306,6 +409,10 @@ except:
 ######################################################################
 # CHANGELOG (extract_and_match_gaia.py):
 #---------------------------------------------------------------------
+#
+#  2019-09-10:
+#     -- Increased __version__ to 0.1.5.
+#     -- Gaia source loading and nearest-neighbor lookup completed.
 #
 #  2019-09-09:
 #     -- Increased __version__ to 0.1.0.
