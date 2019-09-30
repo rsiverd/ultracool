@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2019-08-27
-# Last modified: 2019-09-11
+# Last modified: 2019-09-30
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.3.5"
+__version__ = "0.3.6"
 
 ## Python version-agnostic module reloading:
 try:
@@ -209,6 +209,8 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
     iogroup = parser.add_argument_group('File I/O')
+    iogroup.add_argument('-F', '--fetch_list', required=False, default=None,
+            help='save list of download(ed) files to FILE', type=str)
     iogroup.add_argument('-o', '--output_dir', required=True, default=None,
             help='output folder for retrieved files', type=str)
     iogroup.add_argument('-t', '--target_list', required=True, default=None,
@@ -365,10 +367,19 @@ for nn,targ in enumerate(targets, 1):
     sys.stderr.write("Found %d images to download around:\n%s\n"
             % (nfound, str(targ)))
 
+    # optionally augment list of files to fetch:
+    if context.fetch_list:
+        sys.stderr.write("Saving list of images to fetch ... ")
+        with open(context.fetch_list, 'a') as fl:
+            for item in images['ibase']:
+                fl.write("%s\n" % item)
+        sys.stderr.write("done.\n")
+
     # retrieve everything:
     n_retrieved = 0
     for ii,item in enumerate(images, 1):
-        sys.stderr.write("\rFile %d of %d: %s ... " % (ii, nfound, item['ibase']))
+        sys.stderr.write("\rFile %d of %d: %s ... "
+                % (ii, nfound, item['ibase']))
         if already_have_data(item, wanted_image_types, context.output_dir):
             sys.stderr.write("already retrieved!     ")
             continue
