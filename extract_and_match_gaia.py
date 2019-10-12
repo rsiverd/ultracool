@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2019-09-09
-# Last modified: 2019-09-09
+# Last modified: 2019-10-11
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.5"
+__version__ = "0.1.6"
 
 ## Python version-agnostic module reloading:
 try:
@@ -248,6 +248,8 @@ if __name__ == '__main__':
             help='CSV file with Gaia source list', type=str)
     iogroup.add_argument('-i', '--input_image', default=None, required=True,
             help='input FITS image to analyze', type=str)
+    iogroup.add_argument('-u', '--unc_image', default=None, required=False,
+            help='FITS image with corresponding uncertainties', type=str)
     #iogroup.add_argument('-o', '--output_file', default=None, required=True,
     #        help='Output filename', type=str)
     #iogroup.add_argument('-R', '--ref_image', default=None, required=True,
@@ -297,6 +299,24 @@ idata = rdata.copy().astype('float32')
 ## Initialize WCS:
 imwcs = awcs.WCS(ihdrs)
 
+##--------------------------------------------------------------------------##
+##------------------       optional load uncertainties      ----------------##
+##--------------------------------------------------------------------------##
+
+udata, uhdrs = None, None
+_have_err_image = False
+if context.unc_image:
+    try:
+        logger.info("Loading err-image %s" % context.unc_image)
+        udata, uhdrs = pf.getdata(context.unc_image, header=True)
+        uhdrs = uhdrs.copy(strip=True)
+        _have_err_image = True
+    except:
+        logger.error("Unable to load image: %s" % context.unc_image)
+        sys.exit(1)
+
+    # Working copy of error image:
+    udata = udata.copy().astype('float32')
 
 ##--------------------------------------------------------------------------##
 ##------------------   as-needed image unit conversion      ----------------##
@@ -320,22 +340,27 @@ if (this_tele == 'Spitzer'):
     # divide by FLUXCONV and multiply by EXPTIME. To convert DN to electrons,
     # multiply by GAIN.
     logger.info("Detected Spitzer image!")
-    idata *= float(ihdrs['EXPTIME']) / float(ihdrs['FLUXCONV']) # now in DN
-    idata *= float(ihdrs['GAIN'])       # now in electrons
+    #idata *= float(ihdrs['EXPTIME']) / float(ihdrs['FLUXCONV']) # now in DN
+    #idata *= float(ihdrs['GAIN'])       # now in electrons
     match_tol = 10.0 / 3600.0           # 10 arcseconds in degrees
+    # NOTE: disabled corrections to use uncertainty images
 
 ## Mask hot/bad pixels and estimate background:
 tik = time.time()
 #bright_pixels = (raw_vals >= 50000)
 #pse.set_image(raw_vals, gain=gain)
-pse.set_image(idata, gain=1.0)
+pse.set_image(idata, gain=None)
 pse.set_options(minpixels=5)
 #pse.set_mask(bright_pixels)
+
+## Set error-image (if provided):
+if _have_err_image:
+    pse.set_errs(udata)
 
 ## Extract stars:
 pix_origin = 1.0
 #useobjs = pse.analyze(sigthresh=3.0)
-useobjs = pse.analyze(sigthresh=3.0)
+useobjs = pse.analyze(sigthresh=3.0, rel_err=_have_err_image)
 badobjs = pse.badobjs
 allobjs = pse.allobjs
 ssub_data = pse.sub_data
