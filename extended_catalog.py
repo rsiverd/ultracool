@@ -154,6 +154,9 @@ class ExtendedCatalog(object):
         """Save extended catalog information to FITS file. kwargs are
         passed to the fits.writeto() method."""
 
+        if not self._have_required_data():
+            logging.warning("data missing, output not saved!")
+            return
         hdr = pf.Header()   # make this from stored metadata!
         tab = pf.BinTableHDU(data=self._imcat, header=hdr, name=_CAT_EXT)
         tab.writeto(filename, **kwargs)
@@ -169,13 +172,13 @@ class ExtendedCatalog(object):
     def _have_required_data(self):
         n_missing = 0
         if self._imcat == None:
-            logging.info("object catalog not set!")
+            logging.warning("object catalog not set!")
             n_missing += 1
         if self._iname == None:
-            logging.info("image name not set!")
+            logging.warning("image name not set!")
             n_missing += 1
         if self._imeta == None:
-            logging.info("image metadata not set!")
+            logging.warning("image metadata not set!")
             n_missing += 1
         if n_missing > 0:
             return False
