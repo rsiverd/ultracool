@@ -143,13 +143,29 @@ class ExtendedCatalog(object):
     """Flexible storage medium that encapsulates a catalog of extracted
     objects along with relevant metadata from the source image."""
 
-    def __init__(self, data=None):
-        self._imcat = None
-        self._iname = None
+    def __init__(self, data=None, name=None, header=None):
+        self._imcat = data
+        self._iname = name
+        self._imhdr = header
         self._imeta = None
-        #self._extcat = 'CATALOG'
         return
 
+    # ---------------------------------------
+    # Getters/setters:
+    def set_catalog(self, data):
+        self._imcat = data
+        return
+
+    def set_imname(self, iname):
+        self._iname = iname
+        return
+
+    def set_header(self, header):
+        self._imhdr = header
+        return
+
+    # ---------------------------------------
+    # Catalog I/O:
     def save_as_fits(self, filename, **kwargs):
         """Save extended catalog information to FITS file. kwargs are
         passed to the fits.writeto() method."""
