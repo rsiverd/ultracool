@@ -8,7 +8,7 @@
 #
 # Rob Siverd
 # Created:       2019-10-12
-# Last modified: 2019-10-12
+# Last modified: 2019-10-14
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.5"
 
 ## Python version-agnostic module reloading:
 try:
@@ -49,6 +49,7 @@ import numpy as np
 #import scipy.spatial.distance as ssd
 #from functools import partial
 #from collections import OrderedDict
+from collections.abc import Iterable
 #import multiprocessing as mp
 #np.set_printoptions(suppress=True, linewidth=160)
 #import pandas as pd
@@ -137,35 +138,55 @@ except ImportError:
 ##------------------         Image Results class            ----------------##
 ##--------------------------------------------------------------------------##
 
-_CAT_EXT = 'CATALOG'
+## Extension names:
+_EXT = {
+        'cat'   :   'CATALOG',
+        'ihdr'  :   'IMGHEADER',
+        }
 
+## Components preserved by load/store:
+#_PRESERVED = ['_imcat', '_iname', '_imhdr', '_uname', '_unhdr', '_imeta']
+_PRESERVED = ['_imcat', '_imeta', '_imhdr', '_unhdr']
+
+## Container class:
 class ExtendedCatalog(object):
     """Flexible storage medium that encapsulates a catalog of extracted
     objects along with relevant metadata from the source image."""
 
-    def __init__(self, data=None, name=None, header=None):
+    def __init__(self, data=None, name=None, header=None,
+            uname=None, uheader=None):
         self._imcat = data
-        self._iname = name
+        #self._iname = name
         self._imhdr = header
-        self._imeta = None
+        #self._uname = uname     # uncertainty image (if used)
+        self._unhdr = uheader
+        self._imeta = {
+                'iname' :  name,
+                'uname' : uname,
+                }
         return
 
-    # ---------------------------------------
-    # Getters/setters:
+    # --------------------------------------- #
+    #           getters and setters           #
+    # --------------------------------------- #
+
     def set_catalog(self, data):
         self._imcat = data
         return
 
     def set_imname(self, iname):
-        self._iname = iname
+        self._imeta['iname'] = iname
         return
 
     def set_header(self, header):
         self._imhdr = header
         return
 
-    # ---------------------------------------
-    # Catalog I/O:
+    # --------------------------------------- #
+    #              catalog I/O                #
+    # --------------------------------------- #
+ 
+    # Write structure contents to FITS file:
     def save_as_fits(self, filename, **kwargs):
         """Save extended catalog information to FITS file. kwargs are
         passed to the fits.writeto() method."""
@@ -174,33 +195,59 @@ class ExtendedCatalog(object):
             logging.warning("data missing, output not saved!")
             return
         hdr = pf.Header()   # make this from stored metadata!
-        tab = pf.BinTableHDU(data=self._imcat, header=hdr, name=_CAT_EXT)
+        tab = pf.BinTableHDU(data=self._imcat, header=hdr, name=_EXT['cat'])
         tab.writeto(filename, **kwargs)
         return
 
+    # Reload structure contents from FITS file:
     def load_from_fits(self, filename):
         """Load extended catalog information from FITS file."""
-        tab, hdr = pf.getdata(filename, header=True, extname=_CAT_EXT)
+        tab, hdr = pf.getdata(filename, header=True, extname=_EXT['cat'])
+        self.set_catalog(tab)
         return
 
-    # ---------------------------------------
-    # Helpers:
+    # Structure data comparison (helps test store/load):
+    def has_same_data(self, othercat):
+        for item in _PRESERVED:
+            sys.stderr.write("Checking component: %s ... " % item)
+            this_one = getattr(self, item)
+            that_one = getattr(othercat, item)
+            looks_ok = self._truth_summary(this_one == that_one)
+            #sys.stderr.write("looks_ok: %s\n" % str(looks_ok))
+            if not looks_ok:
+                sys.stderr.write("not equal!\n")
+                return False
+            else:
+                sys.stderr.write("equal!\n")
+        return True
+
+    # --------------------------------------- #
+    #                helpers                  #
+    # --------------------------------------- #
+
+    # Ensure necessary components are set:
     def _have_required_data(self):
         n_missing = 0
-        if self._imcat == None:
+        #if self._imcat == None:
+        if not isinstance(self._imcat, np.ndarray):
             logging.warning("object catalog not set!")
-            n_missing += 1
-        if self._iname == None:
-            logging.warning("image name not set!")
             n_missing += 1
         if self._imeta == None:
             logging.warning("image metadata not set!")
+            n_missing += 1
+        if self._imeta['iname'] == None:
+            logging.warning("image name not set!")
             n_missing += 1
         if n_missing > 0:
             return False
         else:
             return True
- 
+
+    # Summarize truth value of argument by using all() on iterables:
+    @staticmethod
+    def _truth_summary(thing):
+        return all(thing) if isinstance(thing, Iterable) else thing
+
 ##--------------------------------------------------------------------------##
 
 
