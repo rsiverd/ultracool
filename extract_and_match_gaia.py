@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2019-09-09
-# Last modified: 2019-10-13
+# Last modified: 2019-10-14
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -387,6 +387,29 @@ logger.info("SEP star extraction time: %.3f sec\n" % (tok-tik))
 ## Convert to RA/Dec using WCS:
 ccd_ra, ccd_de = imwcs.all_pix2world(ccd_xx, ccd_yy, pix_origin)
 #ccd_ra, ccd_de = imwcs.all_pix2world(useobjs['x'], useobjs['y'], pix_origin)
+
+## Encapsulate results:
+save_file = 'tmpcat.fits'
+result = ec.ExtendedCatalog(data=useobjs,
+        name=context.input_image, header=ihdrs,
+        uname=context.unc_image, uheader=uhdrs)
+result.save_as_fits(save_file, overwrite=True)
+
+## Components that need to be preserved:
+
+## Load back and ensure match:
+loaded = ec.ExtendedCatalog()
+loaded.load_from_fits(save_file)
+if not loaded.has_same_data(result):
+    sys.stderr.write("Data preservation failure!\n")
+else:
+    sys.stderr.write("Data preservation success!\n")
+#matched = (loaded._imcat == result._imcat).tolist()
+#if not all(matched):
+#else:
+#    sys.stderr.write("Success: catalog data preserved!\n")
+
+sys.exit(0)
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
