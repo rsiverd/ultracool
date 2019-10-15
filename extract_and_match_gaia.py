@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2019-09-09
-# Last modified: 2019-10-14
+# Last modified: 2019-10-15
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.7"
+__version__ = "0.2.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -42,7 +42,7 @@ import os
 import sys
 import time
 import numpy as np
-#from numpy.lib.recfunctions import append_fields
+from numpy.lib.recfunctions import append_fields
 #import datetime as dt
 #from dateutil import parser as dtp
 #import scipy.linalg as sla
@@ -253,14 +253,14 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
     iogroup = parser.add_argument_group('File I/O')
-    iogroup.add_argument('-g', '--gaia_csv', default=None, required=True,
+    iogroup.add_argument('-g', '--gaia_csv', default=None, required=False,
             help='CSV file with Gaia source list', type=str)
     iogroup.add_argument('-i', '--input_image', default=None, required=True,
             help='input FITS image to analyze', type=str)
     iogroup.add_argument('-u', '--unc_image', default=None, required=False,
             help='FITS image with corresponding uncertainties', type=str)
-    #iogroup.add_argument('-o', '--output_file', default=None, required=True,
-    #        help='Output filename', type=str)
+    iogroup.add_argument('-o', '--output_file', default=None, required=False,
+            help='Output filename (multi-ext FITS)', type=str)
     #iogroup.add_argument('-R', '--ref_image', default=None, required=True,
     #        help='KELT image with WCS')
     # ------------------------------------------------------------------
@@ -283,12 +283,13 @@ if __name__ == '__main__':
 ##------------------       load Gaia sources from CSV       ----------------##
 ##--------------------------------------------------------------------------##
 
-try:
-    logger.info("Loading sources from %s" % context.gaia_csv)
-    gm.load_sources_csv(context.gaia_csv)
-except:
-    logger.error("Yikes ...")
-    sys.exit(1)
+if context.gaia_csv:
+    try:
+        logger.info("Loading sources from %s" % context.gaia_csv)
+        gm.load_sources_csv(context.gaia_csv)
+    except:
+        logger.error("Yikes ...")
+        sys.exit(1)
 
 ##--------------------------------------------------------------------------##
 ##------------------       load image / initialize WCS      ----------------##
@@ -381,38 +382,45 @@ ssub_data = pse.sub_data
 ccd_xx, ccd_yy = useobjs['x'], useobjs['y']
 #ccd_mag = flux2mag(useobjs['flux'])
 tok = time.time()
-sys.stderr.write("SEP star extraction time: %.3f sec\n" % (tok-tik))
-logger.info("SEP star extraction time: %.3f sec\n" % (tok-tik))
+#sys.stderr.write("SEP star extraction time: %.3f sec\n" % (tok-tik))
+logger.info("SEP star extraction time: %.3f sec" % (tok-tik))
 
-## Convert to RA/Dec using WCS:
+## Convert to RA/Dec using WCS and add to results:
 ccd_ra, ccd_de = imwcs.all_pix2world(ccd_xx, ccd_yy, pix_origin)
 #ccd_ra, ccd_de = imwcs.all_pix2world(useobjs['x'], useobjs['y'], pix_origin)
+useobjs = append_fields(useobjs, ('dra', 'dde'), (ccd_ra, ccd_de),
+        usemask=False)
 
 ## Encapsulate results:
 save_file = 'tmpcat.fits'
 result = ec.ExtendedCatalog(data=useobjs,
-        name=context.input_image, header=ihdrs,
-        uname=context.unc_image, uheader=uhdrs)
-result.save_as_fits(save_file, overwrite=True)
-
-## Components that need to be preserved:
+        name=os.path.basename(context.input_image), header=ihdrs,
+        uname=os.path.basename(context.unc_image), uheader=uhdrs)
+#result.save_as_fits(save_file, overwrite=True)
 
 ## Load back and ensure match:
-loaded = ec.ExtendedCatalog()
-loaded.load_from_fits(save_file)
-if not loaded.has_same_data(result):
-    sys.stderr.write("Data preservation failure!\n")
-else:
-    sys.stderr.write("Data preservation success!\n")
-#matched = (loaded._imcat == result._imcat).tolist()
-#if not all(matched):
+#loaded = ec.ExtendedCatalog()
+#loaded.load_from_fits(save_file)
+#if not loaded.has_same_data(result):
+#    sys.stderr.write("Data preservation failure!\n")
 #else:
-#    sys.stderr.write("Success: catalog data preserved!\n")
+#    sys.stderr.write("Data preservation success!\n")
 
+## Save results to FITS file if requested:
+if context.output_file:
+    logger.info("Saving results to %s" % context.output_file)
+    result.save_as_fits(context.output_file, overwrite=True)
+
+## Stop early for now ...
 sys.exit(0)
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
+## Halt if no Gaia sources loaded:
+if not context.gaia_csv:
+    sys.stderr.write("No Gaia sources loaded, halting script!\n")
+    sys.exit(0)
+
 ## Cross-match all detections against Gaia:
 #gaia_hits = []
 #for tra,tde in zip(ccd_ra, ccd_de):
