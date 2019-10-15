@@ -142,6 +142,7 @@ except ImportError:
 _EXT = {
         'cat'   :   'CATALOG',
         'ihdr'  :   'IMGHEADER',
+        'uhdr'  :   'UNCHEADER',
         }
 
 ## Components preserved by load/store:
@@ -155,15 +156,16 @@ class ExtendedCatalog(object):
 
     def __init__(self, data=None, name=None, header=None,
             uname=None, uheader=None):
+        self._imhdr = None
+        self._unhdr = None
         self._imcat = data
-        #self._iname = name
-        self._imhdr = header
-        #self._uname = uname     # uncertainty image (if used)
-        self._unhdr = uheader
         self._imeta = {
-                'iname' :  name,
-                'uname' : uname,
+                'INAME'   :  name,
+                'UNAME'   : uname,
+                'ECVERS'  : __version__,
                 }
+        self.set_header(header, which='img')
+        self.set_header(uheader, which='unc')
         return
 
     # --------------------------------------- #
@@ -175,11 +177,21 @@ class ExtendedCatalog(object):
         return
 
     def set_imname(self, iname):
-        self._imeta['iname'] = iname
+        self._imeta['INAME'] = iname
         return
 
-    def set_header(self, header):
-        self._imhdr = header
+    def set_header(self, header, which='img'):
+        hmap = {'img':'_imhdr', 'unc':'_unhdr'}
+        if not which in hmap:
+            sys.stderr.write("FIXME: unhandled which '%s'\n" % which)
+            return
+        if isinstance(header, pf.Header):
+            thdr = header.copy(strip=True)
+            if ('EXTNAME' in thdr):
+                thdr.pop('EXTNAME')
+            setattr(self, hmap[which], thdr)
+        #else:
+        #    logging.warn("ignoring non-header (imhdr not set)")
         return
 
     # --------------------------------------- #
@@ -194,16 +206,30 @@ class ExtendedCatalog(object):
         if not self._have_required_data():
             logging.warning("data missing, output not saved!")
             return
-        hdr = pf.Header()   # make this from stored metadata!
-        tab = pf.BinTableHDU(data=self._imcat, header=hdr, name=_EXT['cat'])
-        tab.writeto(filename, **kwargs)
+        self._imeta['SAVEDATE'] = self._current_timestamp()
+        hdu_list = pf.HDUList([pf.PrimaryHDU()])
+        hdu_list.append(self._make_catalog_hdu())
+        if isinstance(self._imhdr, pf.Header):
+            hdu_list.append(self._header_only_hdu(self._imhdr, _EXT['ihdr']))
+        if isinstance(self._unhdr, pf.Header):
+            hdu_list.append(self._header_only_hdu(self._unhdr, _EXT['uhdr']))
+        hdu_list.writeto(filename, **kwargs)
         return
 
     # Reload structure contents from FITS file:
     def load_from_fits(self, filename):
         """Load extended catalog information from FITS file."""
-        tab, hdr = pf.getdata(filename, header=True, extname=_EXT['cat'])
-        self.set_catalog(tab)
+
+        with pf.open(filename, mode='readonly') as hdulist:
+            for hdu in hdulist[1:]:
+                logging.debug("hdu.name: %s" % hdu.name)
+                if (hdu.name == _EXT['cat']):
+                    self.set_catalog(hdu.data)
+                    self._imeta.update(self._meta_from_header(hdu.header))
+                if (hdu.name == _EXT['ihdr']):
+                    self.set_header(hdu.header, which='img')
+                if (hdu.name == _EXT['uhdr']):
+                    self.set_header(hdu.header, which='unc')
         return
 
     # Structure data comparison (helps test store/load):
@@ -213,7 +239,6 @@ class ExtendedCatalog(object):
             this_one = getattr(self, item)
             that_one = getattr(othercat, item)
             looks_ok = self._truth_summary(this_one == that_one)
-            #sys.stderr.write("looks_ok: %s\n" % str(looks_ok))
             if not looks_ok:
                 sys.stderr.write("not equal!\n")
                 return False
@@ -228,14 +253,13 @@ class ExtendedCatalog(object):
     # Ensure necessary components are set:
     def _have_required_data(self):
         n_missing = 0
-        #if self._imcat == None:
         if not isinstance(self._imcat, np.ndarray):
             logging.warning("object catalog not set!")
             n_missing += 1
         if self._imeta == None:
             logging.warning("image metadata not set!")
             n_missing += 1
-        if self._imeta['iname'] == None:
+        if self._imeta['INAME'] == None:
             logging.warning("image name not set!")
             n_missing += 1
         if n_missing > 0:
@@ -247,6 +271,41 @@ class ExtendedCatalog(object):
     @staticmethod
     def _truth_summary(thing):
         return all(thing) if isinstance(thing, Iterable) else thing
+
+    @staticmethod
+    def _current_timestamp():
+        now_sec = time.time()
+        now_gmt = time.gmtime(now_sec)
+        dsec = now_gmt.tm_sec + (now_sec % 1.0)
+        time_obs = "%02d:%02d:%06.3f" \
+              % (now_gmt.tm_hour, now_gmt.tm_min, dsec)
+        date_obs = "%04d-%02d-%02d" \
+              % (now_gmt.tm_year, now_gmt.tm_mon, now_gmt.tm_mday)
+        return "%sT%s" % (date_obs, time_obs)
+
+    @staticmethod
+    def _prune_header(header):
+        cleaned = header.copy(strip=True)
+        if ('EXTNAME' in cleaned):
+            cleaned.pop('EXTNAME')
+        return cleaned
+
+    @staticmethod
+    def _header_only_hdu(header, extname):
+        return pf.BinTableHDU(header=header.copy(), name=extname)
+
+    def _meta_to_header(self):
+        hdr = pf.Header()
+        hdr.update(self._imeta)
+        return hdr
+
+    def _meta_from_header(self, header):
+        return dict(self._prune_header(header).items())
+
+    def _make_catalog_hdu(self):
+        return pf.BinTableHDU(data=self._imcat,
+                header=self._meta_to_header(), name=_EXT['cat'])
+
 
 ##--------------------------------------------------------------------------##
 
