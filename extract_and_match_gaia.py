@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2019-09-09
-# Last modified: 2019-10-11
+# Last modified: 2019-10-13
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.6"
+__version__ = "0.1.7"
 
 ## Python version-agnostic module reloading:
 try:
@@ -68,6 +68,15 @@ try:
     gm = gaia_match.GaiaMatch()
 except ImportError:
     logger.error("failed to import gaia_match module!")
+    sys.exit(1)
+
+## Storage structure for analysis results:
+try:
+    import extended_catalog
+    reload(extended_catalog)
+    ec = extended_catalog
+except ImportError:
+    logger.error("failed to import extended_catalog module!")
     sys.exit(1)
 
 ## Because obviously:
@@ -359,6 +368,7 @@ if _have_err_image:
 
 ## Extract stars:
 pix_origin = 1.0
+pse.set_options(pix_origin=pix_origin)
 #useobjs = pse.analyze(sigthresh=3.0)
 useobjs = pse.analyze(sigthresh=3.0, rel_err=_have_err_image)
 badobjs = pse.badobjs
@@ -366,8 +376,9 @@ allobjs = pse.allobjs
 ssub_data = pse.sub_data
 
 ## X,Y,mag for astrometry:
-ccd_xx  = useobjs['x'] + pix_origin
-ccd_yy  = useobjs['y'] + pix_origin
+#ccd_xx  = useobjs['x'] + pix_origin
+#ccd_yy  = useobjs['y'] + pix_origin
+ccd_xx, ccd_yy = useobjs['x'], useobjs['y']
 #ccd_mag = flux2mag(useobjs['flux'])
 tok = time.time()
 sys.stderr.write("SEP star extraction time: %.3f sec\n" % (tok-tik))
@@ -375,6 +386,7 @@ logger.info("SEP star extraction time: %.3f sec\n" % (tok-tik))
 
 ## Convert to RA/Dec using WCS:
 ccd_ra, ccd_de = imwcs.all_pix2world(ccd_xx, ccd_yy, pix_origin)
+#ccd_ra, ccd_de = imwcs.all_pix2world(useobjs['x'], useobjs['y'], pix_origin)
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
@@ -406,27 +418,6 @@ sys.stderr.write("done. Found %d matches in %.3f seconds.\n"
         % (len(gaia_hits), tok-tik))
 
 sys.exit(0)
-
-##--------------------------------------------------------------------------##
-## Quick ASCII I/O:
-#data_file = 'data.txt'
-
-#gftkw = {'encoding':None} if (_have_np_vers >= 1.14) else {}
-#gftkw.update({'names':True, 'autostrip':True})
-#gftkw.update({'delimiter':'|', 'comments':'%0%0%0%0'})
-#gftkw.update({'loose':True, 'invalid_raise':False})
-#all_data = np.genfromtxt(data_file, dtype=None, **gftkw)
-#all_data = aia.read(data_file)
-#all_data = pd.read_csv(data_file)
-#all_data = pd.read_table(data_file, delim_whitespace=True)
-#all_data = pd.read_table(data_file, sep='|')
-#fields = all_data.dtype.names
-#if not fields:
-#    x = all_data[:, 0]
-#    y = all_data[:, 1]
-#else:
-#    x = all_data[fields[0]]
-#    y = all_data[fields[1]]
 
 
 
