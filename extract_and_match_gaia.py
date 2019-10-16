@@ -361,6 +361,7 @@ tik = time.time()
 #pse.set_image(raw_vals, gain=gain)
 pse.set_image(idata, gain=None)
 pse.set_options(minpixels=5)
+pse.set_imwcs(imwcs.all_pix2world)
 #pse.set_mask(bright_pixels)
 
 ## Set error-image (if provided):
@@ -385,11 +386,11 @@ tok = time.time()
 #sys.stderr.write("SEP star extraction time: %.3f sec\n" % (tok-tik))
 logger.info("SEP star extraction time: %.3f sec" % (tok-tik))
 
-## Convert to RA/Dec using WCS and add to results:
-ccd_ra, ccd_de = imwcs.all_pix2world(ccd_xx, ccd_yy, pix_origin)
-#ccd_ra, ccd_de = imwcs.all_pix2world(useobjs['x'], useobjs['y'], pix_origin)
-useobjs = append_fields(useobjs, ('dra', 'dde'), (ccd_ra, ccd_de),
-        usemask=False)
+### Convert to RA/Dec using WCS and add to results:
+#ccd_ra, ccd_de = imwcs.all_pix2world(ccd_xx, ccd_yy, pix_origin)
+##ccd_ra, ccd_de = imwcs.all_pix2world(useobjs['x'], useobjs['y'], pix_origin)
+#useobjs = append_fields(useobjs, ('dra', 'dde'), (ccd_ra, ccd_de),
+#        usemask=False)
 
 ## Encapsulate results:
 save_file = 'tmpcat.fits'
