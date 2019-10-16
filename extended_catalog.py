@@ -149,6 +149,12 @@ _EXT = {
 #_PRESERVED = ['_imcat', '_iname', '_imhdr', '_uname', '_unhdr', '_imeta']
 _PRESERVED = ['_imcat', '_imeta', '_imhdr', '_unhdr']
 
+## Storage mapping for image types:
+_imtypes = {
+        'img'   :   '_imhdr',
+        'unc'   :   '_unhdr'
+        }
+
 ## Container class:
 class ExtendedCatalog(object):
     """Flexible storage medium that encapsulates a catalog of extracted
@@ -172,24 +178,35 @@ class ExtendedCatalog(object):
     #           getters and setters           #
     # --------------------------------------- #
 
+    def get_catalog(self):
+        return self._imcat
+
     def set_catalog(self, data):
         self._imcat = data
         return
+
+    def get_imname(self):
+        return self._imeta['INAME']
 
     def set_imname(self, iname):
         self._imeta['INAME'] = iname
         return
 
+    def get_header(self, which='img'):
+        if not which in _imtypes:
+            sys.stderr.write("FIXME: unhandled which '%s'\n" % which)
+            return
+        return getattr(self, _imtypes[which])
+
     def set_header(self, header, which='img'):
-        hmap = {'img':'_imhdr', 'unc':'_unhdr'}
-        if not which in hmap:
+        if not which in _imtypes:
             sys.stderr.write("FIXME: unhandled which '%s'\n" % which)
             return
         if isinstance(header, pf.Header):
             thdr = header.copy(strip=True)
             if ('EXTNAME' in thdr):
                 thdr.pop('EXTNAME')
-            setattr(self, hmap[which], thdr)
+            setattr(self, _imtypes[which], thdr)
         #else:
         #    logging.warn("ignoring non-header (imhdr not set)")
         return
