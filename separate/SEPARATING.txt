@@ -1,0 +1,40 @@
+
+ls SPITZER_I*fcat.fits | awk '{printf "%s,2\n", $1}' > zz_mining.txt
+gethead @zz_mining.txt RA_RQST DEC_RQST > zz_coords.txt
+
+ls `pwd`/SPITZER_I*fcat.fits | awk '{printf "%s[2]\n", $1}' > yy_mining.txt
+imhget -F -l yy_mining.txt DATE_OBS EXPTIME RA_RQST DEC_RQST -o yy_coords.txt
+
+imhget -NF --delim=',' -l yy_mining.txt -o yy_coords.csv \
+   DATE_OBS EXPTIME RA_RQST DEC_RQST CRVAL1 CRVAL2
+
+sed 's/fits\[2\] /fits /' yy_coords.txt > yy_coofix.txt
+
+echo "filename dateobs exptime dra dde" > yy_plotme.txt
+cat yy_coofix.txt >> yy_plotme.txt
+
+#jdcalc -D `awk '{ print $2 }' yy_coords.txt` > yy_juldates.txt
+
+
+----------------------------------------------------------------------- 
+
+import numpy as np
+import angle
+reload(angle)
+
+data = np.genfromtxt('yy_plotme.txt', dtype=None, names=True, encoding=None)
+
+isnorth = data['dde'] > 0.0
+issouth = data['dde'] < 0.0
+
+ndata = data[isnorth]
+sdata = data[~isnorth]
+
+# Northern data:
+#ncoo_med = angle.sphere_medoid_deg(ndata['dra'], ndata['dde'])
+#ncoo_avg = angle.spheremean_deg(ndata['dra'], ndata['dde'])
+ntarg_ra = 277.12595833    # WISE1828
+ntarg_de = +26.84355556    # WISE1828
+starg_ra =  63.83208333    # 2M0415
+starg_de =  -9.58497222    # 2M0415
+
