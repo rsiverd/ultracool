@@ -13,6 +13,6 @@ fi
 awk -F, '
 NR > 1 {
    ra = $7 ; dec = $9
-   printf "annulus(%.7fd, %.7fd, 0.00025d, 0.00075d)\n", ra, dec
+   printf "annulus(%11.7fd, %11.7fd, 0.00025d, 0.00075d)\n", ra, dec
 }' $csv_file > $reg_file
 
