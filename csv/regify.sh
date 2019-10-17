@@ -6,7 +6,7 @@ reg_file="$2"
 #outer_as="0.00075"
 if [ $# -lt 2 ]; then
    echo "NOPE!"
-   echo "Syntax: ./$0 csv_file region_file"
+   echo "Syntax: $0 csv_file region_file"
    exit 1
 fi
 
