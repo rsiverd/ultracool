@@ -1,0 +1,27 @@
+
+sep_dir="/home/rsiverd/ucd_project/ultracool/separate"
+tmplist="get_these.txt"
+
+# WISE1828:
+for channel in 1 2; do
+   folder="wise1828_ch$channel"
+   mkdir $folder
+   cd $folder
+   awk "/_I${channel}_/ { print \$2 }" $sep_dir/cat_wi1828.txt | sed 's|^.*/|../|' > $tmplist
+   cp -s `cat $tmplist` .
+   rm $tmplist
+   cd ..
+done
+
+# 2MASS0415:
+for channel in 1 2; do
+   folder="2m0415_ch$channel"
+   mkdir $folder
+   cd $folder
+   awk "/_I${channel}_/ { print \$2 }" $sep_dir/cat_2m0415.txt | sed 's|^.*/|../|' > $tmplist
+   cp -s `cat $tmplist` .
+   rm $tmplist
+   cd ..
+done
+
+
