@@ -2,3 +2,6 @@
 # WISE1828, channel 1, 19 frames:
 ztf -r ../csv/gaia_wise1828.reg --lin --wlock `awk '/_I1_/ {print $2}' cat_wi1828.txt | sed -n '1~20p'`
 
+# 2MASS0415, channel 1, 19 frames:
+ztf -r ../csv/gaia_2mass0415.reg --lin --wlock `awk '/_I1_/ {print $2}' cat_2m0415.txt | sed -n '1~9p'`
+
