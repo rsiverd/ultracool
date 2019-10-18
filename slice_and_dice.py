@@ -76,7 +76,7 @@ import matplotlib.pyplot as plt
 #import matplotlib._pylab_helpers as hlp
 #from matplotlib.colors import LogNorm
 #from matplotlib import colors
-#import matplotlib.colors as mplcolors
+import matplotlib.colors as mplcolors
 #import matplotlib.gridspec as gridspec
 #from functools import partial
 #from collections import OrderedDict
@@ -91,6 +91,24 @@ import matplotlib.pyplot as plt
 #import window_filter as wf
 #import itertools as itt
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
+
+## Easy Gaia source matching:
+try:
+    import gaia_match
+    reload(gaia_match)
+    gm = gaia_match.GaiaMatch()
+except ImportError:
+    logger.error("failed to import gaia_match module!")
+    sys.exit(1)
+
+## Storage structure for analysis results:
+try:
+    import extended_catalog
+    reload(extended_catalog)
+    ec = extended_catalog
+except ImportError:
+    logger.error("failed to import extended_catalog module!")
+    sys.exit(1)
 
 ## Because obviously:
 #import warnings
@@ -151,10 +169,10 @@ if (resource.getrlimit(resource.RLIMIT_AS) == unlimited):
 #    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
 #    resource.setrlimit(resource.RLIMIT_AS, (get_memory() * 1024 / 2, hard))
 
-### Measure memory used so far:
-#def check_mem_usage_MB():
-#    max_kb_used = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-#    return max_kb_used / 1000.0
+## Measure memory used so far:
+def check_mem_usage_MB():
+    max_kb_used = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    return max_kb_used / 1000.0
 
 ##--------------------------------------------------------------------------##
 
@@ -203,18 +221,18 @@ except ImportError:
 #        sys.exit(1)
 
 ## Various from astropy:
-#try:
+try:
 #    import astropy.io.ascii as aia
 #    import astropy.io.fits as pf
 #    import astropy.table as apt
-#    import astropy.time as astt
+    import astropy.time as astt
 #    import astropy.wcs as awcs
 #    from astropy import coordinates as coord
 #    from astropy import units as uu
-#except ImportError:
+except ImportError:
 #    logger.error("astropy module not found!  Install and retry.")
-#    sys.stderr.write("\nError: astropy module not found!\n")
-#    sys.exit(1)
+    sys.stderr.write("\nError: astropy module not found!\n")
+    sys.exit(1)
 
 ##--------------------------------------------------------------------------##
 ## Colors for fancy terminal output:
@@ -326,10 +344,10 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
     iogroup = parser.add_argument_group('File I/O')
-    iogroup.add_argument('-o', '--output_file', default=None, required=True,
-            help='Output filename', type=str)
-    iogroup.add_argument('-C', '--catalogs', default=None, required=True,
+    iogroup.add_argument('-C', '--cat_list', default=None, required=True,
             help='ASCII file with list of catalog paths in column 1')
+    #iogroup.add_argument('-o', '--output_file', default=None, required=True,
+    #        help='Output filename', type=str)
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
     # Miscellany:
@@ -346,98 +364,76 @@ if __name__ == '__main__':
     context.vlevel = 99 if context.debug else (context.verbose-context.quiet)
     context.prog_name = prog_name
 
+## Long live ipython!
+gc.collect()
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
+##--------------------------------------------------------------------------##
+## Read ASCII file to list:
+def read_column(filename, column=0, delim=' ', strip=True):
+    with open(filename, 'r') as f:
+        content = f.readlines()
+    content = [x.split(delim)[column] for x in content]
+    if strip:
+        content = [x.strip() for x in content] 
+    return content
+
+def irac_channel_from_filename(filename):
+    chtag = os.path.basename(filename).split('_')[1]
+    return int(chtag[1])
+
+
+
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
-##--------------------------------------------------------------------------##
-## New-style string formatting (more at https://pyformat.info/):
+## Load list of catalogs:
+cat_files = read_column(context.cat_list)
+
+## Load those catalogs:
+tik = time.time()
+cdata = []
+total = len(cat_files)
+for ii,fname in enumerate(cat_files, 1):
+    sys.stderr.write("\rLoading catalog %d of %d ... " % (ii, total))
+    ccc = ec.ExtendedCatalog()
+    ccc.load_from_fits(fname)
+    cdata.append(ccc)
+tok = time.time()
+sys.stderr.write("done. Took %.3f seconds.\n" % (tok-tik))
+
+summary = []
+for ccc in cdata:
+    imname = ccc.get_imname()
+    irchan = irac_channel_from_filename(imname)
+    imbase = os.path.basename(imname)
+    tmphdr = ccc.get_header()
+    expsec = tmphdr['EXPTIME']
+    expsec = ccc.get_header()['EXPTIME']
+    obdate = ccc.get_header()
+    nfound = len(ccc.get_catalog())
+    summary.append((imname, irchan, expsec, nfound))
+
+#cbcd, irac, expt, nsrc = zip(*summary)
+
+## Useful summary data:
+cbcd_name = [x.get_imname() for x in cdata]
+irac_band = np.array([irac_channel_from_filename(x) for x in cbcd_name])
+expo_time = np.array([x.get_header()['EXPTIME'] for x in cdata])
+n_sources = np.array([len(x.get_catalog()) for x in cdata])
+timestamp = astt.Time([x.get_header()['DATE_OBS'] for x in cdata],
+        format='isot', scale='utc')
+jdutc = timestamp.jd
 
 ##--------------------------------------------------------------------------##
-## Quick ASCII I/O:
-#data_file = 'data.txt'
-
-#gftkw = {'encoding':None} if (_have_np_vers >= 1.14) else {}
-#gftkw.update({'names':True, 'autostrip':True})
-#gftkw.update({'delimiter':'|', 'comments':'%0%0%0%0'})
-#gftkw.update({'loose':True, 'invalid_raise':False})
-#all_data = np.genfromtxt(data_file, dtype=None, **gftkw)
-#all_data = aia.read(data_file)
-#all_data = pd.read_csv(data_file)
-#all_data = pd.read_table(data_file, delim_whitespace=True)
-#all_data = pd.read_table(data_file, sep='|')
-#fields = all_data.dtype.names
-#if not fields:
-#    x = all_data[:, 0]
-#    y = all_data[:, 1]
-#else:
-#    x = all_data[fields[0]]
-#    y = all_data[fields[1]]
-
-##--------------------------------------------------------------------------##
-## Timestamp modification:
-#def time_warp(jdutc, jd_offset, scale):
-#    return (jdutc - jd_offset) * scale
-
-## Self-consistent time-modification for plotting:
-#tfudge = partial(time_warp, jd_offset=tstart.jd, scale=24.0)    # relative hrs
-#tfudge = partial(time_warp, jd_offset=tstart.jd, scale=1440.0)  # relative min
-
-##--------------------------------------------------------------------------##
-## Misc:
-#def log_10_product(x, pos):
-#   """The two args are the value and tick position.
-#   Label ticks with the product of the exponentiation."""
-#   return '%.2f' % (x)  # floating-point
-#
-#formatter = plt.FuncFormatter(log_10_product) # wrap function for use
-
-## Convenient, percentile-based plot limits:
-#def nice_limits(vec, pctiles=[1,99], pad=1.2):
-#    ends = np.percentile(vec[~np.isnan(vec)], pctiles)
-#    middle = np.average(ends)
-#    return (middle + pad * (ends - middle))
-
-## Convenient plot limits for datetime/astropy.Time content:
-#def nice_time_limits(tvec, buffer=0.05):
-#    lower = tvec.min()
-#    upper = tvec.max()
-#    ndays = upper - lower
-#    return ((lower - 0.05*ndays).datetime, (upper + 0.05*ndays).datetime)
-
-## Convenient limits for datetime objects:
-#def dt_limits(vec, pad=0.1):
-#    tstart, tstop = vec.min(), vec.max()
-#    trange = (tstop - tstart).total_seconds()
-#    tpad = dt.timedelta(seconds=pad*trange)
-#    return (tstart - tpad, tstop + tpad)
-
-##--------------------------------------------------------------------------##
-## Solve prep:
-#ny, nx = img_vals.shape
-#x_list = (0.5 + np.arange(nx)) / nx - 0.5            # relative (centered)
-#y_list = (0.5 + np.arange(ny)) / ny - 0.5            # relative (centered)
-#xx, yy = np.meshgrid(x_list, y_list)                 # relative (centered)
-#xx, yy = np.meshgrid(nx*x_list, ny*y_list)           # absolute (centered)
-#xx, yy = np.meshgrid(np.arange(nx), np.arange(ny))   # absolute
-#yy, xx = np.meshgrid(np.arange(ny), np.arange(nx), indexing='ij') # absolute
-#yy, xx = np.nonzero(np.ones_like(img_vals))          # absolute
-#yy, xx = np.mgrid[0:ny,   0:nx].astype('uint16')     # absolute (array)
-#yy, xx = np.mgrid[1:ny+1, 1:nx+1].astype('uint16')   # absolute (pixel)
-
-## 1-D vectors:
-#x_pix, y_pix, ivals = xx.flatten(), yy.flatten(), img_vals.flatten()
-#w_vec = np.ones_like(ivals)            # start with uniform weights
-#design_matrix = np.column_stack((np.ones(x_pix.size), x_pix, y_pix))
-
-## Image fitting (statsmodels etc.):
-#data = sm.datasets.stackloss.load()
-#ols_res = sm.OLS(ivals, design_matrix).fit()
-#rlm_res = sm.RLM(ivals, design_matrix).fit()
-#rlm_model = sm.RLM(ivals, design_matrix, M=sm.robust.norms.HuberT())
-#rlm_res = rlm_model.fit()
-#data = pd.DataFrame({'xpix':x_pix, 'ypix':y_pix})
-#rlm_model = sm.RLM.from_formula("ivals ~ xpix + ypix", data)
+## Concatenated list of RA/Dec coordinates:
+every_dra = np.concatenate([x._imcat['dra'] for x in cdata])
+every_dde = np.concatenate([x._imcat['dde'] for x in cdata])
+every_jdutc = np.concatenate([n*[jd] for n,jd in zip(n_sources, jdutc)])   
 
 ##--------------------------------------------------------------------------##
 ## Theil-Sen line-fitting (linear):
@@ -462,6 +458,35 @@ if __name__ == '__main__':
 #    return 10**icept * xvals**slope
 
 ##--------------------------------------------------------------------------##
+## Misc:
+#def log_10_product(x, pos):
+#   """The two args are the value and tick position.
+#   Label ticks with the product of the exponentiation."""
+#   return '%.2f' % (x)  # floating-point
+#
+#formatter = plt.FuncFormatter(log_10_product) # wrap function for use
+
+## Convenient, percentile-based plot limits:
+def nice_limits(vec, pctiles=[1,99], pad=1.2):
+    ends = np.percentile(vec[~np.isnan(vec)], pctiles)
+    middle = np.average(ends)
+    return (middle + pad * (ends - middle))
+
+## Convenient plot limits for datetime/astropy.Time content:
+#def nice_time_limits(tvec, buffer=0.05):
+#    lower = tvec.min()
+#    upper = tvec.max()
+#    ndays = upper - lower
+#    return ((lower - 0.05*ndays).datetime, (upper + 0.05*ndays).datetime)
+
+## Convenient limits for datetime objects:
+#def dt_limits(vec, pad=0.1):
+#    tstart, tstop = vec.min(), vec.max()
+#    trange = (tstop - tstart).total_seconds()
+#    tpad = dt.timedelta(seconds=pad*trange)
+#    return (tstart - tpad, tstop + tpad)
+
+##--------------------------------------------------------------------------##
 ## KDE:
 #kde_pnts, kde_vals = mk.go(data_vec)
 
@@ -480,7 +505,22 @@ if __name__ == '__main__':
 #ax4 = plt.subplot2grid((3, 3), (2, 0))            # bot-left
 #ax5 = plt.subplot2grid((3, 3), (2, 1))            # bot-center
 
-sys.exit(0)
+#sys.exit(0)
+
+##--------------------------------------------------------------------------##
+## Scatterplot using patches (effectively allows point size in data units):
+## from https://stackoverflow.com/questions/5009316/plot-scatter-position-and-marker-size-in-the-same-coordinates
+def circle_scatter(ax, xvals, yvals, radii, cvals,
+        cmap=plt.cm.rainbow, norm=mplcolors.Normalize(), **kwargs):
+    #cmap = plt.cm.rainbow
+    #norm = mplcolors.Normalize()
+    #colors = cmap(norm(cvals))
+    for cx,cy,cr,cc in zip(xvals, yvals, radii, cmap(norm(cvals))):
+        sys.stderr.write("cc: %s\n" % str(cc))
+        circle = plt.Circle((cx, cy), radius=cr, color=cc)
+        ax.add_patch(circle)
+    return True
+
 
 ##--------------------------------------------------------------------------##
 #plt.style.use('bmh')   # Bayesian Methods for Hackers style
@@ -492,11 +532,21 @@ plt.gcf().clf()
 #fig.frameon = False # disable figure frame drawing
 #fig.subplots_adjust(left=0.07, right=0.95)
 #ax1 = plt.subplot(gs[0, 0])
-#ax1 = fig.add_subplot(111)
-#ax1 = fig.add_axes([0, 0, 1, 1])
-#ax1.patch.set_facecolor((0.8, 0.8, 0.8))
-#ax1.grid(True)
-#ax1.axis('off')
+ax1 = fig.add_subplot(111)
+ax1.grid(True)
+#ax1.scatter(expt, nsrc, c=irac)
+ax1.scatter(every_dra, every_dde, lw=0, s=3, c=every_jdutc)
+#ax1.plot(every_dra, every_dde, lw=0, ms=3, color=every_jdutc)
+ax1.invert_xaxis()
+
+## Fancy CIRCLE scatter:
+#radii = every_dra.size*[0.00005]
+radii = every_dra.size*[0.00010]
+#cvals = every_dra.size
+circle_scatter(ax1, every_dra, every_dde, radii, cvals=jdutc)
+ax1.set_xlim(nice_limits(every_dra, pctiles=[1,99], pad=1.4))
+ax1.set_ylim(nice_limits(every_dde, pctiles=[1,99], pad=1.4))
+ax1.invert_xaxis()
 
 ## Disable axis offsets:
 #ax1.xaxis.get_major_formatter().set_useOffset(False)
@@ -531,22 +581,24 @@ plt.gcf().clf()
 #ax1.set_xticks([1.0, 3.0, 10.0, 30.0, 100.0])
 #ax1.set_xticks([1, 2, 3], ['Jan', 'Feb', 'Mar'])
 #for label in ax1.get_xticklabels():
-#    label.set_rotation(30)
+#    label.set_rotax1 = fig.add_subplot(111)
+#    ax1.grid(True)
+#    ax1.scatter(expt, nsrc, c=irac) 
+#
+#    tion(30)
 #    label.set_fontsize(14) 
 
 #ax1.xaxis.label.set_fontsize(18)
 #ax1.yaxis.label.set_fontsize(18)
 
-#ax1.set_xlim(nice_limits(xvec, pctiles=[1,99], pad=1.2))
-#ax1.set_ylim(nice_limits(yvec, pctiles=[1,99], pad=1.2))
 
 #spts = ax1.scatter(x, y, lw=0, s=5)
 #cbar = fig.colorbar(spts, orientation='vertical')
 #cbar.formatter.set_useOffset(False)
 #cbar.update_ticks()
 
-#fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
-#plt.draw()
+fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
+plt.draw()
 #fig.savefig(plot_name, bbox_inches='tight')
 
 # cyclical colormap ... cmocean.cm.phase
