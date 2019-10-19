@@ -1,0 +1,13 @@
+
+# 5 clustering algorithms data scientists need to know:
+https://towardsdatascience.com/the-5-clustering-algorithms-data-scientists-need-to-know-a36d136ef68
+
+# Suggestions of 2-D point clustering algorithms:
+https://stackoverflow.com/questions/3937663/2d-point-clustering
+
+# Simple cluster algorithm in 2d:
+https://stackoverflow.com/questions/12736395/simple-cluster-algorithm-2d-detecting-clumps-of-points
+
+# (bioconda) pycluster module:
+https://bioconda.github.io/recipes/pycluster/README.html
+
