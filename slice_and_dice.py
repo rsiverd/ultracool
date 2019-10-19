@@ -49,7 +49,6 @@ except NameError:
 
 ## Modules:
 import argparse
-#import shutil
 import resource
 import signal
 #import glob
@@ -57,13 +56,8 @@ import gc
 import os
 import sys
 import time
-#import vaex
-#import calendar
-#import ephem
 import numpy as np
 #from numpy.lib.recfunctions import append_fields
-#import datetime as dt
-#from dateutil import parser as dtp
 #import scipy.linalg as sla
 #import scipy.signal as ssig
 #import scipy.ndimage as ndi
@@ -77,6 +71,7 @@ import matplotlib.pyplot as plt
 #from matplotlib.colors import LogNorm
 #from matplotlib import colors
 import matplotlib.colors as mplcolors
+import matplotlib.collections as mcoll
 #import matplotlib.gridspec as gridspec
 #from functools import partial
 #from collections import OrderedDict
@@ -108,6 +103,15 @@ try:
     ec = extended_catalog
 except ImportError:
     logger.error("failed to import extended_catalog module!")
+    sys.exit(1)
+
+## Handy MarkerUpdater class:
+try:
+    import marker_updater
+    reload(marker_updater)
+    mu = marker_updater
+except ImportError:
+    logger.error("failed to import marker_updater module!")
     sys.exit(1)
 
 ## Because obviously:
@@ -510,15 +514,30 @@ def nice_limits(vec, pctiles=[1,99], pad=1.2):
 ##--------------------------------------------------------------------------##
 ## Scatterplot using patches (effectively allows point size in data units):
 ## from https://stackoverflow.com/questions/5009316/plot-scatter-position-and-marker-size-in-the-same-coordinates
-def circle_scatter(ax, xvals, yvals, radii, cvals,
-        cmap=plt.cm.rainbow, norm=mplcolors.Normalize(), **kwargs):
-    #cmap = plt.cm.rainbow
-    #norm = mplcolors.Normalize()
-    #colors = cmap(norm(cvals))
-    for cx,cy,cr,cc in zip(xvals, yvals, radii, cmap(norm(cvals))):
-        sys.stderr.write("cc: %s\n" % str(cc))
-        circle = plt.Circle((cx, cy), radius=cr, color=cc)
-        ax.add_patch(circle)
+def sizes_match(*args):
+    sizes = set([len(x) for x in args])
+    return (len(sizes) == 1)
+
+
+def circle_scatter(ax, xvals, yvals, radii, cvals, **kwargs):
+    if not sizes_match(xvals, yvals, radii, cvals):
+        sys.stderr.write("\nArray size mismatch:\n")
+        sys.stderr.write("len(xvals): %10d\n" % len(xvals))
+        sys.stderr.write("len(yvals): %10d\n" % len(yvals))
+        sys.stderr.write("len(radii): %10d\n" % len(radii))
+        sys.stderr.write("len(cvals): %10d\n" % len(cvals))
+        return False
+
+    cmap = kwargs.get('cmap', plt.cm.viridis)
+    norm = kwargs.get('norm', mplcolors.Normalize())
+    circles = [plt.Circle((cx, cy), radius=cr, color=cc) \
+            for cx,cy,cr,cc in zip(xvals, yvals, radii, cmap(norm(cvals)))]
+    ax.add_collection(mcoll.PatchCollection(circles, match_original=True))
+    #ax.add_collection(c)
+    #globals()['lolwut'] = circles
+    #for cx,cy,cr,cc in zip(xvals, yvals, radii, cmap(norm(cvals))):
+    #    circle = plt.Circle((cx, cy), radius=cr, color=cc)
+    #    ax.add_patch(circle)
     return True
 
 
@@ -535,18 +554,38 @@ plt.gcf().clf()
 ax1 = fig.add_subplot(111)
 ax1.grid(True)
 #ax1.scatter(expt, nsrc, c=irac)
-ax1.scatter(every_dra, every_dde, lw=0, s=3, c=every_jdutc)
-#ax1.plot(every_dra, every_dde, lw=0, ms=3, color=every_jdutc)
-ax1.invert_xaxis()
+mupdate = mu.MarkerUpdater()
 
-## Fancy CIRCLE scatter:
-#radii = every_dra.size*[0.00005]
-radii = every_dra.size*[0.00010]
-#cvals = every_dra.size
-circle_scatter(ax1, every_dra, every_dde, radii, cvals=jdutc)
+#cmap = plt.cm.rainbow
+#cmap = plt.cm.viridis
+
+#pkw = {'cmap':mplcolors.rainbow, 'norm':mplcolors.Normalize(vmin=1.5, vmax=4.5)
+
+lolwut = 'adsf'
+__fancy__ = False
+#__fancy__ = True
+descrtxt = 'fancy' if __fancy__ else 'fast'
+sys.stderr.write("Plotting detections (%s) ... " % descrtxt)
+tik = time.time()
+if __fancy__:
+    # Fancy CIRCLE scatter:
+    pradii = 0.0 * every_dra + 0.00005
+    win = circle_scatter(ax1, xvals=every_dra, yvals=every_dde, 
+            radii=pradii, cvals=every_jdutc)
+else:
+    #ax1.plot(every_dra, every_dde, lw=0, ms=3, color=every_jdutc)
+    spts = ax1.scatter(every_dra, every_dde, lw=0, s=2.5, c=every_jdutc,
+            alpha=0.2)
+    mupdate.add_ax(ax1, ['size'])   # auto-update marker size
+
+tok = time.time()
+sys.stderr.write("done. (%.3f s)\n" % (tok-tik))
+
+## Adjust limits and orientation:
 ax1.set_xlim(nice_limits(every_dra, pctiles=[1,99], pad=1.4))
 ax1.set_ylim(nice_limits(every_dde, pctiles=[1,99], pad=1.4))
 ax1.invert_xaxis()
+
 
 ## Disable axis offsets:
 #ax1.xaxis.get_major_formatter().set_useOffset(False)
@@ -593,9 +632,13 @@ ax1.invert_xaxis()
 
 
 #spts = ax1.scatter(x, y, lw=0, s=5)
-#cbar = fig.colorbar(spts, orientation='vertical')
-#cbar.formatter.set_useOffset(False)
-#cbar.update_ticks()
+#cnorm = mplcolors.Normalize(vmin=jdutc.min(), vmax=jdutc.max())
+cnorm = mplcolors.Normalize(*spts.get_clim())
+sm = plt.cm.ScalarMappable(norm=cnorm)
+sm.set_array([])
+cbar = fig.colorbar(sm, orientation='vertical')
+cbar.formatter.set_useOffset(False)
+cbar.update_ticks()
 
 fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
 plt.draw()
