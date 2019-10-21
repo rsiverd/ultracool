@@ -350,6 +350,8 @@ if __name__ == '__main__':
     iogroup = parser.add_argument_group('File I/O')
     iogroup.add_argument('-C', '--cat_list', default=None, required=True,
             help='ASCII file with list of catalog paths in column 1')
+    iogroup.add_argument('-g', '--gaia_csv', default=None, required=False,
+            help='CSV file with Gaia source list', type=str)
     #iogroup.add_argument('-o', '--output_file', default=None, required=True,
     #        help='Output filename', type=str)
     # ------------------------------------------------------------------
@@ -372,6 +374,18 @@ if __name__ == '__main__':
 gc.collect()
 
 ##--------------------------------------------------------------------------##
+##------------------       load Gaia sources from CSV       ----------------##
+##--------------------------------------------------------------------------##
+
+if context.gaia_csv:
+    try:
+        logger.info("Loading sources from %s" % context.gaia_csv)
+        gm.load_sources_csv(context.gaia_csv)
+    except:
+        logger.error("Yikes ...")
+        sys.exit(1)
+
+##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
@@ -388,6 +402,15 @@ def read_column(filename, column=0, delim=' ', strip=True):
 def irac_channel_from_filename(filename):
     chtag = os.path.basename(filename).split('_')[1]
     return int(chtag[1])
+
+
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
+
+
 
 
 
