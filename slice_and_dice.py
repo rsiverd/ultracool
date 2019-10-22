@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2019-10-16
-# Last modified: 2019-10-20
+# Last modified: 2019-10-21
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 ## Optional matplotlib control:
 #from matplotlib import use, rc, rcParams
@@ -493,15 +493,14 @@ tik = time.time()
 for ii,(index, gsrc) in enumerate(gm._srcdata.iterrows(), 1):
     sys.stderr.write("\rChecking Gaia source %d of %d ... " % (ii, n_gaia))
     sep_sec = 3600. * angle.dAngSep(gsrc.ra, gsrc.dec, every_dra, every_dde)
-    matches = sep_sec <= toler_sec
-    if (np.sum(matches) > 0):
-        gcounter[gsrc.source_id] += 1
+    gcounter[gsrc.source_id] += np.sum(sep_sec <= toler_sec)
 tok = time.time()
 sys.stderr.write("done. (%.3f s)\n" % (tok-tik))
 gc.collect()
 
 ## Make Gaia subset of useful objects:
 useful_ids = [kk for kk,vv in gcounter.items() if vv>0]
+#more_useful = [kk for kk,vv in gcounter.items() if vv>1]
 use_gaia = gm._srcdata[gm._srcdata.source_id.isin(useful_ids)]
 n_useful = len(use_gaia)
 sys.stderr.write("Found possible matches to %d of %d Gaia sources.\n"
