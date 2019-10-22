@@ -681,6 +681,7 @@ bfra_path = ra_rlm_res.params[0] + ra_rlm_res.params[1]*syr
 
 # TO INSPECT:
 # plotgsource(3192149715934444800); plt.plot(bfra_path, bfde_path)
+sys.stderr.write("NOTE TO SELF: Gaia pmRA includes cos(dec)!\n")
 
 
 #spts = plt.scatter(syr, sra, c=smonth)
