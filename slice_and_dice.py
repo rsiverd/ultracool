@@ -676,6 +676,13 @@ sys.stderr.write("DE:   %10.6f mas/yr\n" % rlm_pmde_masyr)
 sys.stderr.write("\n")
 sys.stderr.write("%s\n" % fulldiv)
 
+bfde_path = de_rlm_res.params[0] + de_rlm_res.params[1]*syr
+bfra_path = ra_rlm_res.params[0] + ra_rlm_res.params[1]*syr
+
+# TO INSPECT:
+# plotgsource(3192149715934444800); plt.plot(bfra_path, bfde_path)
+
+
 #spts = plt.scatter(syr, sra, c=smonth)
 #cbar = fig.colorbar(spts)
 
