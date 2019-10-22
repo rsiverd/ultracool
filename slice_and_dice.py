@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2019-10-16
-# Last modified: 2019-10-16
+# Last modified: 2019-10-20
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -49,7 +49,7 @@ except NameError:
 
 ## Modules:
 import argparse
-import resource
+#import resource
 import signal
 #import glob
 import gc
@@ -57,7 +57,7 @@ import os
 import sys
 import time
 import numpy as np
-#from numpy.lib.recfunctions import append_fields
+from numpy.lib.recfunctions import append_fields
 #import scipy.linalg as sla
 #import scipy.signal as ssig
 #import scipy.ndimage as ndi
@@ -79,13 +79,16 @@ import matplotlib.collections as mcoll
 #import multiprocessing as mp
 #np.set_printoptions(suppress=True, linewidth=160)
 #import pandas as pd
-#import statsmodels.api as sm
-#import statsmodels.formula.api as smf
-#from statsmodels.regression.quantile_regression import QuantReg
-#import theil_sen as ts
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+from statsmodels.regression.quantile_regression import QuantReg
+import theil_sen as ts
 #import window_filter as wf
 #import itertools as itt
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
+
+import angle
+reload(angle)
 
 ## Easy Gaia source matching:
 try:
@@ -153,11 +156,13 @@ sys.stderr = Unbuffered(sys.stderr)
 
 ##--------------------------------------------------------------------------##
 
-unlimited = (resource.RLIM_INFINITY, resource.RLIM_INFINITY)
-if (resource.getrlimit(resource.RLIMIT_DATA) == unlimited):
-    resource.setrlimit(resource.RLIMIT_DATA,  (3e9, 6e9))
-if (resource.getrlimit(resource.RLIMIT_AS) == unlimited):
-    resource.setrlimit(resource.RLIMIT_AS, (3e9, 6e9))
+#unlimited = (resource.RLIM_INFINITY, resource.RLIM_INFINITY)
+#if (resource.getrlimit(resource.RLIMIT_DATA) == unlimited):
+#    #resource.setrlimit(resource.RLIMIT_DATA,  (3e9, 6e9))
+#    resource.setrlimit(resource.RLIMIT_DATA,  (3e10, 6e10))
+#if (resource.getrlimit(resource.RLIMIT_AS) == unlimited):
+#    #resource.setrlimit(resource.RLIMIT_AS, (3e9, 6e9))
+#    resource.setrlimit(resource.RLIMIT_AS,  (3e10, 6e10))
 
 ## Memory management:
 #def get_memory():
@@ -173,10 +178,10 @@ if (resource.getrlimit(resource.RLIMIT_AS) == unlimited):
 #    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
 #    resource.setrlimit(resource.RLIMIT_AS, (get_memory() * 1024 / 2, hard))
 
-## Measure memory used so far:
-def check_mem_usage_MB():
-    max_kb_used = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-    return max_kb_used / 1000.0
+### Measure memory used so far:
+#def check_mem_usage_MB():
+#    max_kb_used = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+#    return max_kb_used / 1000.0
 
 ##--------------------------------------------------------------------------##
 
@@ -228,7 +233,7 @@ except ImportError:
 try:
 #    import astropy.io.ascii as aia
 #    import astropy.io.fits as pf
-#    import astropy.table as apt
+    import astropy.table as apt
     import astropy.time as astt
 #    import astropy.wcs as awcs
 #    from astropy import coordinates as coord
@@ -461,6 +466,181 @@ jdutc = timestamp.jd
 every_dra = np.concatenate([x._imcat['dra'] for x in cdata])
 every_dde = np.concatenate([x._imcat['dde'] for x in cdata])
 every_jdutc = np.concatenate([n*[jd] for n,jd in zip(n_sources, jdutc)])   
+gc.collect()
+
+##--------------------------------------------------------------------------##
+##-----------------          Cross-Match to Gaia           -----------------##
+##--------------------------------------------------------------------------##
+
+ntodo = 100
+toler_sec = 3.0
+gcounter = {x:0 for x in gm._srcdata.source_id}
+n_gaia = len(gm._srcdata)
+
+## Iterate over individual image tables (prevents double-counting):
+#for ci,ccat in enumerate(cdata, 1):
+#    sys.stderr.write("\n------------------------------\n")
+#    sys.stderr.write("Checking image %d of %d ...\n" % (ci, len(cdata)))
+#    for gi,(gix, gsrc) in enumerate(gm._srcdata.iterrows(), 1):
+#        sys.stderr.write("Checking Gaia source %d of %d ...\n" % (gi, n_gaia))
+#        pass
+#    pass
+#    if (ntodo > 0) and (ii >= ntodo):
+#        break
+
+## First, check which Gaia sources might get used:
+tik = time.time()
+for ii,(index, gsrc) in enumerate(gm._srcdata.iterrows(), 1):
+    sys.stderr.write("\rChecking Gaia source %d of %d ... " % (ii, n_gaia))
+    sep_sec = 3600. * angle.dAngSep(gsrc.ra, gsrc.dec, every_dra, every_dde)
+    matches = sep_sec <= toler_sec
+    if (np.sum(matches) > 0):
+        gcounter[gsrc.source_id] += 1
+tok = time.time()
+sys.stderr.write("done. (%.3f s)\n" % (tok-tik))
+gc.collect()
+
+## Make Gaia subset of useful objects:
+useful_ids = [kk for kk,vv in gcounter.items() if vv>0]
+use_gaia = gm._srcdata[gm._srcdata.source_id.isin(useful_ids)]
+n_useful = len(use_gaia)
+sys.stderr.write("Found possible matches to %d of %d Gaia sources.\n"
+        % (n_useful, len(gm._srcdata)))
+gc.collect()
+
+## Robust (non-double-counted) matching of Gaia sources using slimmed list:
+sys.stderr.write("Associating catalog objects with Gaia sources:\n") 
+tik = time.time()
+gmatches = {x:[] for x in use_gaia.source_id}
+for ci,extcat in enumerate(cdata, 1):
+#for ci,extcat in enumerate(cdata[:10], 1):
+    #sys.stderr.write("\n------------------------------\n")
+    sys.stderr.write("\rChecking image %d of %d ... " % (ci, len(cdata)))
+    #ccat = extcat._imcat
+    ccat = extcat.get_catalog()
+    #cat_jd = jdutc[ci]
+    jd_info = {'jd':jdutc[ci-1]}
+    for gi,(gix, gsrc) in enumerate(use_gaia.iterrows(), 1):
+        #sys.stderr.write("Checking Gaia source %d of %d ... " % (gi, n_useful))
+        sep_sec = 3600.0 * angle.dAngSep(gsrc.ra, gsrc.dec, 
+                                    ccat['dra'], ccat['dde'])
+        matches = sep_sec <= toler_sec
+        nhits = np.sum(matches)
+        if (nhits == 0):
+            #sys.stderr.write("no match!\n")
+            continue
+        else:
+            #sys.stderr.write("got %d match(es).  " % nhits)
+            hit_sep = sep_sec[matches]
+            hit_cat = ccat[matches]
+            sepcheck = 3600.0 * angle.dAngSep(gsrc.ra, gsrc.dec, 
+                    hit_cat['dra'], hit_cat['dde'])
+            #sys.stderr.write("sepcheck: %.4f\n" % sepcheck)
+            nearest = hit_sep.argmin()
+            m_info = {}
+            m_info.update(jd_info)
+            m_info['sep'] = hit_sep[nearest]
+            m_info['cat'] = hit_cat[nearest]
+            #import pdb; pdb.set_trace()
+            #sys.exit(1)
+            gmatches[gsrc.source_id].append(m_info)
+    pass
+tok = time.time()
+sys.stderr.write("done. (%.3f s)\n" % (tok-tik))
+gc.collect()
+
+#first = [x for x in gmatches.keys()][44]
+##derp = np.vstack([x['cat'].array for x in gmatches[first]]) # for FITSRecord
+#derp = np.vstack([x['cat'] for x in gmatches[first]])
+##derp = [apt.Table(x['cat']) for x in gmatches[first]]
+#jtmp = np.array([x['jd'] for x in gmatches[first]])
+#derp = append_fields(derp, 'jdutc', jtmp, usemask=False)
+
+##--------------------------------------------------------------------------##
+## Collect data sets by Gaia source for analysis:
+gtargets = {}
+for ii,gid in enumerate(gmatches.keys(), 1):
+    sys.stderr.write("\rGathering gaia source %d of %d ..." % (ii, n_useful))
+    derp = np.vstack([x['cat'] for x in gmatches[gid]])
+    jtmp = np.array([x['jd'] for x in gmatches[gid]])
+    derp = append_fields(derp, 'jdutc', jtmp, usemask=False)
+    gtargets[gid] = derp
+sys.stderr.write("done.\n")
+#sys.stderr.write("At this point, RAM use (MB): %.2f\n" % check_mem_usage_MB())
+
+##--------------------------------------------------------------------------##
+## Plot a single set of ra/dec vs jdutc:
+def get_targ_by_n(gtargets, nn):
+    which = list(gtargets.keys())[nn]
+    return gtargets[which]
+
+def justplot(nn):
+    gdata = get_targ_by_n(gtargets, nn)
+    plt.clf()
+    plt.scatter(gdata['dra'], gdata['dde'], lw=0, s=5, c=gdata['jdutc'])
+    return
+
+def plotsingle(ax, gdata):
+    ax.scatter(gdata['dra'], gdata['dde'], lw=0, s=5, c=gdata['jdutc'])
+
+
+def gather_by_id(gaia_srcid):
+    neato_gaia = use_gaia[use_gaia.source_id == 3192149715934444800]
+    neato_sptz = gtargets[gaia_srcid]
+    return neato_gaia, neato_sptz
+
+##--------------------------------------------------------------------------##
+## GOT ONE:
+sys.stderr.write("%s\n" % fulldiv)
+gneat, sneat = gather_by_id(3192149715934444800)
+sys.stderr.write("Gaia info:\n\n") 
+sys.stderr.write("RA:       %15.7f\n" % gneat['ra'])
+sys.stderr.write("DE:       %15.7f\n" % gneat['dec'])
+sys.stderr.write("parallax: %10.4f +/- %8.4f\n"
+        % (gneat.parallax, gneat.parallax_error))
+sys.stderr.write("pmRA:     %10.4f +/- %8.4f\n"
+        % (gneat.pmra, gneat.pmra_error))
+sys.stderr.write("pmDE:     %10.4f +/- %8.4f\n"
+        % (gneat.pmdec, gneat.pmdec_error))
+
+sjd, sra, sde = sneat['jdutc'], sneat['dra'], sneat['dde']
+syr = 2000.0 + ((sjd - 2451544.5) / 365.25)
+smonth = (syr % 1.0) * 12.0
+
+ts_ra_model = ts.linefit(syr, sra)
+ts_de_model = ts.linefit(syr, sde)
+ts_pmra_masyr = ts_ra_model[1] * 3.6e6 / np.cos(np.radians(ts_de_model[0]))
+ts_pmde_masyr = ts_de_model[1] * 3.6e6
+
+# proper fit:
+design_matrix = np.column_stack((np.ones(syr.size), syr))
+#de_design_matrix = np.column_stack((np.ones(syr.size), syr))
+ra_ols_res = sm.OLS(sra, design_matrix).fit()
+de_ols_res = sm.OLS(sde, design_matrix).fit()
+ra_rlm_res = sm.RLM(sra, design_matrix).fit()
+de_rlm_res = sm.RLM(sde, design_matrix).fit()
+rlm_pmde_masyr = de_rlm_res.params[1] * 3.6e6
+rlm_pmra_masyr = ra_rlm_res.params[1] * 3.6e6 \
+        * np.cos(np.radians(de_rlm_res.params[0]))
+
+
+sys.stderr.write("\nTheil-Sen intercepts:\n")
+sys.stderr.write("RA:   %15.7f\n" % ts_ra_model[0]) 
+sys.stderr.write("DE:   %15.7f\n" % ts_de_model[0]) 
+
+sys.stderr.write("\nTheil-Sen proper motions:\n")
+sys.stderr.write("RA:   %10.6f mas/yr\n" % ts_pmra_masyr)
+sys.stderr.write("DE:   %10.6f mas/yr\n" % ts_pmde_masyr)
+
+sys.stderr.write("\nRLM (Huber) proper motions:\n")
+sys.stderr.write("RA:   %10.6f mas/yr\n" % rlm_pmra_masyr)
+sys.stderr.write("DE:   %10.6f mas/yr\n" % rlm_pmde_masyr)
+
+sys.stderr.write("\n")
+sys.stderr.write("%s\n" % fulldiv)
+
+#spts = plt.scatter(syr, sra, c=smonth)
+#cbar = fig.colorbar(spts)
 
 ##--------------------------------------------------------------------------##
 ## Theil-Sen line-fitting (linear):
@@ -577,6 +757,8 @@ plt.gcf().clf()
 ax1 = fig.add_subplot(111)
 ax1.grid(True)
 #ax1.scatter(expt, nsrc, c=irac)
+
+sys.exit(0)
 mupdate = mu.MarkerUpdater()
 
 #cmap = plt.cm.rainbow
@@ -609,6 +791,10 @@ ax1.set_xlim(nice_limits(every_dra, pctiles=[1,99], pad=1.4))
 ax1.set_ylim(nice_limits(every_dde, pctiles=[1,99], pad=1.4))
 ax1.invert_xaxis()
 
+## Add Gaia sources:
+if context.gaia_csv:
+    ax1.plot(gm._srcdata['ra'], gm._srcdata['dec'], marker='o', color='red',
+            mfc='none', lw=0, ms=10)
 
 ## Disable axis offsets:
 #ax1.xaxis.get_major_formatter().set_useOffset(False)
