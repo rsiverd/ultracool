@@ -92,6 +92,13 @@ _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 #               "Install either astropy.io.fits or pyfits and try again!\n\n")
 #        sys.exit(1)
 
+## Fast FITS I/O:
+try:
+    import fitsio
+except ImportError:
+    logger.error("fitsio module not found!  Install and retry.")
+    sys.exit(1)
+
 ## Various from astropy:
 try:
 #    import astropy.io.ascii as aia
@@ -241,12 +248,16 @@ class ExtendedCatalog(object):
             for hdu in hdulist[1:]:
                 logging.debug("hdu.name: %s" % hdu.name)
                 if (hdu.name == _EXT['cat']):
-                    self.set_catalog(hdu.data)
+                    cln_data = self._unfitsify_recarray(hdu.data)
+                    self.set_catalog(cln_data) #.byteswap().newbyteorder())
                     self._imeta.update(self._meta_from_header(hdu.header))
                 if (hdu.name == _EXT['ihdr']):
                     self.set_header(hdu.header, which='img')
                 if (hdu.name == _EXT['uhdr']):
                     self.set_header(hdu.header, which='unc')
+        #cdata, chdrs = fitsio.read(filename, header=True, ext=_EXT['cat'])
+        #self.set_catalog(cdata)
+        #self._imeta.update(self._meta_from_header(chdrs))
         return
 
     # Structure data comparison (helps test store/load):
@@ -323,6 +334,12 @@ class ExtendedCatalog(object):
         return pf.BinTableHDU(data=self._imcat,
                 header=self._meta_to_header(), name=_EXT['cat'])
 
+    # Unpack a FITSRecord into a plain record array:
+    @staticmethod
+    def _unfitsify_recarray(fitsrec):
+        cols = fitsrec.dtype.names
+        vals = [fitsrec[x].byteswap().newbyteorder() for x in cols]
+        return np.core.records.fromarrays(vals, names=','.join(cols))
 
 ##--------------------------------------------------------------------------##
 
