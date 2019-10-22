@@ -499,13 +499,22 @@ sys.stderr.write("done. (%.3f s)\n" % (tok-tik))
 gc.collect()
 
 ## Make Gaia subset of useful objects:
-useful_ids = [kk for kk,vv in gcounter.items() if vv>0]
-#more_useful = [kk for kk,vv in gcounter.items() if vv>1]
+need_srcs = 3
+useful_ids = [kk for kk,vv in gcounter.items() if vv>need_srcs]
 use_gaia = gm._srcdata[gm._srcdata.source_id.isin(useful_ids)]
 n_useful = len(use_gaia)
 sys.stderr.write("Found possible matches to %d of %d Gaia sources.\n"
         % (n_useful, len(gm._srcdata)))
 gc.collect()
+
+## Total Gaia-detected PM in surviving object set:
+use_gaia = use_gaia.assign(pmtot=np.hypot(use_gaia.pmra, use_gaia.pmdec))
+gaia_pmsrt = use_gaia.sort_values(by='pmtot', ascending=False)
+
+#for nmin in range(100):
+#    passing = [kk for kk,vv in gcounter.items() if vv>nmin]
+#    nkept = len(passing)
+#    sys.stderr.write("Kept %d sources for nmin=%d.\n" % (nkept, nmin))
 
 ## Robust (non-double-counted) matching of Gaia sources using slimmed list:
 sys.stderr.write("Associating catalog objects with Gaia sources:\n") 
@@ -568,6 +577,13 @@ sys.stderr.write("done.\n")
 #sys.stderr.write("At this point, RAM use (MB): %.2f\n" % check_mem_usage_MB())
 
 ##--------------------------------------------------------------------------##
+## Convenient, percentile-based plot limits:
+def gaia_limits(vec, pctiles=[1,99], pad=1.2):
+    ends = np.percentile(vec[~np.isnan(vec)], pctiles)
+    middle = np.average(ends)
+    return (middle + pad * (ends - middle))
+
+##--------------------------------------------------------------------------##
 ## Plot a single set of ra/dec vs jdutc:
 def get_targ_by_n(gtargets, nn):
     which = list(gtargets.keys())[nn]
@@ -582,11 +598,33 @@ def justplot(nn):
 def plotsingle(ax, gdata):
     ax.scatter(gdata['dra'], gdata['dde'], lw=0, s=5, c=gdata['jdutc'])
 
+def plotgsource(srcid):
+    gdata = gtargets[srcid]
+    plt.clf()
+    plt.scatter(gdata['dra'], gdata['dde'], lw=0, s=35, c=gdata['jdutc'])
+    ax = plt.gca()
+    ax.set_xlim(gaia_limits(gdata['dra']))
+    ax.set_ylim(gaia_limits(gdata['dde']))
+    result = ax.invert_xaxis() if not ax.xaxis_inverted() else None
+    return
 
 def gather_by_id(gaia_srcid):
     neato_gaia = use_gaia[use_gaia.source_id == 3192149715934444800]
     neato_sptz = gtargets[gaia_srcid]
     return neato_gaia, neato_sptz
+
+lookie = [
+    3192149715934444800,
+    3192153147611258880,
+    3192147963587789184,
+    3192149715934444544,
+    3192152842669673088,
+    3192149647215037440,
+    3192149780357313920,
+    3192152911390108416,
+    3192149917795842688,
+    3192150334409729536,
+    ]
 
 ##--------------------------------------------------------------------------##
 ## GOT ONE:
