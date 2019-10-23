@@ -1,0 +1,3 @@
+
+# Spitzer scale: 1.221224 arcsec/pixel
+
