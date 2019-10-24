@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2019-09-09
-# Last modified: 2019-10-15
+# Last modified: 2019-10-24
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.2.0"
+__version__ = "0.2.5"
 
 ## Python version-agnostic module reloading:
 try:
@@ -60,6 +60,8 @@ import pandas as pd
 #import statsmodels.formula.api as smf
 #from statsmodels.regression.quantile_regression import QuantReg
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
+
+import astroscrappy
 
 ## Easy Gaia source matching:
 try:
@@ -386,6 +388,41 @@ tok = time.time()
 #sys.stderr.write("SEP star extraction time: %.3f sec\n" % (tok-tik))
 logger.info("SEP star extraction time: %.3f sec" % (tok-tik))
 
+##---------------------------------------------------------------------------##
+##---------------------------------------------------------------------------##
+## Windowed position estimates:
+sys.stderr.write("Measuring windowed X,Y positions ... ")
+tik = time.time()
+kwargs = {}
+#winsig = 2.0
+winsig = 1.5
+winsig = 1.0
+winsig = 1.2
+subpix = 0
+subpix = 11
+#kwargs['winsig'] = 1.0
+#kwargs['subpix'] = 11
+wxx, wyy, wflags = easy_sep.sep.winpos(idata, ccd_xx, ccd_yy,
+        sig=winsig, subpix=subpix)
+wxx += pix_origin
+wyy += pix_origin
+tok = time.time()
+sys.stderr.write("done. (%.3f s)\n" % (tok-tik))
+
+## Check movement:
+dx = wxx - useobjs['x']
+dy = wyy - useobjs['y']
+
+## Summary:
+typical_shift = np.median(np.hypot(dx, dy))
+sys.stderr.write("For winsig=%.1f and subpix=%d, find typical_shift: %.4f\n"
+        % (winsig, subpix, typical_shift))
+
+
+##---------------------------------------------------------------------------##
+##---------------------------------------------------------------------------##
+
+
 ### Convert to RA/Dec using WCS and add to results:
 #ccd_ra, ccd_de = imwcs.all_pix2world(ccd_xx, ccd_yy, pix_origin)
 ##ccd_ra, ccd_de = imwcs.all_pix2world(useobjs['x'], useobjs['y'], pix_origin)
@@ -394,9 +431,11 @@ logger.info("SEP star extraction time: %.3f sec" % (tok-tik))
 
 ## Encapsulate results:
 save_file = 'tmpcat.fits'
-result = ec.ExtendedCatalog(data=useobjs,
-        name=os.path.basename(context.input_image), header=ihdrs,
-        uname=os.path.basename(context.unc_image), uheader=uhdrs)
+imkw = {'name':os.path.basename(context.input_image), 'header':ihdrs}
+if _have_err_image:
+    imkw['uname'] = os.path.basename(context.unc_image)
+    imkw['uheader'] = uhdrs
+result = ec.ExtendedCatalog(data=useobjs, **imkw)
 #result.save_as_fits(save_file, overwrite=True)
 
 ## Load back and ensure match:
