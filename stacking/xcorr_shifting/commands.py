@@ -56,12 +56,6 @@ def qcorr(rowcol1, rowcol2):
         nshift -= npix
     return nshift
 
-## Collapse along rows/columns, add zero padding:
-#xsmashed = [rr/rr.max() for rr in [np.sum(im, axis=1) for im in zpdata]]
-#ysmashed = [cc/cc.max() for cc in [np.sum(im, axis=0) for im in zpdata]]
-#xsmashed = [np.pad(rr, ny) for rr in [np.sum(im, axis=1) for im in imdata]]
-#ysmashed = [np.pad(cc, nx) for cc in [np.sum(im, axis=0) for im in imdata]]
-
 ## UNPADDED cross-correlation to find pixel shifts:
 ## Sum across rows to produce average column, along columns for average row:
 xsmashed = [np.sum(im, axis=1) for im in bpmask]    # sum each row
@@ -70,22 +64,6 @@ ysmashed = [np.sum(im, axis=0) for im in bpmask]    # sum each col
 ## Cross-correlate to find pixel shifts:
 xnudges = [qcorr(ysmashed[0], rr) for rr in ysmashed]
 ynudges = [qcorr(xsmashed[0], cc) for cc in xsmashed]
-
-## PADDED cross-correlation to find pixel shifts:
-#p_xshifts = [qcorr(p_ysummed[0], rr) for rr in p_ysummed]
-#p_yshifts = [qcorr(p_xsummed[0], cc) for cc in p_xsummed]
-
-### Cross-correlate to find pixel offsets (with padding):
-#p_rowsums = [np.pad(rr, ypads) for rr in [np.sum(im, axis=1) for im in bpmask]]
-#p_colsums = [np.pad(cc, xpads) for cc in [np.sum(im, axis=0) for im in bpmask]]
-#p_xnudges = [qcorr(p_colsums[0], cc) for cc in p_colsums]
-#p_ynudges = [qcorr(p_rowsums[0], rr) for rr in p_rowsums]
-
-## Cross-correlate to find pixel offsets (with padding):
-#r_rowsums = [np.pad(rr, 0) for rr in [np.sum(im, axis=1) for im in bpmask]]
-#r_colsums = [np.pad(cc, 0) for cc in [np.sum(im, axis=0) for im in bpmask]]
-#r_xnudges = [qcorr(r_colsums[0], cc) for cc in r_colsums]
-#r_ynudges = [qcorr(r_rowsums[0], rr) for rr in r_rowsums]
 
 #sys.exit(0)
 # FIXME: should roll a NaN-padded image so stacking works properly ...
