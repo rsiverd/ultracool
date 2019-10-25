@@ -61,7 +61,7 @@ import pandas as pd
 #from statsmodels.regression.quantile_regression import QuantReg
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
-import astroscrappy
+#import astroscrappy
 
 ## Easy Gaia source matching:
 try:
@@ -418,6 +418,20 @@ typical_shift = np.median(np.hypot(dx, dy))
 sys.stderr.write("For winsig=%.1f and subpix=%d, find typical_shift: %.4f\n"
         % (winsig, subpix, typical_shift))
 
+
+##---------------------------------------------------------------------------##
+##---------------------------------------------------------------------------##
+## COSMICS!
+
+#sys.stderr.write("Attempting cosmic ray detection/removal ... ")
+#tik = time.time()
+#cr_mask, cr_cleaned = astroscrappy.detect_cosmics(idata, inmask=None,
+#        satlevel=np.inf, sepmed=False, cleantype='medmask', fsmode='median',
+#        verbose=True)
+#tok = time.time()
+#sys.stderr.write("done. (%.3f s)\n" % (tok-tik))
+#
+#sys.exit(1)
 
 ##---------------------------------------------------------------------------##
 ##---------------------------------------------------------------------------##
