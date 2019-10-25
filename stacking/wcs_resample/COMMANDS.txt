@@ -1,0 +1,29 @@
+
+./03_resample_folder.py -i ../../ucd_data/2m0415_ch1 \
+                        -o ../../ucd_data/grid_2m0415_ch1 \
+                        -R grid_2mass0415.fits.fz --random
+
+./03_resample_folder.py -i ../../ucd_data/2m0415_ch2 \
+                        -o ../../ucd_data/grid_2m0415_ch2 \
+                        -R grid_2mass0415.fits.fz --random
+
+./03_resample_folder.py -i ../../ucd_data/wise1828_ch1 \
+                        -o ../../ucd_data/grid_wise1828_ch1 \
+                        -R grid_wise1828.fits.fz --random
+
+./03_resample_folder.py -i ../../ucd_data/wise1828_ch2 \
+                        -o ../../ucd_data/grid_wise1828_ch2 \
+                        -R grid_wise1828.fits.fz --random
+
+
+medianize -r100 -c4 --itable ../../ucd_data/grid_2m0415_ch1/SPIT*fits -o median_2m0415_ch1.fits
+medianize -r100 -c4 --itable ../../ucd_data/grid_2m0415_ch2/SPIT*fits -o median_2m0415_ch2.fits
+medianize -r100 -c4 --itable ../../ucd_data/grid_wise1828_ch1/SPIT*fits -o median_wise1828_ch1.fits
+medianize -r100 -c4 --itable ../../ucd_data/grid_wise1828_ch2/SPIT*fits -o median_wise1828_ch2.fits
+rm clipped_pixels.log image_scaling.log
+
+./04_patch_wcs.sh grid_2mass0415.fits.fz median_2m0415_ch1.fits
+./04_patch_wcs.sh grid_2mass0415.fits.fz median_2m0415_ch2.fits
+./04_patch_wcs.sh  grid_wise1828.fits.fz median_wise1828_ch1.fits
+./04_patch_wcs.sh  grid_wise1828.fits.fz median_wise1828_ch2.fits
+
