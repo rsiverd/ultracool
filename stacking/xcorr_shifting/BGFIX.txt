@@ -1,0 +1,20 @@
+
+src_image="SPITZER_I2_61246976_0008_0000_1_cbcd.fits"
+cmde "skyfit --huber $src_image --oweight=\!owei.fits"
+cmde "fitsmask owei.fits --lt 0.5 -p \!ignore.fits"
+
+cmde "fitsmask $src_image -i ignore.fits -n \!masked.fits"
+#cmde "csmooth -r25 --mean -N masked.fits -o \!bg_avg_25.fits"
+cmde "csmooth -r 5 --median -N masked.fits -o \!bg_med_05.fits"
+cmde "csmooth -r15 --median -N masked.fits -o \!bg_med_15.fits"
+cmde "csmooth -r25 --median -N masked.fits -o \!bg_med_25.fits"
+#cmde "fitsperc -S nicebg.fits"
+#medval=$(imhget PIX_MED nicebg.fits)
+#cmde "fitsarith -Hi $src_image -S nicebg.fits -o \!hooray.fits"
+#cmde "ln -s bg_med_15.fits nicebg.fits"
+bgchoice="bg_med_15.fits"
+cmde "fitsarith -Hi $src_image -S $bgchoice -o \!hooray.fits"
+
+cmde "rm owei.fits ignore.fits masked.fits bg_???_??.fits" 
+#cmde "rm nicebg.fits"
+
