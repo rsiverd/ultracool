@@ -2,4 +2,6 @@
 ln -s ../datasets/I2_61246976.txt
 for item in `cat I2_61246976.txt `; do ln -s ../../../ucd_data/$item ; done
 
+python ./commands.py
+medianize rSPIT*fits -c4
 
