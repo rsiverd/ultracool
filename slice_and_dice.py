@@ -803,7 +803,7 @@ ax1 = fig.add_subplot(111)
 ax1.grid(True)
 #ax1.scatter(expt, nsrc, c=irac)
 
-sys.exit(0)
+#sys.exit(0)
 mupdate = mu.MarkerUpdater()
 
 #cmap = plt.cm.rainbow
