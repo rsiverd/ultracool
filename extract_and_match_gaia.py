@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2019-09-09
-# Last modified: 2019-10-24
+# Last modified: 2019-10-29
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.2.5"
+__version__ = "0.2.6"
 
 ## Python version-agnostic module reloading:
 try:
@@ -263,6 +263,8 @@ if __name__ == '__main__':
             help='FITS image with corresponding uncertainties', type=str)
     iogroup.add_argument('-o', '--output_file', default=None, required=False,
             help='Output filename (multi-ext FITS)', type=str)
+    iogroup.add_argument('-r', '--region_file', default=None, required=False,
+            help='save region file with detections for inspection', type=str)
     #iogroup.add_argument('-R', '--ref_image', default=None, required=True,
     #        help='KELT image with WCS')
     # ------------------------------------------------------------------
@@ -362,6 +364,7 @@ tik = time.time()
 #bright_pixels = (raw_vals >= 50000)
 #pse.set_image(raw_vals, gain=gain)
 pse.set_image(idata, gain=None)
+pse.set_mask(np.isnan(idata))
 pse.set_options(minpixels=5)
 pse.set_imwcs(imwcs.all_pix2world)
 #pse.set_mask(bright_pixels)
@@ -374,6 +377,8 @@ if _have_err_image:
 pix_origin = 1.0
 pse.set_options(pix_origin=pix_origin)
 #useobjs = pse.analyze(sigthresh=3.0)
+pse.enable_winpos(1.2)
+pse.kernel = None
 useobjs = pse.analyze(sigthresh=3.0, rel_err=_have_err_image)
 badobjs = pse.badobjs
 allobjs = pse.allobjs
@@ -418,6 +423,25 @@ typical_shift = np.median(np.hypot(dx, dy))
 sys.stderr.write("For winsig=%.1f and subpix=%d, find typical_shift: %.4f\n"
         % (winsig, subpix, typical_shift))
 
+
+## Make a region file for easy examination:
+if context.region_file:
+    rpix = 2.0
+    with open(context.region_file, 'w') as rf:
+        # 'standard' positions:
+        targets = useobjs
+        for ii,targ in enumerate(targets, 1):
+            rf.write("image; circle(%.3f, %.3f, %f) # color=green text={%s}\n"
+                    % (targ['x'], targ['y'], rpix, 'normal_%d'%ii))
+        for ii,targ in enumerate(targets, 1):
+            rf.write("image; circle(%.3f, %.3f, %f) # color=red text={%s}\n"
+                    % (targ['wx'], targ['wy'], rpix, 'window_%d'%ii))
+
+    # Viewing reminder:
+    sys.stderr.write("\n%s\n" % fulldiv) 
+    sys.stderr.write("view with:\n") 
+    sys.stderr.write("ztf -r %s %s %s\n"
+            % (context.region_file, context.input_image, context.unc_image))
 
 ##---------------------------------------------------------------------------##
 ##---------------------------------------------------------------------------##
