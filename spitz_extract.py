@@ -45,16 +45,6 @@ from collections.abc import Iterable
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
 ##--------------------------------------------------------------------------##
-## Storage structure for analysis results:
-try:
-    import extended_catalog
-    reload(extended_catalog)
-    ec = extended_catalog
-except ImportError:
-    logger.error("failed to import extended_catalog module!")
-    sys.exit(1)
-
-##--------------------------------------------------------------------------##
 
 ## Various from astropy:
 try:
@@ -66,6 +56,23 @@ try:
 except ImportError:
     logger.error("astropy module not found!  Install and retry.")
 #    sys.stderr.write("\nError: astropy module not found!\n")
+    sys.exit(1)
+
+## LACOSMIC cosmic ray removal:
+try:
+    from lacosmic import lacosmic
+except ImportError:
+    logger.error("failed to import lacosmic module!")
+    sys.exit(1)
+
+##--------------------------------------------------------------------------##
+## Storage structure for analysis results:
+try:
+    import extended_catalog
+    reload(extended_catalog)
+    ec = extended_catalog
+except ImportError:
+    logger.error("failed to import extended_catalog module!")
     sys.exit(1)
 
 ## Star extraction:
@@ -81,21 +88,30 @@ except ImportError:
 ##------------------    Spitzer Star Extraction Class       ----------------##
 ##--------------------------------------------------------------------------##
 
+_lacos_defaults = {
+                  'contrast'  :  12.0,
+              'cr_threshold'  :   5.0,
+        'neighbor_threshold'  :   4.0,
+        }
+
 _spitz_defaults = {
-             'minpixels'   :    5,
-            'pix_origin'   :  1.0,
+                'minpixels'   :     5,
+               'pix_origin'   :   1.0,
+                'win_sigma'   :   1.2,
+                'calc_wpos'   :  True,
         }
 
 class SpitzFind(object):
 
     def __init__(self):
         self._pse = easy_sep.EasySEP()
-        self._pse.set_options(**_spitz_defaults)
+        self._pse.set_options_test(**_spitz_defaults)
         # science image:
         self._ipath = None
         self._idata = None
         self._ihdrs = None
         self._imwcs = None
+        self._cdata = None      # optional cleaned image
         # uncertainty image:
         self._upath = None
         self._udata = None
@@ -104,7 +120,8 @@ class SpitzFind(object):
         return
 
     def set_pse_options(self, **kwargs):
-        return self._pse.set_options(**kwargs)
+        return self._pse.set_options_test(**kwargs)
+        #return self._pse.set_options(**kwargs)
 
     # ----------------------------------------
 
@@ -119,6 +136,7 @@ class SpitzFind(object):
             try:
                 self._idata, self._ihdrs = self._get_data_and_header(ipath)
                 self._pse.set_image(self._idata, _docopy=False)
+                self._pse.set_mask(np.isnan(self._idata))
                 self._imwcs = awcs.WCS(self._ihdrs)
                 self._pse.set_imwcs(self._imwcs.all_pix2world)
                 self._ipath = ipath
