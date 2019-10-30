@@ -63,6 +63,13 @@ _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
 #import astroscrappy
 
+## LACOSMIC cosmic ray removal:
+try:
+    from lacosmic import lacosmic
+except ImportError:
+    logger.error("failed to import lacosmic module!")
+    sys.exit(1)
+
 ## Easy Gaia source matching:
 try:
     import gaia_match
