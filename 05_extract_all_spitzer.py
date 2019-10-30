@@ -36,7 +36,7 @@ import argparse
 #import shutil
 #import resource
 #import signal
-#import glob
+import glob
 #import gc
 import os
 import sys
@@ -63,6 +63,16 @@ _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 #with warnings.catch_warnings():
 #    warnings.filterwarnings("ignore", category=DeprecationWarning)
 #    import problem_child1, problem_child2
+
+##--------------------------------------------------------------------------##
+## Spitzer star detection routine:
+try:
+    import spitz_extract
+    reload(spitz_extract)
+    spf = spitz_extract.SpitzFind()
+except ImportError:
+    logger.error("spitz_extract module not found!")
+    sys.exit(1)
 
 ##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
@@ -120,6 +130,10 @@ sys.stderr = Unbuffered(sys.stderr)
 ##------------------         Parse Command Line             ----------------##
 ##--------------------------------------------------------------------------##
 
+## Dividers:
+halfdiv = '-' * 40
+fulldiv = '-' * 80
+
 ## Parse arguments and run script:
 class MyParser(argparse.ArgumentParser):
     def error(self, message):
@@ -145,26 +159,24 @@ if __name__ == '__main__':
     parser = MyParser(prog=prog_name, description=descr_txt)
                           #formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
-    #parser.set_defaults(thing1='value1', thing2='value2')
+    parser.set_defaults(imtype='cbcd') #'clean')
+    parser.set_defaults(sigthresh=3.0)
     # ------------------------------------------------------------------
     #parser.add_argument('firstpos', help='first positional argument')
-    parser.add_argument('-w', '--whatever', required=False, default=5.0,
-            help='some option with default [def: %(default)s]', type=float)
-    parser.add_argument('-s', '--site',
-            help='Site to retrieve data for', required=True)
-    parser.add_argument('-n', '--number_of_days', default=1,
-            help='Number of days of data to retrieve.')
-    parser.add_argument('-o', '--output_file', 
-            default='observations.csv', help='Output filename.')
-    parser.add_argument('-s', '--site', nargs=1, required=False,
-            help='Site to make URL for', choices=all_sites, default=all_sites)
+    #parser.add_argument('-w', '--whatever', required=False, default=5.0,
+    #        help='some option with default [def: %(default)s]', type=float)
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
-    #iogroup = parser.add_argument_group('File I/O')
+    iogroup = parser.add_argument_group('File I/O')
     iogroup.add_argument('-I', '--input_folder', default=None, required=True,
             help='where to find input images', type=str)
     iogroup.add_argument('-O', '--output_folder', default=None, required=True,
             help='where to save extended catalog outputs', type=str)
+    imtype = iogroup.add_mutually_exclusive_group()
+    imtype.add_argument('--cbcd', required=False, action='store_const',
+            dest='imtype', const='cbcd', help='use cbcd images')
+    imtype.add_argument('--clean', required=False, action='store_const',
+            dest='imtype', const='clean', help='use clean images')
     #iogroup.add_argument('-R', '--ref_image', default=None, required=True,
     #        help='KELT image with WCS')
     # ------------------------------------------------------------------
@@ -184,9 +196,78 @@ if __name__ == '__main__':
     context.prog_name = prog_name
 
 ##--------------------------------------------------------------------------##
+##------------------         Make Input Image List          ----------------##
+##--------------------------------------------------------------------------##
+
+sys.stderr.write("Listing %s frames ... " % context.imtype) 
+im_wildpath = 'SPITZ*%s.fits' % context.imtype
+#im_wildcard = os.path.join(context.input_folder, 'SPIT*'
+#_img_types = ['cbcd', 'clean', 'cbunc']
+#_type_suff = dict([(x, x+'.fits') for x in _im_types])
+#img_list = {}
+#for imsuff in suffixes:
+#    wpath = '%s/SPITZ*%s.fits' % (context.input_folder, imsuff)
+#    img_list[imsuff] = sorted(glob.glob(os.path.join(context.
+img_files = sorted(glob.glob(os.path.join(context.input_folder, im_wildpath)))
+sys.stderr.write("done.\n")
+
+## List of uncertainty frames (warn if any missing):
+#unc_files = [x.replace(context.imtype, 'cbunc') for x in img_files]
+#sys.stderr.write("Checking error-images ... ") 
+#have_unc = [os.path.isfile(x) for x in unc_files]
+#if not all(have_unc):
+#    sys.stderr.write("WARNING: some uncertainty frames missing!\n")
+#else:
+#    sys.stderr.write("done.\n") 
 
 ##--------------------------------------------------------------------------##
-## New-style string formatting (more at https://pyformat.info/):
+##------------------         Make Output File List          ----------------##
+##--------------------------------------------------------------------------##
+
+## Assemble path:
+#cat_list =
+## Check for existing output frames:
+#sys.stderr.write("Checking for existing output ... ")
+#cat_list = 
+
+##--------------------------------------------------------------------------##
+##------------------           Process All Images           ----------------##
+##--------------------------------------------------------------------------##
+
+ntotal = len(img_files)
+#for ii,(ipath,upath) in enumerate(zip(img_list, unc_list), 1):
+#    sys.stderr.write("\rImage %d of %d ... \n" % (ii, ntotal))
+
+ntodo = 0
+nproc = 0
+for ii,img_ipath in enumerate(img_files, 1):
+    sys.stderr.write("%s\n" % fulldiv)
+    unc_ipath = img_ipath.replace(context.imtype, 'cbunc')
+    if not os.path.isfile(unc_ipath):
+        sys.stderr.write("WARNING: file not found:\n--> %s\n" % unc_ipath)
+        continue
+    img_ibase = os.path.basename(img_ipath)
+    cat_ibase = img_ibase.replace(context.imtype, 'fcat')
+    cat_ipath = os.path.join(context.output_folder, cat_ibase)
+    sys.stderr.write("Catalog %s ... " % cat_ipath)
+    if os.path.isfile(cat_ipath):
+        sys.stderr.write("exists!  Skipping ... \n")
+        continue
+    nproc += 1
+    sys.stderr.write("not found ... creating ...\n")
+    spf.use_images(ipath=img_ipath, upath=unc_ipath)
+    result = spf.find_stars(context.sigthresh)
+    result.save_as_fits(cat_ipath, overwrite=True)
+    if (ntodo > 0) and (nproc >= ntodo):
+        break
+
+
+
+##--------------------------------------------------------------------------##
+## Process images in order:
+
+##--------------------------------------------------------------------------##
+## Process images in order:
 ##--------------------------------------------------------------------------##
 ## Quick ASCII I/O:
 #data_file = 'data.txt'
