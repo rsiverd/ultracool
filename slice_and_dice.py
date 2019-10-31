@@ -463,8 +463,10 @@ jdutc = timestamp.jd
 
 ##--------------------------------------------------------------------------##
 ## Concatenated list of RA/Dec coordinates:
-every_dra = np.concatenate([x._imcat['dra'] for x in cdata])
-every_dde = np.concatenate([x._imcat['dde'] for x in cdata])
+_ra_key, _de_key =  'dra',  'dde'
+#_ra_key, _de_key = 'wdra', 'wdde'
+every_dra = np.concatenate([x._imcat[_ra_key] for x in cdata])
+every_dde = np.concatenate([x._imcat[_de_key] for x in cdata])
 every_jdutc = np.concatenate([n*[jd] for n,jd in zip(n_sources, jdutc)])   
 gc.collect()
 
@@ -531,7 +533,8 @@ for ci,extcat in enumerate(cdata, 1):
     for gi,(gix, gsrc) in enumerate(use_gaia.iterrows(), 1):
         #sys.stderr.write("Checking Gaia source %d of %d ... " % (gi, n_useful))
         sep_sec = 3600.0 * angle.dAngSep(gsrc.ra, gsrc.dec, 
-                                    ccat['dra'], ccat['dde'])
+                                    ccat[_ra_key], ccat[_de_key])
+                                    #ccat['dra'], ccat['dde'])
         matches = sep_sec <= toler_sec
         nhits = np.sum(matches)
         if (nhits == 0):
@@ -542,7 +545,8 @@ for ci,extcat in enumerate(cdata, 1):
             hit_sep = sep_sec[matches]
             hit_cat = ccat[matches]
             sepcheck = 3600.0 * angle.dAngSep(gsrc.ra, gsrc.dec, 
-                    hit_cat['dra'], hit_cat['dde'])
+                    hit_cat[_ra_key], hit_cat[_de_key])
+                    #hit_cat['dra'], hit_cat['dde'])
             #sys.stderr.write("sepcheck: %.4f\n" % sepcheck)
             nearest = hit_sep.argmin()
             m_info = {}
@@ -592,19 +596,19 @@ def get_targ_by_n(gtargets, nn):
 def justplot(nn):
     gdata = get_targ_by_n(gtargets, nn)
     plt.clf()
-    plt.scatter(gdata['dra'], gdata['dde'], lw=0, s=5, c=gdata['jdutc'])
+    plt.scatter(gdata[_ra_key], gdata[_de_key], lw=0, s=5, c=gdata['jdutc'])
     return
 
 def plotsingle(ax, gdata):
-    ax.scatter(gdata['dra'], gdata['dde'], lw=0, s=5, c=gdata['jdutc'])
+    ax.scatter(gdata[_ra_key], gdata[_de_key], lw=0, s=5, c=gdata['jdutc'])
 
 def plotgsource(srcid):
     gdata = gtargets[srcid]
     plt.clf()
-    plt.scatter(gdata['dra'], gdata['dde'], lw=0, s=35, c=gdata['jdutc'])
+    plt.scatter(gdata[_ra_key], gdata[_de_key], lw=0, s=35, c=gdata['jdutc'])
     ax = plt.gca()
-    ax.set_xlim(gaia_limits(gdata['dra']))
-    ax.set_ylim(gaia_limits(gdata['dde']))
+    ax.set_xlim(gaia_limits(gdata[_ra_key]))
+    ax.set_ylim(gaia_limits(gdata[_de_key]))
     result = ax.invert_xaxis() if not ax.xaxis_inverted() else None
     return
 
@@ -640,7 +644,7 @@ sys.stderr.write("pmRA:     %10.4f +/- %8.4f\n"
 sys.stderr.write("pmDE:     %10.4f +/- %8.4f\n"
         % (gneat.pmdec, gneat.pmdec_error))
 
-sjd, sra, sde = sneat['jdutc'], sneat['dra'], sneat['dde']
+sjd, sra, sde = sneat['jdutc'], sneat[_ra_key], sneat[_de_key]
 syr = 2000.0 + ((sjd - 2451544.5) / 365.25)
 smonth = (syr % 1.0) * 12.0
 
