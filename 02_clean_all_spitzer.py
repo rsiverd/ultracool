@@ -34,6 +34,7 @@ except NameError:
 ## Modules:
 import argparse
 #import shutil
+import random
 #import resource
 #import signal
 import glob
@@ -75,41 +76,6 @@ sys.stdout = Unbuffered(sys.stdout)
 sys.stderr = Unbuffered(sys.stderr)
 
 ##--------------------------------------------------------------------------##
-
-#unlimited = (resource.RLIM_INFINITY, resource.RLIM_INFINITY)
-#if (resource.getrlimit(resource.RLIMIT_DATA) == unlimited):
-#    resource.setrlimit(resource.RLIMIT_DATA,  (3e9, 6e9))
-#if (resource.getrlimit(resource.RLIMIT_AS) == unlimited):
-#    resource.setrlimit(resource.RLIMIT_AS, (3e9, 6e9))
-
-## Memory management:
-#def get_memory():
-#    with open('/proc/meminfo', 'r') as mem:
-#        free_memory = 0
-#        for i in mem:
-#            sline = i.split()
-#            if str(sline[0]) in ('MemFree:', 'Buffers:', 'Cached:'):
-#                free_memory += int(sline[1])
-#    return free_memory
-#
-#def memory_limit():
-#    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
-#    resource.setrlimit(resource.RLIMIT_AS, (get_memory() * 1024 / 2, hard))
-
-### Measure memory used so far:
-#def check_mem_usage_MB():
-#    max_kb_used = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-#    return max_kb_used / 1000.0
-
-##--------------------------------------------------------------------------##
-
-## Fast FITS I/O:
-#try:
-#    import fitsio
-#except ImportError:
-#    logger.error("fitsio module not found!  Install and retry.")
-#    sys.stderr.write("\nError: fitsio module not found!\n")
-#    sys.exit(1)
 
 ## Various from astropy:
 try:
@@ -189,27 +155,6 @@ def qsave(iname, idata, header=None, padkeys=1000, **kwargs):
     sys.stderr.write("done.\n")
 
 ##--------------------------------------------------------------------------##
-## Save FITS image with clobber (fitsio):
-#def qsave(iname, idata, header=None, **kwargs):
-#    this_func = sys._getframe().f_code.co_name
-#    parent_func = sys._getframe(1).f_code.co_name
-#    sys.stderr.write("Writing to '%s' ... " % iname)
-#    #if os.path.isfile(iname):
-#    #    os.remove(iname)
-#    fitsio.write(iname, idata, clobber=True, header=header, **kwargs)
-#    sys.stderr.write("done.\n")
-
-##--------------------------------------------------------------------------##
-def ldmap(things):
-    return dict(zip(things, range(len(things))))
-
-def argnear(vec, val):
-    return (np.abs(vec - val)).argmin()
-
-
-
-
-##--------------------------------------------------------------------------##
 ##------------------         Parse Command Line             ----------------##
 ##--------------------------------------------------------------------------##
 
@@ -250,6 +195,8 @@ if __name__ == '__main__':
     iogroup = parser.add_argument_group('File I/O')
     iogroup.add_argument('-I', '--image_folder', default=None, required=True,
             help='where to find CBCD images', type=str)
+    iogroup.add_argument('-r', '--random', default=False, action='store_true',
+            help='randomize image processing order', required=False)
     #iogroup.add_argument('-R', '--ref_image', default=None, required=True,
     #        help='KELT image with WCS')
     # ------------------------------------------------------------------
@@ -272,7 +219,8 @@ if __name__ == '__main__':
 ## Get list of CBCD files:
 im_wildpath = '%s/SPITZ*_cbcd.fits' % context.image_folder
 cbcd_files = sorted(glob.glob(im_wildpath))
-
+if context.random:
+    random.shuffle(cbcd_files)
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
@@ -286,12 +234,12 @@ def fresh_cr_args():
 ntodo = 0
 nproc = 0
 total = len(cbcd_files)
-for img_ipath in cbcd_files:
+for ii,img_ipath in enumerate(cbcd_files, 1):
     #sys.stderr.write("%s\n" % fulldiv)
     unc_ipath = img_ipath.replace('cbcd', 'cbunc')
     cln_ipath = img_ipath.replace('cbcd', 'clean')
     msk_ipath = img_ipath.replace('cbcd', 'crmsk')
-    sys.stderr.write("\rFile %s ... " % cln_ipath) 
+    sys.stderr.write("\rFile %s (%d of %d) ... " % (cln_ipath, ii, total))
     done_list = [cln_ipath, msk_ipath]
     if all([os.path.isfile(x) for x in done_list]):
         sys.stderr.write("already done!   ")
