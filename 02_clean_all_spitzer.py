@@ -53,6 +53,13 @@ import numpy as np
 #import itertools as itt
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
+## LACOSMIC cosmic ray removal:
+try:
+    from lacosmic import lacosmic
+except ImportError:
+    logger.error("failed to import lacosmic module!")
+    sys.exit(1)
+
 ##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
 class Unbuffered(object):
@@ -269,21 +276,47 @@ cbcd_files = sorted(glob.glob(im_wildpath))
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
+## LA Cosmic config:
+def fresh_cr_args():
+    return {'contrast': 12.0,
+            'cr_threshold':6.0,
+            'neighbor_threshold':4.0,}
+
 ## Clean up each image:
-ntodo = 10
+ntodo = 100
 nproc = 0
 total = len(cbcd_files)
 for img_ipath in cbcd_files:
-    sys.stderr.write("%s\n" % fulldiv)
-    idata, ihdrs = pf.getdata(img_ipath, header=True)
+    #sys.stderr.write("%s\n" % fulldiv)
     unc_ipath = img_ipath.replace('cbcd', 'cbunc')
     cln_ipath = img_ipath.replace('cbcd', 'clean')
+    msk_ipath = img_ipath.replace('cbcd', 'crmsk')
     sys.stderr.write("\rFile %s ... " % cln_ipath) 
-    if os.path.isfile(cln_ipath):
-        sys.stderr.write("exists!   ")
+    done_list = [cln_ipath, msk_ipath]
+    if all([os.path.isfile(x) for x in done_list]):
+        sys.stderr.write("already done!   ")
         continue
-    sys.stderr.write("creating ... \n")
+    sys.stderr.write("not found, processing ... \n")
     nproc += 1
+
+    # load data:
+    idata, ihdrs = pf.getdata(img_ipath, header=True)
+    udata, uhdrs = pf.getdata(unc_ipath, header=True)
+
+    # CR removal:
+    lakw = fresh_cr_args()
+    lakw['mask'] = np.isnan(idata)
+    lakw['error'] = udata
+    sys.stderr.write("Running LACOSMIC ... ")
+    tik = time.time()
+    cleaned, cr_mask = lacosmic(idata, **lakw)
+    tok = time.time()
+    sys.stderr.write("done. (%.3f s)\n" % (tok-tik))
+    
+    # save results:
+    qsave(cln_ipath, cleaned, header=ihdrs)
+    qsave(msk_ipath, cr_mask.astype('uint8'), header=ihdrs)
+    sys.stderr.write("%s\n" % fulldiv)
 
     if (ntodo > 0) and (nproc >= ntodo):
         break
