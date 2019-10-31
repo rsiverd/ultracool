@@ -36,7 +36,7 @@ import argparse
 #import shutil
 import random
 #import resource
-#import signal
+import signal
 import glob
 #import gc
 import os
@@ -134,11 +134,11 @@ fulldiv = '-' * 80
 
 ##--------------------------------------------------------------------------##
 ## Catch interruption cleanly:
-#def signal_handler(signum, frame):
-#    sys.stderr.write("\nInterrupted!\n\n")
-#    sys.exit(1)
-#
-#signal.signal(signal.SIGINT, signal_handler)
+def signal_handler(signum, frame):
+    sys.stderr.write("\nInterrupted!\n\n")
+    sys.exit(1)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 ##--------------------------------------------------------------------------##
 ## Save FITS image with clobber (astropy / pyfits):
