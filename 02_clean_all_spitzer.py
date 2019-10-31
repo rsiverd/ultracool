@@ -283,7 +283,7 @@ def fresh_cr_args():
             'neighbor_threshold':4.0,}
 
 ## Clean up each image:
-ntodo = 100
+ntodo = 0
 nproc = 0
 total = len(cbcd_files)
 for img_ipath in cbcd_files:
