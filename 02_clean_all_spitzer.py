@@ -220,7 +220,7 @@ if __name__ == '__main__':
 im_wildpath = '%s/SPITZ*_cbcd.fits' % context.image_folder
 cbcd_files = sorted(glob.glob(im_wildpath))
 if context.random:
-    random.shuffle(cbcd_files)
+    random.shuffle(cbcd_files)  # for parallel operation
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
