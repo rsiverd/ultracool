@@ -109,13 +109,17 @@ class SpitzFind(object):
         # science image:
         self._ipath = None
         self._idata = None
+        #self._imask = None
         self._ihdrs = None
         self._imwcs = None
-        self._cdata = None      # optional cleaned image
+        # cosmic ray cleaning:
+        self._cdata = None
+        self._cmask = None
         # uncertainty image:
         self._upath = None
         self._udata = None
         self._uhdrs = None
+        self._confirmed = False
         self._have_err_image = False
         return
 
@@ -130,16 +134,19 @@ class SpitzFind(object):
         ipath   --  path to image for analysis
         upath   --  path to uncertainty image
         """
+        #self._confirmed = False
+
         # data image:
         if ipath:
             logger.info("Loading data image %s" % ipath)
             try:
                 self._idata, self._ihdrs = self._get_data_and_header(ipath)
-                self._pse.set_image(self._idata, _docopy=False)
-                self._pse.set_mask(np.isnan(self._idata))
+                self._imask = np.isnan(self._idata)
                 self._imwcs = awcs.WCS(self._ihdrs)
-                self._pse.set_imwcs(self._imwcs.all_pix2world)
                 self._ipath = ipath
+                self._pse.set_image(self._idata, _docopy=False)
+                self._pse.set_mask(self._imask)
+                self._pse.set_imwcs(self._imwcs.all_pix2world)
             except:
                 logger.error("Failed to load file: %s" % ipath)
                 self._ipath, self._idata, self._ihdrs = None, None, None
@@ -149,15 +156,36 @@ class SpitzFind(object):
             logger.info("Loading error image %s" % upath)
             try:
                 self._udata, self._uhdrs = self._get_data_and_header(upath)
+                self._upath = upath
                 self._have_err_image = True
                 self._pse.set_errs(self._udata, _docopy=False)
-                self._upath = upath
             except:
                 logger.error("Failed to load file: %s" % ipath)
                 self._upath, self._udata, self._uhdrs = None, None, None
                 self._have_err_image = False
         return
 
+    # remove cosmic rays:
+    def remove_cosmics(self):
+        sys.stderr.write("Removing cosmic rays ... ")
+        lakw = {}
+        lakw.update(_lacos_defaults)
+        lakw['mask'] = self._imask
+        if self._have_err_image:
+            lakw['error'] = self._udata
+        self._cdata, self._cmask = lacosmic(self._idata, **lakw)
+        self._pse.img_data = self._cdata    # swap in 
+        #self._pse.set_image(self._cdata, _docopy=False)
+        sys.stderr.write("done.\n")
+        return
+
+    # confirm choices to prepare for PSE:
+    #def confirm(self):
+    #    self._pse.set_image(self._idata, _docopy=False)
+    #    self._pse.set_mask(self._imask)
+    #    self._pse.set_imwcs(self._imwcs.all_pix2world)
+    #    if self._have_err_image:
+    #        self._pse.set_errs(self._udata, _docopy=False)
 
     @staticmethod
     def _get_data_and_header(filename):
