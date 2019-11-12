@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2019-10-16
-# Last modified: 2019-10-21
+# Last modified: 2019-10-31
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 ## Optional matplotlib control:
 #from matplotlib import use, rc, rcParams
@@ -460,6 +460,9 @@ n_sources = np.array([len(x.get_catalog()) for x in cdata])
 timestamp = astt.Time([x.get_header()['DATE_OBS'] for x in cdata],
         format='isot', scale='utc')
 jdutc = timestamp.jd
+#jdutc = ['%.6f'%x for x in timestamp.jd]
+jd2im = {kk:vv for kk,vv in zip(jdutc, cbcd_name)}
+im2jd = {kk:vv for kk,vv in zip(cbcd_name, jdutc)}
 
 ##--------------------------------------------------------------------------##
 ## Concatenated list of RA/Dec coordinates:
@@ -468,6 +471,7 @@ _ra_key, _de_key =  'dra',  'dde'
 every_dra = np.concatenate([x._imcat[_ra_key] for x in cdata])
 every_dde = np.concatenate([x._imcat[_de_key] for x in cdata])
 every_jdutc = np.concatenate([n*[jd] for n,jd in zip(n_sources, jdutc)])   
+#every_jdutc = np.float_(every_jdutc)
 gc.collect()
 
 ##--------------------------------------------------------------------------##
@@ -529,7 +533,7 @@ for ci,extcat in enumerate(cdata, 1):
     #ccat = extcat._imcat
     ccat = extcat.get_catalog()
     #cat_jd = jdutc[ci]
-    jd_info = {'jd':jdutc[ci-1]}
+    jd_info = {'jd':jdutc[ci-1], 'iname':extcat.get_imname()}
     for gi,(gix, gsrc) in enumerate(use_gaia.iterrows(), 1):
         #sys.stderr.write("Checking Gaia source %d of %d ... " % (gi, n_useful))
         sep_sec = 3600.0 * angle.dAngSep(gsrc.ra, gsrc.dec, 
@@ -575,10 +579,15 @@ for ii,gid in enumerate(gmatches.keys(), 1):
     sys.stderr.write("\rGathering gaia source %d of %d ..." % (ii, n_useful))
     derp = np.vstack([x['cat'] for x in gmatches[gid]])
     jtmp = np.array([x['jd'] for x in gmatches[gid]])
-    derp = append_fields(derp, 'jdutc', jtmp, usemask=False)
+    itmp = np.array([x['iname'] for x in gmatches[gid]])
+    derp = append_fields(derp, ('jdutc', 'iname'), (jtmp, itmp), usemask=False)
     gtargets[gid] = derp
 sys.stderr.write("done.\n")
 #sys.stderr.write("At this point, RAM use (MB): %.2f\n" % check_mem_usage_MB())
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
 
 ##--------------------------------------------------------------------------##
 ## Convenient, percentile-based plot limits:
@@ -613,7 +622,7 @@ def plotgsource(srcid):
     return
 
 def gather_by_id(gaia_srcid):
-    neato_gaia = use_gaia[use_gaia.source_id == 3192149715934444800]
+    neato_gaia = use_gaia[use_gaia.source_id == gaia_srcid]
     neato_sptz = gtargets[gaia_srcid]
     return neato_gaia, neato_sptz
 
@@ -692,26 +701,60 @@ sys.stderr.write("NOTE TO SELF: Gaia pmRA includes cos(dec)!\n")
 #cbar = fig.colorbar(spts)
 
 ##--------------------------------------------------------------------------##
-## Theil-Sen line-fitting (linear):
-#model = ts.linefit(xvals, yvals)
-#icept, slope = ts.linefit(xvals, yvals)
+##------------------         WCS Quality Evaluation         ----------------##
+##--------------------------------------------------------------------------##
 
-## Theil-Sen line-fitting (loglog):
-#xvals, yvals = np.log10(original_xvals), np.log10(original_yvals)
-#xvals, yvals = np.log10(df['x'].values), np.log10(df['y'].values)
-#llmodel = ts.linefit(np.log10(xvals), np.log10(yvals))
-#icept, slope = ts.linefit(xvals, yvals)
-#fit_exponent = slope
-#fit_multiplier = 10**icept
-#bestfit_x = np.arange(5000)
-#bestfit_y = fit_multiplier * bestfit_x**fit_exponent
+matched_gaia_ids = [x for x in gmatches.keys()]
+eg_gid = 3192153353769693568
+something = gtargets[eg_gid]
 
-## Log-log evaluator:
-#def loglog_eval(xvals, model):
-#    icept, slope = model
-#    return 10**icept * xvals**slope
-#def loglog_eval(xvals, icept, slope):
-#    return 10**icept * xvals**slope
+def calc_objseps(gid):
+    _gaia, _spit = gather_by_id(eg_gid)
+    _gra, _gde = _gaia.ra.data, _gaia.dec.data
+    _gcoords = _gaia.ra.data, _gaia.dec.data
+    raw_arcsep = 3.6e3 * angle.dAngSep(*_gcoords, _spit[ 'dra'], _spit[ 'dde'])
+    win_arcsep = 3.6e3 * angle.dAngSep(*_gcoords, _spit['wdra'], _spit['wdde'])
+    return {'raw':raw_arcsep, 'win':win_arcsep}
+
+#sep_by_jd = {x:[] for x in jdutc}
+sep_by_im = {x:[] for x in cbcd_name}
+#for gid in [eg_gid]:
+for gid in matched_gaia_ids:
+    _gaia, _spit = gather_by_id(gid)
+    _gra, _gde = _gaia.ra.data, _gaia.dec.data
+    _gcoords = _gaia.ra.data, _gaia.dec.data
+    raw_arcsep = 3.6e3 * angle.dAngSep(*_gcoords, _spit[ 'dra'], _spit[ 'dde'])
+    win_arcsep = 3.6e3 * angle.dAngSep(*_gcoords, _spit['wdra'], _spit['wdde'])
+    #for jj,rsep,wsep in zip(_spit['jdutc'], raw_arcsep, win_arcsep):
+    #    sep_by_jd[jj].append((gid, rsep, wsep))
+    for im,rsep,wsep in zip(_spit['iname'], raw_arcsep, win_arcsep):
+        sep_by_im[im].append((gid, rsep, wsep))
+
+#sep_by_jd = {kk:vv for kk,vv in sep_by_jd.items() if len(vv)>1} # drop empty
+sep_by_im = {kk:vv for kk,vv in sep_by_im.items() if len(vv)>1} # drop empty
+
+## Analyze scatter:
+#coo_errs = {}
+coo_errs = []
+for ii,(kk, vv) in enumerate(sep_by_im.items()):
+    combo = np.array(vv)
+    _, avg_raw_err, avg_win_err = np.average(combo, axis=0)
+    _, med_raw_err, med_win_err = np.median(combo, axis=0)
+    coo_errs.append((ii, kk, im2jd[kk],
+        avg_raw_err, med_raw_err, avg_win_err, med_win_err))
+#coo_errs = np.array(coo_errs)
+coo_test = np.core.records.fromarrays(zip(*coo_errs),
+        names='idx,iname,jdutc,ravg,rmed,wavg,wmed')
+#[jd2im[x] for x in sep_by_jd.keys()]
+
+plt.clf()
+for col in ['ravg','rmed','wmed']: #'wavg'
+    plt.scatter(coo_test['idx'], coo_test[col], lw=0, s=40, label=col)
+plt.legend(loc='best')
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
 
 ##--------------------------------------------------------------------------##
 ## Misc:
