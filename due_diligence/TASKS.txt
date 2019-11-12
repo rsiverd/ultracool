@@ -1,0 +1,5 @@
+The following things ought to be checked before committing to a data
+extraction method for this project:
+--> Within each extracted catalog, how much do windowed/non positions differ?
+--> Do SEP positions differ significantly from what SExtractor produces?
+
