@@ -358,6 +358,7 @@ for image in ${img_list[*]}; do
    # stop early if requested:
    [ $ntodo -gt 0 ] && [ $nproc -ge $ntodo ] && break
 done
+echo
 
 Gecho "Images processed, script complete!\n"
 
