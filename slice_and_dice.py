@@ -428,27 +428,31 @@ cat_files = read_column(context.cat_list)
 
 ## Load those catalogs:
 tik = time.time()
-cdata = []
+cdata_all = []
 total = len(cat_files)
 for ii,fname in enumerate(cat_files, 1):
     sys.stderr.write("\rLoading catalog %d of %d ... " % (ii, total))
     ccc = ec.ExtendedCatalog()
     ccc.load_from_fits(fname)
-    cdata.append(ccc)
+    cdata_all.append(ccc)
 tok = time.time()
 sys.stderr.write("done. Took %.3f seconds.\n" % (tok-tik))
 
-summary = []
-for ccc in cdata:
-    imname = ccc.get_imname()
-    irchan = irac_channel_from_filename(imname)
-    imbase = os.path.basename(imname)
-    tmphdr = ccc.get_header()
-    expsec = tmphdr['EXPTIME']
-    expsec = ccc.get_header()['EXPTIME']
-    obdate = ccc.get_header()
-    nfound = len(ccc.get_catalog())
-    summary.append((imname, irchan, expsec, nfound))
+cdata = [x for x in cdata_all]  # everything
+cdata = [x for x in cdata_all if (x.get_header()['AP_ORDER'] > 3)]
+
+#summary = []
+#for ccc in cdata:
+#    imname = ccc.get_imname()
+#    irchan = irac_channel_from_filename(imname)
+#    imbase = os.path.basename(imname)
+#    tmphdr = ccc.get_header()
+#    expsec = tmphdr['EXPTIME']
+#    #expsec = ccc.get_header()['EXPTIME']
+#    #obdate = ccc.get_header()
+#    porder = tmphdr['AP_ORDER']
+#    nfound = len(ccc.get_catalog())
+#    summary.append((imname, irchan, expsec, nfound, porder))
 
 #cbcd, irac, expt, nsrc = zip(*summary)
 
@@ -457,6 +461,7 @@ cbcd_name = [x.get_imname() for x in cdata]
 irac_band = np.array([irac_channel_from_filename(x) for x in cbcd_name])
 expo_time = np.array([x.get_header()['EXPTIME'] for x in cdata])
 n_sources = np.array([len(x.get_catalog()) for x in cdata])
+sip_order = np.array([x.get_header()['AP_ORDER'] for x in cdata])
 timestamp = astt.Time([x.get_header()['DATE_OBS'] for x in cdata],
         format='isot', scale='utc')
 jdutc = timestamp.jd
@@ -705,8 +710,8 @@ sys.stderr.write("NOTE TO SELF: Gaia pmRA includes cos(dec)!\n")
 ##--------------------------------------------------------------------------##
 
 matched_gaia_ids = [x for x in gmatches.keys()]
-eg_gid = 3192153353769693568
-something = gtargets[eg_gid]
+#eg_gid = 3192153353769693568
+#something = gtargets[eg_gid]
 
 def calc_objseps(gid):
     _gaia, _spit = gather_by_id(eg_gid)
