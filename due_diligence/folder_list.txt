@@ -1,0 +1,11 @@
+
+# Original data, SExtractor results:
+/bigraid/rsiverd/ucd_scat_orig
+
+# Cosmic rays removed, SExtractor results:
+/bigraid/rsiverd/ucd_scat_ccln
+
+# Original data, SEP extracted results:
+/bigraid/rsiverd/ucd_fcat
+
+
