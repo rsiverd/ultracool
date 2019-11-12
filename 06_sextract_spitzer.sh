@@ -20,8 +20,12 @@ this_prog="${0##*/}"
 
 ## Program options:
 #save_file=""
-#shuffle=0
-#confirmed=0
+ntodo=0
+shuffle=0
+confirmed=0
+image_type=""
+src_folder=""
+dst_folder=""
 
 ## Standard scratch files/dirs:
 tmp_name="$(date +%Y%m%d.%H%M%S).$$.$(whoami)"
@@ -69,14 +73,22 @@ eval "$(FuncDef $fd_args)"  || exit $?
 usage () {
    cat << EOH
 
-Usage: $this_prog [options] FILE(S)
-SCRIPT DESCRIPTION GOES HERE.
+Usage: $this_prog [options] --START <flavor> <folders>
+Extract all Spitzer images using standard SExtractor.
 Version: $script_version
 
 Program options:
-    -c, --clobber       allow overwrite of output file
-    -o, --output=FILE   send output to FILE
+    -c, --clobber       allow overwrite of output files
+    -n, --ntodo=NUM     stop after processing NUM images [def: all]
     -r, --random        randomize processing order (for parallel operation)
+
+Input/output folders (REQUIRED):
+    -I, --srcdir=SRC    look for input data in SRC
+    -O, --dstdir=DST    save output catalogs in DST
+
+Data flavor (REQUIRED):  
+        --original      use original images
+        --cosclean      use 'clean' images with cosmics removed
 
 Other options:
         --deps          return list of required programs (for parent script)
@@ -89,12 +101,13 @@ EOH
 #        --debug         extra verbosity to assist bug hunting
 #    -f, --force         force redo of whatever this script does
 #    -f, --force         allow clobbering of output file
+#    -o, --output=FILE   send output to FILE
 }
 
 ##--------------------------------------------------------------------------##
 ## Parse command line with getopt (reorders and stores CL args):
-s_opts="co:rhqtv" # f
-l_opts="START,clobber,output:,random"
+s_opts="cn:rI:O:rhqtv" # f
+l_opts="START,clobber,ntodo:,random,srcdir:,dstdir:,original,cosclean"
 l_opts+=",debug,deps,help,quiet,timer,verbose" # force
 args=`getopt -n $this_prog -o $s_opts -l $l_opts -- "$@"` ; failed=$?
 
@@ -111,64 +124,93 @@ eval set -- "$args"
 while true ; do
    case $1 in
       #-------------------------------------------------------------------
-     #--START)
-     #   confirmed=1
-     #   shift
-     #   ;;
+      --START)
+         confirmed=1
+         shift
+         ;;
       #-------------------------------------------------------------------
       -c|--clobber)
          [ $vlevel -ge 0 ] && yecho "Enabled output clobber!\n" >&2
          clobber=1
          shift
          ;;
-      #-------------------------------------------------------------------
-     #-n|--number)
-     #   case $2 in
-     #      -*)
-     #         msg="Option -n|--number requires an argument!"
-     #         #msg="Option -n|--number needs a positive integer argument!"
-     #         #msg="Option -n|--number needs a positive numerical argument!"
-     #         Recho "\n${msg}\n" >&2
-     #         usage >&2
-     #         exit 1
-     #         ;;
-     #      *)
-     ###       if !( num_check_pass $2 ); then
-     ###       if !( num_check_pass $2 ) || (is_negative $2); then
-     ###       if !( int_check_pass $2 ) || [ $2 -lt 0 ]; then
-     #            Recho "Invalid value: " >&2 ; Yecho "$2 \n\n" >&2
-     #            exit 1
-     #         fi
-     #         num_val=$2
-     #         ;;
-     #   esac
-     #   [ $vlevel -ge 0 ] && yecho "Using value: ${num_val}\n" >&2
-     #   shift 2
-     #   ;;
-      -o|--output)
-         case $2 in
-            -*)
-               Recho "\nOption -o|--output requires an argument!\n" >&2
-               usage >&2
-               exit 1
-               ;;
-            *)
-               save_file=$2
-               # check value here ...
-               if [ $clobber -eq 0 ] && [ -f $save_file ]; then
-                  Recho "\nFile already exists: " >&2
-                  Yecho "$save_file \n\n" >&2
-                  exit 1
-               fi
-               ;;
-         esac
-         [ $vlevel -ge 0 ] && yecho "Output to: $save_file \n" >&2
-         shift 2
-         ;;
       -r|--random)
          [ $vlevel -ge 0 ] && yecho "Randomizing order!\n" >&2
          shuffle=1
          shift
+         ;;
+      #-------------------------------------------------------------------
+      # Data flavors:
+      --cosclean|--original)
+         image_type="${1#--}"
+         [ $vlevel -ge 0 ] && yecho "Selected image type: $image_type \n" >&2
+         shift
+         ;;
+      #-------------------------------------------------------------------
+      -n|--ntodo)
+         case $2 in
+            -*)
+               msg="Option -n|--ntodo needs a positive integer argument!"
+               Recho "\n${msg}\n" >&2
+               usage >&2
+               exit 1
+               ;;
+            *)
+      ##       if !( num_check_pass $2 ); then
+      ##       if !( num_check_pass $2 ) || (is_negative $2); then
+               if !( int_check_pass $2 ) || [ $2 -lt 0 ]; then
+                  Recho "Invalid ntodo: " >&2 ; Yecho "$2 \n\n" >&2
+                  exit 1
+               fi
+               ntodo=$2
+               ;;
+         esac
+         [ $vlevel -ge 0 ] && yecho "Stopping after $ntodo images.\n" >&2
+         shift 2
+         ;;
+      #-------------------------------------------------------------------
+      # Input folder with images:
+      -I|--srcdir)
+         case $2 in
+            -*)
+               Recho "\nOption -I|--srcdir requires an argument!\n" >&2
+               usage >&2
+               exit 1
+               ;;
+            *)
+               src_folder="$2"
+               # check value here ...
+               #if [ $clobber -eq 0 ] && [ -f $save_file ]; then
+               #   Recho "\nFile already exists: " >&2
+               #   Yecho "$save_file \n\n" >&2
+               #   exit 1
+               #fi
+               ;;
+         esac
+         [ $vlevel -ge 0 ] && yecho "Images from folder: '$src_folder'\n" >&2
+         shift 2
+         ;;
+      #-------------------------------------------------------------------
+      # Output folder for catalogs:
+      -O|--dstdir)
+         case $2 in
+            -*)
+               Recho "\nOption -o|--outdir requires an argument!\n" >&2
+               usage >&2
+               exit 1
+               ;;
+            *)
+               dst_folder="$2"
+               # check value here ...
+               #if [ $clobber -eq 0 ] && [ -f $save_file ]; then
+               #   Recho "\nFile already exists: " >&2
+               #   Yecho "$save_file \n\n" >&2
+               #   exit 1
+               #fi
+               ;;
+         esac
+         [ $vlevel -ge 0 ] && yecho "Output to: '$dst_folder' \n" >&2
+         shift 2
          ;;
       #-------------------------------------------------------------------
       # Additional options (output control etc.):
@@ -220,7 +262,27 @@ done
 
 ## Check for an appropriate number of arguments:
 if [ $confirmed -ne 1 ]; then
-#if [ -z "$1" ]; then
+   usage >&2
+   exit 1
+fi
+
+## Image type (clean / original) is required:
+if [ -z "$image_type" ]; then
+   Recho "\nError: no image type selected!\n" >&2
+   usage >&2
+   exit 1
+fi
+
+## Input folder is required:
+if [ -z "$src_folder" ]; then
+   Recho "\nError: no input folder specified!\n" >&2
+   usage >&2
+   exit 1
+fi
+
+## Output folder is required:
+if [ -z "$dst_folder" ]; then
+   Recho "\nError: no output folder specified!\n" >&2
    usage >&2
    exit 1
 fi
@@ -228,10 +290,76 @@ fi
 [ $debug -eq 1 ] && vlevel=3
 [ $vlevel -gt 1 ] && echo "Verbosity: $vlevel" >&2
 
+## Input folder must exist:
+[ -d $src_folder ] || PauseAbort "Can't find directory: $src_folder"
+
 ##**************************************************************************##
 ##==========================================================================##
 ##--------------------------------------------------------------------------##
 
+## Files to process:
+yecho "Listing input images ... "
+img_list=()
+case $image_type in
+   original)
+      vcmde "ls $src_folder/SPIT*_cbcd.fits > $foo" || exit $?
+      ;;
+   cosclean)
+      vcmde "ls $src_folder/SPIT*_clean.fits > $foo" || exit $?
+      ;;
+   *) PauseAbort "Unhandled image_type: '$image_type'" ;;
+esac
+total=$(cat $foo | wc -l)
+gecho "done. Found $total images.\n"
+
+## Randomize order if requested:
+if [ $shuffle -eq 1 ]; then
+   img_list=( `sort -R $foo` )
+else
+   img_list=( `cat $foo` )
+fi
+
+##--------------------------------------------------------------------------##
+##------------------         Extraction Parameters          ----------------##
+##--------------------------------------------------------------------------##
+
+rs_opts="-q -F -T3 -g 1.0"
+rs_opts+=" -p X_IMAGE -p Y_IMAGE -p X2_IMAGE -p Y2_IMAGE -p XY_IMAGE"
+rs_opts+=" -p ERRX2_IMAGE -p ERRY2_IMAGE -p ERRXY_IMAGE"
+rs_opts+=" -p X2WIN_IMAGE -p Y2WIN_IMAGE -p XYWIN_IMAGE"
+rs_opts+=" -p ERRX2WIN_IMAGE -p ERRY2WIN_IMAGE -p ERRXYWIN_IMAGE"
+
+##--------------------------------------------------------------------------##
+##------------------        Extract Object Catalogs         ----------------##
+##--------------------------------------------------------------------------##
+
+count=0
+nproc=0
+#ntodo=0
+#ntodo=5
+for image in ${img_list[*]}; do
+   ibase="${image##*/}"
+   cpath="${dst_folder}/${ibase}.cat"
+   yecho "\rChecking $ibase ($((++count)) of $total) ... "
+   if [ $clobber -eq 0 ] && [ -f $cpath ]; then
+      gecho "already exists!   "
+      continue
+   fi
+
+   # extract sources:
+   recho "needs work ... \n"
+   (( nproc++ ))
+   xfr_file="${cpath}.tmp$$"
+   cmde "runsex $rs_opts -o $baz $image"  || exit $?
+   cmde "mv -f $baz $xfr_file"            || exit $?
+   cmde "mv -f $xfr_file $cpath"          || exit $?
+   becho "`RowWrite 75 -`\n"
+
+   # stop early if requested:
+   [ $ntodo -gt 0 ] && [ $nproc -ge $ntodo ] && break
+done
+
+Gecho "Images processed, script complete!\n"
 
 ##--------------------------------------------------------------------------##
 ## Clean up:
