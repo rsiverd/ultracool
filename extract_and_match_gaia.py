@@ -497,7 +497,7 @@ if context.output_file:
     result.save_as_fits(context.output_file, overwrite=True)
 
 ## Stop early for now ...
-sys.exit(0)
+#sys.exit(0)
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
