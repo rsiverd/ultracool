@@ -611,9 +611,10 @@ ax1.quiver(xx[ss], yy[ss], (im_dx - ak_dx)[ss], (im_dy - ak_dy)[ss])
 #cbar.formatter.set_useOffset(False)
 #cbar.update_ticks()
 
+plot_name = 'im_minus_ak.png'
 fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
 plt.draw()
-#fig.savefig(plot_name, bbox_inches='tight')
+fig.savefig(plot_name, bbox_inches='tight')
 
 # cyclical colormap ... cmocean.cm.phase
 # cmocean: https://matplotlib.org/cmocean/
