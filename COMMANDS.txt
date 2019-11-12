@@ -38,8 +38,8 @@
 
 ./05_extract_all_spitzer.py -I ../ucd_data -O ../ucd_fcat
 
-./06_sextract_spitzer.sh --original -I ../ucd_data -O ../ucd_scat_orig --START
-./06_sextract_spitzer.sh --cosclean -I ../ucd_data -O ../ucd_scat_ccln --START
+./06_sextract_spitzer.sh --original -I ../ucd_data -O ../ucd_scat_orig --START -r
+./06_sextract_spitzer.sh --cosclean -I ../ucd_data -O ../ucd_scat_ccln --START -r
 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
