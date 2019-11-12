@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2019-09-04
-# Last modified: 2019-09-04
+# Last modified: 2019-11-11
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.5"
 
 ## Python version-agnostic module reloading:
 try:
@@ -480,15 +480,15 @@ def rotate_coords(xx, yy, angle_deg):
 ##------------------         Fit for im-ak Difference       ----------------##
 ##--------------------------------------------------------------------------##
 
-## 1-D vectors:
-xx_1d = xx.flatten()
-yy_1d = yy.flatten()
-xdiff = (im_dx - ak_dx).flatten()
-ydiff = (im_dy - ak_dy).flatten()
-
-design_matrix = np.column_stack((np.ones_like(xdiff), xx_1d, yy_1d))
-dx_ols = sm.OLS(xdiff, design_matrix).fit()
-dy_ols = sm.OLS(ydiff, design_matrix).fit()
+### 1-D vectors:
+#xx_1d = xx.flatten()
+#yy_1d = yy.flatten()
+#xdiff = (im_dx - ak_dx).flatten()
+#ydiff = (im_dy - ak_dy).flatten()
+#
+#design_matrix = np.column_stack((np.ones_like(xdiff), xx_1d, yy_1d))
+#dx_ols = sm.OLS(xdiff, design_matrix).fit()
+#dy_ols = sm.OLS(ydiff, design_matrix).fit()
 
 
 ##--------------------------------------------------------------------------##
