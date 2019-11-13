@@ -1,0 +1,28 @@
+# Generate a list of ds9 commands to inspect the results of image
+# cleaning. Each command opens three versions of a single image
+# (original, cleaned, and CR mask) in a ds9 window for direct
+# visual comparison. Triple-click a line and paste into a terminal
+# to inspect/compare the clean/dirty/mask for a single Spitzer frame.
+
+
+# fastest (but assumes files exist):
+ls ../ucd_data/SPIT*_cbcd.fits | awk '{
+   cbcd  = $1
+   clean = $1 ; gsub("cbcd", "clean", clean)
+   crmsk = $1 ; gsub("cbcd", "crmsk", crmsk)
+   printf "flztf %s %s %s\n", cbcd, clean, crmsk
+}' | less
+
+# faster (remove items with grep -v to reduce grep -f work):
+ls ../ucd_data/SPIT*clean.fits | sed 's/clean\.fits//' > /tmp/jbegin
+ls ../ucd_data/SPIT*fits | grep -v '_bcd.fits$' \
+   | grep -v '_cbunc.fits$' | grep -f /tmp/jbegin \
+   | paste - - - | awk '{ print "flztf "$0 }' > /tmp/ds9cmds
+#less
+
+# old way (slow):
+#ls ../ucd_data/SPIT*clean.fits | sed 's/clean\.fits//' > /tmp/jbegin
+#ls ../ucd_data/SPIT*fits | grep -f /tmp/jbegin \
+#   | grep -v '_bcd.fits$' | grep -v '_cbunc.fits$' \
+#   | paste - - - | awk '{ print "flztf "$0 }' | less
+
