@@ -1,0 +1,4 @@
+
+weights="--rmswei SPITZER_I1_47157760_0233_0000_2_cbunc.fits"
+cmde "runsex SPITZER_I1_47157760_0233_0000_2_cbcd.fits"
+
