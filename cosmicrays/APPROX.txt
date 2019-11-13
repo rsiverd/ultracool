@@ -1,0 +1,23 @@
+# Commands of mine that approximate the CR detection algo in LACosmic:
+
+cmde "smooth --median idata.fits -o \!M5.fits"
+
+cmde "fpeg -i idata.fits -e2 -o \!idata.e2.fits"
+cmde "miscfits idata.e2.fits --laplace -o \!idata.e2.lap.fits"
+cmde "fpeg -i idata.e2.lap.fits -B0.0 -b2 -o \!idata.lap.clp.fits"
+
+cmde "fitsarith -i idata.lap.clp.fits -D M5.fits -o \!lap_med_div.fits"
+
+
+cmde "smooth --median lap_med_div.fits -o lap_med_div.M5.fits"
+cmde "fitsarith -i lap_med_div.fits -S lap_med_div.M5.fits -o \!LMD_sub.fits"
+cmde "smooth --median lap_unc_div.fits -o lap_unc_div.M5.fits"
+cmde "fitsarith -i lap_unc_div.fits -S lap_unc_div.M5.fits -o \!LUD_sub.fits"
+
+
+
+
+fpeg -i idata.fits -e2 -o stdout \
+   | fitsarith -i stdin -m0.5 -o stdout \
+   | miscfits stdin --laplace -o stdout \
+   | fpeg -i stdin -b2 -o jeff.fits
