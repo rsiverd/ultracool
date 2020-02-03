@@ -408,12 +408,13 @@ def crossmatch_seg(x1, y1, x2, y2, tol=2):
     #    pass
 
 ## Brute-force ross-identification by pixel position:
-def crossmatch_xy(x1, y1, x2, y2, tol=1.0):
+def crossmatch_xy(x1, y1, x2, y2, tol=1.0, verbose=False):
     ix1 = np.arange(x1.size)
     ix2 = np.arange(x2.size)
     matches = []
     for i1,tx,ty in zip(ix1, x1, y1):
-        sys.stderr.write("obj1 %d of %d ... " % (i1+2, ix1.size))
+        if verbose:
+            sys.stderr.write("obj1 %d of %d ... " % (i1+2, ix1.size))
         #dx = x2 - tx
         ds = np.hypot(tx - x2, ty - y2)
         #sys.stderr.write("ds: %s\n" % str(ds))
@@ -428,11 +429,14 @@ def crossmatch_xy(x1, y1, x2, y2, tol=1.0):
             sys.stderr.write("multiple hits??\n")
             sys.exit(1)
         if (hits == 1):
-            sys.stderr.write("nearby: %s" % str(ds[near]))
+            if verbose:
+                sys.stderr.write("nearby: %s" % str(ds[near]))
             found = (i1, near_i2[0], near_ds[0])
-            sys.stderr.write("  (%d <--> %d [%.3f])" % found)
+            if verbose:
+                sys.stderr.write("  (%d <--> %d [%.3f])" % found)
             matches.append(found)
-        sys.stderr.write("\n")
+        if verbose:
+            sys.stderr.write("\n")
         pass
     return matches
 
@@ -443,8 +447,13 @@ def crossmatch_xy(x1, y1, x2, y2, tol=1.0):
 ec_data = ec.ExtendedCatalog()
 
 ## Iterate over the SEP fcat list:
-ntodo = 5
+ntodo = 150
 nfiles = len(fcat_list)
+diff_stats = {'msew_avg':[], 'msew_med':[],
+              'mecw_avg':[], 'mecw_med':[],
+              'usep_use_avg':[], 'usep_use_med':[],
+              'wsep_wse_avg':[], 'wsep_wse_med':[],
+              'nmatch':[]}
 for ii,fcat_path in enumerate(fcat_list, 1):
     sys.stderr.write("fcat_path: %s\n" % fcat_path)
     fbase = os.path.basename(fcat_path)
@@ -468,10 +477,59 @@ for ii,fcat_path in enumerate(fcat_list, 1):
     sx, sy = se_objs['XWIN_IMAGE'], se_objs['YWIN_IMAGE']
     ex, ey = ec_objs['x'], ec_objs['y']
 
+    results = crossmatch_xy(sx, sy, ex, ey)
+    if not results:
+        continue
+    i1, i2, ds = zip(*results)
+
+    mse_objs = se_objs[i1,]
+    mec_objs = ec_objs[i2,]
+
+    diff_stats['nmatch'].append(len(i1))
+
+    # SExtractor -- windowed vs. non:
+    mse_wsep = np.hypot(mse_objs['X_IMAGE'] - mse_objs['XWIN_IMAGE'],
+                        mse_objs['Y_IMAGE'] - mse_objs['YWIN_IMAGE'])
+    diff_stats['msew_avg'].append(np.average(mse_wsep))
+    diff_stats['msew_med'].append(np.median(mse_wsep))
+    
+    # SEP -- windowed vs. non:
+    mec_wsep = np.hypot(mec_objs['x'] - mec_objs['wx'],
+                        mec_objs['y'] - mec_objs['wy'])
+    diff_stats['mecw_avg'].append(np.average(mec_wsep))
+    diff_stats['mecw_med'].append(np.median(mec_wsep))
+
+    # SExtractor vs. SEP (unwindowed):
+    use_sep = np.hypot(mse_objs['X_IMAGE'] - mec_objs['x'],
+                      mse_objs['Y_IMAGE'] - mec_objs['y'])
+    diff_stats['usep_use_avg'].append(np.average(use_sep))
+    diff_stats['usep_use_med'].append(np.median(use_sep))
+
+    # SExtractor vs. SEP (windowed):
+    wse_sep = np.hypot(mse_objs['XWIN_IMAGE'] - mec_objs['wx'],
+                      mse_objs['YWIN_IMAGE'] - mec_objs['wy'])
+    diff_stats['wsep_wse_avg'].append(np.average(wse_sep))
+    diff_stats['wsep_wse_med'].append(np.median(wse_sep))
+
     sys.stderr.write("\n")
     if (ntodo > 0) and (ii >= ntodo):
         break
     
+
+pkeys = list(diff_stats.keys())
+pkeys.remove('nmatch')
+plt.clf()
+for item in pkeys:
+    plt.plot(diff_stats[item], label=item)
+plt.grid()
+plt.legend(loc='upper right')
+plt.savefig('various_quantities.png', bbox='tight')
+
+plt.clf()
+plt.plot(diff_stats['nmatch'], label='nmatch')
+plt.grid()
+plt.legend(loc='upper left')
+plt.savefig('number_of_matches.png', bbox='tight')
 
 ## Quick ASCII I/O:
 #data_file = 'data.txt'
