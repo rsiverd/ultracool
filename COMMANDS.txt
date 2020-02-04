@@ -38,8 +38,13 @@
 
 ./05_extract_all_spitzer.py -I ../ucd_data -O ../ucd_fcat
 
+# unweighted ...
 ./06_sextract_spitzer.sh --original -I ../ucd_data -O ../ucd_scat_orig --START -r
 ./06_sextract_spitzer.sh --cosclean -I ../ucd_data -O ../ucd_scat_ccln --START -r
+
+# weighted!
+./06_sextract_spitzer.sh --original -I ../ucd_data -O ../wei_scat_orig --START -r --rmswei
+./06_sextract_spitzer.sh --cosclean -I ../ucd_data -O ../wei_scat_ccln --START -r --rmswei
 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
