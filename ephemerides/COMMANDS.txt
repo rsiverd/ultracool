@@ -1,0 +1,7 @@
+
+# interactive testing:
+%run ./sst_ephem_fetch.py -I ../../ucd_data -o test.csv
+
+# production version, all images:
+./sst_ephem_fetch.py -I ../../ucd_data -o spitz_ssb_data.csv
+
