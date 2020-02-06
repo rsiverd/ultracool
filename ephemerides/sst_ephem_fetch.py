@@ -140,7 +140,7 @@ if __name__ == '__main__':
                           formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
     #parser.set_defaults(thing1='value1', thing2='value2')
-    parser.set_defaults(max_todo=0)
+    parser.set_defaults(max_todo=0, qmax=100)
     # ------------------------------------------------------------------
     #parser.add_argument('firstpos', help='first positional argument')
     #parser.add_argument('-w', '--whatever', required=False, default=5.0,
@@ -172,7 +172,7 @@ if __name__ == '__main__':
     context.prog_name = prog_name
 
 ##--------------------------------------------------------------------------##
-#context.max_todo = 5
+#context.max_todo = 500
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
@@ -211,13 +211,30 @@ obs_dates = [x['DATE_OBS'] for x in hdr_data]
 timestamps = astt.Time(obs_dates, scale='utc', format='isot')
 names_used = [x['IMGPATH'] for x in hdr_data]
 
-## Query HORIZONS:
-sys.stderr.write("Querying HORIZONS ... ")
+## Query HORIZONS piecewise (avoids 2000-char URL length limit):
+sys.stderr.write("Querying HORIZONS ...\n")
 tik = time.time()
 loc_ssb = {'location':'@0'}    # solar system barycenter
 spitzkw = {'id':'Spitzer Space Telescope', 'id_type':'id'}
-sst_query = Horizons(**spitzkw, **loc_ssb, epochs=timestamps.tdb.jd.tolist())
-horiz_eph = sst_query.vectors()
+#sst_query = Horizons(**spitzkw, **loc_ssb, epochs=timestamps.tdb.jd.tolist())
+#sst_query.TIMEOUT = 1000
+nchunks = (timestamps.tdb.jd.size // context.qmax) + 1
+batches = np.array_split(timestamps.tdb.jd, nchunks)
+results = []
+for ii,batch in enumerate(batches, 1):
+    sys.stderr.write("\rQuery batch %d of %d ... " % (ii, nchunks))
+    sst_query = Horizons(**spitzkw, **loc_ssb, epochs=batch.tolist())
+    batch_eph = sst_query.vectors()
+    results.append(batch_eph)
+
+## Combine into single table:
+horiz_eph = apt.vstack(results)
+#try:
+#    horiz_eph = sst_query.vectors()
+#except:
+#    tok = time.time()
+#    sys.stderr.write("\nCrapped out after %.3f sec..\n" % (tok-tik))
+#    sys.exit(1)
 tok = time.time()
 sys.stderr.write("done. %.3f sec\n" % (tok-tik))
 
