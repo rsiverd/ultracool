@@ -22,6 +22,7 @@ this_prog="${0##*/}"
 #save_file=""
 ntodo=0
 shuffle=0
+weighted=0
 confirmed=0
 image_type=""
 src_folder=""
@@ -90,6 +91,9 @@ Data flavor (REQUIRED):
         --original      use original images
         --cosclean      use 'clean' images with cosmics removed
 
+Processing options:
+        --rmswei        use uncertainty image as RMS map if available
+
 Other options:
         --deps          return list of required programs (for parent script)
     -h, --help          display this page
@@ -108,7 +112,7 @@ EOH
 ## Parse command line with getopt (reorders and stores CL args):
 s_opts="cn:rI:O:rhqtv" # f
 l_opts="START,clobber,ntodo:,random,srcdir:,dstdir:,original,cosclean"
-l_opts+=",debug,deps,help,quiet,timer,verbose" # force
+l_opts+=",rmswei,debug,deps,help,quiet,timer,verbose" # force
 args=`getopt -n $this_prog -o $s_opts -l $l_opts -- "$@"` ; failed=$?
 
 ## Check for parsing errors:
@@ -137,6 +141,11 @@ while true ; do
       -r|--random)
          [ $vlevel -ge 0 ] && yecho "Randomizing order!\n" >&2
          shuffle=1
+         shift
+         ;;
+      --rmswei)
+         [ $vlevel -ge 0 ] && yecho "Using weight-images!\n" >&2
+         weighted=1
          shift
          ;;
       #-------------------------------------------------------------------
@@ -302,13 +311,16 @@ yecho "Listing input images ... "
 img_list=()
 case $image_type in
    original)
-      vcmde "ls $src_folder/SPIT*_cbcd.fits > $foo" || exit $?
+      imsuff="cbcd"
+      #vcmde "ls $src_folder/SPIT*_cbcd.fits > $foo" || exit $?
       ;;
    cosclean)
-      vcmde "ls $src_folder/SPIT*_clean.fits > $foo" || exit $?
+      imsuff="clean"
+      #vcmde "ls $src_folder/SPIT*_clean.fits > $foo" || exit $?
       ;;
    *) PauseAbort "Unhandled image_type: '$image_type'" ;;
 esac
+vcmde "ls $src_folder/SPIT*_${imsuff}.fits > $foo" || exit $?
 total=$(cat $foo | wc -l)
 gecho "done. Found $total images.\n"
 
@@ -345,12 +357,28 @@ for image in ${img_list[*]}; do
       gecho "already exists!   "
       continue
    fi
+   recho "needs work ... "
+   (( nproc++ ))
+
+   # locate uncertainty image (if needed):
+   use_opts="$rs_opts"
+   if [ $weighted -eq 1 ]; then
+      wpath="${image/$imsuff/cbunc}"
+      if [ -f "$wpath" ]; then
+         gecho "(error-image found) "
+         #echo "Found error-image: '$wpath'"
+         #cmde "ls $wpath"
+         use_opts+=" --rmswei=$wpath"
+      else
+         recho "(error-image missing!) "
+      fi
+   fi
+   echo
+   #exit 0
 
    # extract sources:
-   recho "needs work ... \n"
-   (( nproc++ ))
    xfr_file="${cpath}.tmp$$"
-   cmde "runsex $rs_opts -o $baz $image"  || exit $?
+   cmde "runsex $use_opts -o $baz $image" || exit $?
    cmde "mv -f $baz $xfr_file"            || exit $?
    cmde "mv -f $xfr_file $cpath"          || exit $?
    becho "`RowWrite 75 -`\n"
