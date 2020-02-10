@@ -1,0 +1,35 @@
+
+import astrom_test
+reload(astrom_test)
+
+af = astrom_test.AstFit()
+#eee = astrom_test.SSTEph()
+#
+#sst_eph_file = 'ephemerides/spitz_ssb_data.csv'
+#eee.load(sst_eph_file)
+#
+#eee.retrieve(itmp)
+
+clf()
+scatter(sra, sde, lw=0, s=25)
+afpars = [np.radians(guess_ra), np.radians(guess_de),
+               ts_pmra_masyr, ts_pmde_masyr, 1.0]
+pxvals = np.array([0.1, 1., 10., 100.])
+pxvals = np.array([1., 10.])
+for plx in pxvals:
+    afpars[4] = plx
+    tra, tde = af.apparent_radec(use_epoch_tdb, afpars, use_eph)
+    dra, dde = np.degrees(tra), np.degrees(tde)
+    scatter(dra, dde, lw=0, s=15, label='%7.4f'%plx)
+legend(loc='best')
+
+afpars[4] = 0.0
+line_ra, line_de = af.apparent_radec(use_epoch_tdb, afpars, use_eph)
+icept, slope = ts.linefit(line_ra, line_de)
+ra_extrema = line_ra.min(), line_ra.max()
+ra_range = line_ra.max() - line_ra.min()
+plot_ra = np.array([line_ra.min() - 0.1*ra_range, 
+                    line_ra.max() + 0.1*ra_range])
+plot_de = icept + slope * plot_ra
+plot(np.degrees(plot_ra), np.degrees(plot_de), c='r', ls='--', lw=1)
+
