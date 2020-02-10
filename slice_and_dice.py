@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2019-10-16
-# Last modified: 2019-10-31
+# Last modified: 2020-02-09
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.3.0"
+__version__ = "0.3.5"
 
 ## Optional matplotlib control:
 #from matplotlib import use, rc, rcParams
@@ -51,6 +51,7 @@ except NameError:
 import argparse
 #import resource
 import signal
+import pickle
 #import glob
 import gc
 import os
@@ -89,6 +90,14 @@ _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
 import angle
 reload(angle)
+
+import fluxmag
+reload(fluxmag)
+
+import astrom_test
+reload(astrom_test)
+af = astrom_test.AstFit()
+eee = astrom_test.SSTEph()
 
 ## Easy Gaia source matching:
 try:
@@ -468,6 +477,7 @@ jdutc = timestamp.jd
 #jdutc = ['%.6f'%x for x in timestamp.jd]
 jd2im = {kk:vv for kk,vv in zip(jdutc, cbcd_name)}
 im2jd = {kk:vv for kk,vv in zip(cbcd_name, jdutc)}
+im2ex = {kk:vv for kk,vv in zip(cbcd_name, expo_time)}
 
 ##--------------------------------------------------------------------------##
 ## Concatenated list of RA/Dec coordinates:
@@ -578,6 +588,8 @@ gc.collect()
 #derp = append_fields(derp, 'jdutc', jtmp, usemask=False)
 
 ##--------------------------------------------------------------------------##
+
+##--------------------------------------------------------------------------##
 ## Collect data sets by Gaia source for analysis:
 gtargets = {}
 for ii,gid in enumerate(gmatches.keys(), 1):
@@ -640,14 +652,34 @@ lookie = [
     3192149647215037440,
     3192149780357313920,
     3192152911390108416,
-    3192149917795842688,
+    #3192149917795842688,
     3192150334409729536,
     ]
 
 ##--------------------------------------------------------------------------##
+## Kludgey Spitzer ephemeris:
+use_epoch_tdb = 2456712.3421157757
+sst_eph_file = 'ephemerides/spitz_ssb_data.csv'
+eee.load(sst_eph_file)
+
+## Check several:
+gse_data = {}
+for gid in lookie:
+    sys.stderr.write("Examining %d ... \n" % gid) 
+    gneat, sneat = gather_by_id(gid)
+    use_eph = eee.retrieve(sneat['iname'])
+    gse_data[gid] = (gneat, sneat, use_eph)
+
+
+sys.exit(0)
+##--------------------------------------------------------------------------##
 ## GOT ONE:
 sys.stderr.write("%s\n" % fulldiv)
-gneat, sneat = gather_by_id(3192149715934444800)
+#gneat, sneat = gather_by_id(3192149715934444800)
+use_gid = lookie[0]
+gneat, sneat = gather_by_id(use_gid)
+
+# ----------------
 sys.stderr.write("Gaia info:\n\n") 
 sys.stderr.write("RA:       %15.7f\n" % gneat['ra'])
 sys.stderr.write("DE:       %15.7f\n" % gneat['dec'])
@@ -658,14 +690,50 @@ sys.stderr.write("pmRA:     %10.4f +/- %8.4f\n"
 sys.stderr.write("pmDE:     %10.4f +/- %8.4f\n"
         % (gneat.pmdec, gneat.pmdec_error))
 
-sjd, sra, sde = sneat['jdutc'], sneat[_ra_key], sneat[_de_key]
-syr = 2000.0 + ((sjd - 2451544.5) / 365.25)
+## Kludgey Spitzer ephemeris:
+use_epoch_tdb = 2456712.3421157757
+sst_eph_file = 'ephemerides/spitz_ssb_data.csv'
+eee.load(sst_eph_file)
+use_eph = eee.retrieve(sneat['iname'])
+#sjd_tdb = use_eph['jdtdb']
+
+## Optionally save data for external plotting:
+exdir = 'examples'
+csv_name = os.path.basename(context.gaia_csv)
+targname = csv_name.split('.')[0].split('_')[-1]
+save_example = True
+if save_example:
+    if not os.path.isdir(exdir):
+        os.mkdir(exdir)
+    targ_dir = os.path.join(exdir, targname)
+    if not os.path.isdir(targ_dir):
+        os.mkdir(targ_dir)
+    save_dir = '%s/gaia_%d' % (targ_dir, use_gid)
+    if not os.path.isdir(save_dir):
+        os.mkdir(save_dir)
+    _gsave = os.path.join(save_dir, 'GSE_tuple.pickle')
+    with open(_gsave, 'wb') as ff:
+        pickle.dump((gneat, sneat, use_eph), ff)
+    pass
+
+sjd_utc, sra, sde = sneat['jdutc'], sneat[_ra_key], sneat[_de_key]
+syr = 2000.0 + ((sjd_utc - 2451544.5) / 365.25)
 smonth = (syr % 1.0) * 12.0
 
 ts_ra_model = ts.linefit(syr, sra)
 ts_de_model = ts.linefit(syr, sde)
 ts_pmra_masyr = ts_ra_model[1] * 3.6e6 / np.cos(np.radians(ts_de_model[0]))
 ts_pmde_masyr = ts_de_model[1] * 3.6e6
+
+# initial RA/Dec guess:
+sys.stderr.write("%s\n" % fulldiv)
+guess_ra = sra.mean()
+guess_de = sde.mean()
+sys.stderr.write("guess_ra:  %15.7f\n" % guess_ra)
+sys.stderr.write("guess_de:  %15.7f\n" % guess_de)
+
+afpars = [guess_ra, guess_de, ts_pmra_masyr/1e3, ts_pmde_masyr/1e3, 1.0]
+appcoo = af.apparent_radec(use_epoch_tdb, afpars, use_eph)
 
 # proper fit:
 design_matrix = np.column_stack((np.ones(syr.size), syr))
@@ -723,6 +791,8 @@ def calc_objseps(gid):
 
 #sep_by_jd = {x:[] for x in jdutc}
 sep_by_im = {x:[] for x in cbcd_name}
+#sep_by_id = {x:[] for x in matched_gaia_ids}
+sep_by_id = {}
 #for gid in [eg_gid]:
 for gid in matched_gaia_ids:
     _gaia, _spit = gather_by_id(gid)
@@ -734,6 +804,17 @@ for gid in matched_gaia_ids:
     #    sep_by_jd[jj].append((gid, rsep, wsep))
     for im,rsep,wsep in zip(_spit['iname'], raw_arcsep, win_arcsep):
         sep_by_im[im].append((gid, rsep, wsep))
+
+
+    obs_coords = angle.spheremean_deg(_spit['dra'], _spit['dde'])
+    obs_arcsep = 3.6e3 * angle.dAngSep(*obs_coords, _spit['dra'], _spit['dde'])
+    favg = np.average(_spit['flux'])
+    fstd = np.std(_spit['flux'])
+    savg = np.average(obs_arcsep)
+    #sys.stderr.write("raw_arcsep (%.3f, %.3f): %s\n" 
+    #        % (favg, fstd, str(raw_arcsep)))
+    #sys.stderr.write("flx: %.3f, sep: %.4f\n" % (favg, savg))
+    sep_by_id[gid] = (favg, savg)
 
 #sep_by_jd = {kk:vv for kk,vv in sep_by_jd.items() if len(vv)>1} # drop empty
 sep_by_im = {kk:vv for kk,vv in sep_by_im.items() if len(vv)>1} # drop empty
@@ -756,6 +837,27 @@ plt.clf()
 for col in ['ravg','rmed','wmed']: #'wavg'
     plt.scatter(coo_test['idx'], coo_test[col], lw=0, s=40, label=col)
 plt.legend(loc='best')
+
+## scatter vs. mag:
+rmsflx, rmssep = zip(*sep_by_id.values())
+rmsmag = fluxmag.kmag(rmsflx)
+
+#plt.clf()
+#plt.scatter(rmsmag, rmssep)
+#plt.axhline(obs_floor, c='r', ls='--', label='observed floor (~130 mas)')
+#plt.axhline(0.005, c='g', ls='--', label='expected floor (~5 mas)')
+#plt.ylim(0.003, 5.0)
+#plt.yscale('log')
+#plt.grid(True)
+#plt.xlabel('Instrumental Mag (approx)')
+#plt.ylabel('Abs. Scatter (arcsec)')
+#plt.legend(loc='upper left')
+#plt.tight_layout()
+#plt.savefig('noise_floors.png')
+
+
+
+#sys.exit(0)
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
@@ -851,8 +953,10 @@ plt.gcf().clf()
 #fig.frameon = False # disable figure frame drawing
 #fig.subplots_adjust(left=0.07, right=0.95)
 #ax1 = plt.subplot(gs[0, 0])
-ax1 = fig.add_subplot(111)
+ax1 = fig.add_subplot(111, aspect='equal')
 ax1.grid(True)
+ax1.xaxis.get_major_formatter().set_useOffset(False)
+ax1.yaxis.get_major_formatter().set_useOffset(False)
 #ax1.scatter(expt, nsrc, c=irac)
 
 #sys.exit(0)
@@ -876,8 +980,9 @@ if __fancy__:
             radii=pradii, cvals=every_jdutc)
 else:
     #ax1.plot(every_dra, every_dde, lw=0, ms=3, color=every_jdutc)
-    spts = ax1.scatter(every_dra, every_dde, lw=0, s=2.5, c=every_jdutc,
-            alpha=0.2)
+    pkw = {'s':2.5, 'alpha':0.2}
+    pkw = {'s':5.0, 'alpha':0.4}
+    spts = ax1.scatter(every_dra, every_dde, lw=0, c=every_jdutc, **pkw)
     mupdate.add_ax(ax1, ['size'])   # auto-update marker size
 
 tok = time.time()
