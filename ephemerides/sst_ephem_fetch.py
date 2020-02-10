@@ -172,7 +172,7 @@ if __name__ == '__main__':
     context.prog_name = prog_name
 
 ##--------------------------------------------------------------------------##
-#context.max_todo = 500
+#context.max_todo = 100
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
@@ -204,10 +204,17 @@ sys.stderr.write("\n")
 tok = time.time()
 sys.stderr.write("Loaded header(s) in %.3f sec.\n" % (tok-tik))
 
+## Sort headers by time:
+#et_obs = [x['ET_OBS'] for x in hdr_data]
+et_order = np.argsort([x['ET_OBS'] for x in hdr_data])
+tmp_hdrs = [hdr_data[x] for x in et_order]
+hdr_data = tmp_hdrs
+
+
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 ## Assemble TDB timestamps:
-obs_dates = [x['DATE_OBS'] for x in hdr_data]
+obs_dates  = [x['DATE_OBS'] for x in hdr_data]
 timestamps = astt.Time(obs_dates, scale='utc', format='isot')
 names_used = [x['IMGPATH'] for x in hdr_data]
 
@@ -247,6 +254,7 @@ drop_cols = ['targetname', 'datetime_str']
 
 ## Make adjustments to a copy of the results:
 sst_table = horiz_eph.copy()
+sst_table.rename_column('datetime_jd', 'jdtdb')
 for cc in drop_cols:
     if cc in sst_table.keys():
         sst_table.remove_column(cc)
