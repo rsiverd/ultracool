@@ -50,11 +50,11 @@ except NameError:
 ## Modules:
 import argparse
 #import resource
-import signal
+#import signal
 import pickle
 #import glob
 import gc
-import os
+import os, errno
 import sys
 import time
 import numpy as np
@@ -164,33 +164,15 @@ sys.stdout = Unbuffered(sys.stdout)
 sys.stderr = Unbuffered(sys.stderr)
 
 ##--------------------------------------------------------------------------##
-
-#unlimited = (resource.RLIM_INFINITY, resource.RLIM_INFINITY)
-#if (resource.getrlimit(resource.RLIMIT_DATA) == unlimited):
-#    #resource.setrlimit(resource.RLIMIT_DATA,  (3e9, 6e9))
-#    resource.setrlimit(resource.RLIMIT_DATA,  (3e10, 6e10))
-#if (resource.getrlimit(resource.RLIMIT_AS) == unlimited):
-#    #resource.setrlimit(resource.RLIMIT_AS, (3e9, 6e9))
-#    resource.setrlimit(resource.RLIMIT_AS,  (3e10, 6e10))
-
-## Memory management:
-#def get_memory():
-#    with open('/proc/meminfo', 'r') as mem:
-#        free_memory = 0
-#        for i in mem:
-#            sline = i.split()
-#            if str(sline[0]) in ('MemFree:', 'Buffers:', 'Cached:'):
-#                free_memory += int(sline[1])
-#    return free_memory
-#
-#def memory_limit():
-#    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
-#    resource.setrlimit(resource.RLIMIT_AS, (get_memory() * 1024 / 2, hard))
-
-### Measure memory used so far:
-#def check_mem_usage_MB():
-#    max_kb_used = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-#    return max_kb_used / 1000.0
+## Recursive directory creation:
+def mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc:  # Python >2.5
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
 
 ##--------------------------------------------------------------------------##
 
@@ -204,39 +186,6 @@ except ImportError:
     sys.stderr.write("\nError!  robust_stats module not found!\n"
            "Please install and try again ...\n\n")
     sys.exit(1)
-
-## Home-brew KDE:
-#try:
-#    import my_kde
-#    reload(my_kde)
-#    mk = my_kde
-#except ImportError:
-#    logger.error("module my_kde not found!  Install and retry.")
-#    sys.stderr.write("\nError!  my_kde module not found!\n"
-#           "Please install and try again ...\n\n")
-#    sys.exit(1)
-
-## Fast FITS I/O:
-#try:
-#    import fitsio
-#except ImportError:
-#    logger.error("fitsio module not found!  Install and retry.")
-#    sys.stderr.write("\nError: fitsio module not found!\n")
-#    sys.exit(1)
-
-## FITS I/O:
-#try:
-#    import astropy.io.fits as pf
-#except ImportError:
-#    try:
-#       import pyfits as pf
-#    except ImportError:
-#        logger.error("No FITS I/O module found!"
-#                "Install either astropy.io.fits or pyfits and retry."))
-#        logger.error("No FITS I/O module found!")
-#        sys.stderr.write("\nError!  No FITS I/O module found!\n"
-#               "Install either astropy.io.fits or pyfits and try again!\n\n")
-#        sys.exit(1)
 
 ## Various from astropy:
 try:
@@ -283,11 +232,11 @@ fulldiv = '-' * 80
 
 ##--------------------------------------------------------------------------##
 ## Catch interruption cleanly:
-def signal_handler(signum, frame):
-    sys.stderr.write("\nInterrupted!\n\n")
-    sys.exit(1)
-
-signal.signal(signal.SIGINT, signal_handler)
+#def signal_handler(signum, frame):
+#    sys.stderr.write("\nInterrupted!\n\n")
+#    sys.exit(1)
+#
+#signal.signal(signal.SIGINT, signal_handler)
 
 ##--------------------------------------------------------------------------##
 ## Save FITS image with clobber (astropy / pyfits):
@@ -404,6 +353,13 @@ if context.gaia_csv:
 ##--------------------------------------------------------------------------##
 
 ##--------------------------------------------------------------------------##
+## Example and data-saving config:
+exdir = 'examples'
+csv_name = os.path.basename(context.gaia_csv)
+targname = csv_name.split('.')[0].split('_')[-1]
+targ_dir = os.path.join(exdir, targname)
+
+##--------------------------------------------------------------------------##
 ## Read ASCII file to list:
 def read_column(filename, column=0, delim=' ', strip=True):
     with open(filename, 'r') as f:
@@ -448,7 +404,7 @@ tok = time.time()
 sys.stderr.write("done. Took %.3f seconds.\n" % (tok-tik))
 
 cdata = [x for x in cdata_all]  # everything
-cdata = [x for x in cdata_all if (x.get_header()['AP_ORDER'] > 3)]
+#cdata = [x for x in cdata_all if (x.get_header()['AP_ORDER'] > 3)]
 
 #summary = []
 #for ccc in cdata:
@@ -482,15 +438,16 @@ im2ex = {kk:vv for kk,vv in zip(cbcd_name, expo_time)}
 ##--------------------------------------------------------------------------##
 ## Concatenated list of RA/Dec coordinates:
 _ra_key, _de_key =  'dra',  'dde'
-#_ra_key, _de_key = 'wdra', 'wdde'
+_ra_key, _de_key = 'wdra', 'wdde'
 every_dra = np.concatenate([x._imcat[_ra_key] for x in cdata])
 every_dde = np.concatenate([x._imcat[_de_key] for x in cdata])
 every_jdutc = np.concatenate([n*[jd] for n,jd in zip(n_sources, jdutc)])   
 #every_jdutc = np.float_(every_jdutc)
 gc.collect()
 
+
 ##--------------------------------------------------------------------------##
-##-----------------          Cross-Match to Gaia           -----------------##
+##-----------------   Cross-Match to Gaia, Extract Target  -----------------##
 ##--------------------------------------------------------------------------##
 
 ntodo = 100
@@ -588,17 +545,89 @@ gc.collect()
 #derp = append_fields(derp, 'jdutc', jtmp, usemask=False)
 
 ##--------------------------------------------------------------------------##
+##-----------------        Box Extract Target Data         -----------------##
+##--------------------------------------------------------------------------##
+
+## Target extraction region:
+tbox_de = (-9.585, -9.581)
+#tbox_ra = (63.837, 63.844)
+tbox_ra = (63.825, 63.844)
+trent_ra, trent_pmra = 63.83469, 2.204 
+trent_de, trent_pmde = -9.58437, 0.541
+trent_epoch_mjd = 53024.06
+trent_epoch_jd = trent_epoch_mjd + 2400000.5
+trent_pars = [trent_ra, trent_de, 
+        trent_pmra/np.cos(np.radians(trent_de)), trent_pmde]
+j2000_epoch = astt.Time('2000-01-01T12:00:00', scale='tt', format='isot')
+def targpos(dt_years, params):
+    _asec_per_deg = 3600.
+    tra = params[0] + (params[2] / _asec_per_deg * dt_years)
+    tde = params[1] + (params[3] / _asec_per_deg * dt_years)
+    return tra, tde
+
+## Find target data points:
+sys.stderr.write("Extracting %s data ... " % targname) 
+tik = time.time()
+tgt_data = []
+tgt_tol_asec = 3.
+for ci,extcat in enumerate(cdata, 1):
+    ccat = extcat.get_catalog()
+    jd_info = {'jd':jdutc[ci-1], 'iname':extcat.get_imname()}
+    #elapsed_yr = (jd_info['jd'] - j2000_epoch.utc.jd) / 365.25
+    elapsed_yr = (jd_info['jd'] - trent_epoch_jd) / 365.25
+    _ra, _de = targpos(elapsed_yr, trent_pars)
+    sep_sec = 3600. * angle.dAngSep(_ra, _de, ccat[_ra_key], ccat[_de_key])
+    matches = sep_sec <= tgt_tol_asec
+    nhits = np.sum(matches)
+    #sys.stderr.write("nhits: %d\n" % nhits)
+
+
+    # box selection:
+    which = (tbox_ra[0] <= ccat[_ra_key]) & (ccat[_ra_key] <= tbox_ra[1]) \
+            & (tbox_de[0] <= ccat[_de_key]) & (ccat[_de_key] <= tbox_de[1])
+    #for match in ccat[which]:
+    for match in ccat[matches]:
+        m_info = {}
+        m_info.update(jd_info)
+        m_info['cat'] = match
+        tgt_data.append(m_info)
+    #nhits = np.sum(which)
+    #if (nhits > 1):
+    #    sys.stderr.write("Found multiple in-box sources in catalog %d!\n" % ci)
+    #    sys.exit(1)
+    #if np.any(which):
+    #    m_info = {}
+    #    m_info.update(jd_info)
+    #    m_info['cat'] = ccat[which]
+    #    tgt_data.append(m_info)
+    pass
+tok = time.time()
+sys.stderr.write("done. (%.3f s)\n" % (tok-tik))
+gc.collect()
 
 ##--------------------------------------------------------------------------##
+## How to repackage matched data points:
+def repack_matches(match_infos):
+    ccat = np.vstack([x['cat'] for x in match_infos])
+    jtmp = np.array([x['jd'] for x in match_infos])
+    itmp = np.array([x['iname'] for x in match_infos])
+    return append_fields(ccat, ('jdutc', 'iname'), (jtmp, itmp), usemask=False)
+
+##--------------------------------------------------------------------------##
+## Collect and export target data set for analysis:
+tgt_ccat = repack_matches(tgt_data)
+
+#sys.exit(0)
 ## Collect data sets by Gaia source for analysis:
 gtargets = {}
 for ii,gid in enumerate(gmatches.keys(), 1):
     sys.stderr.write("\rGathering gaia source %d of %d ..." % (ii, n_useful))
-    derp = np.vstack([x['cat'] for x in gmatches[gid]])
-    jtmp = np.array([x['jd'] for x in gmatches[gid]])
-    itmp = np.array([x['iname'] for x in gmatches[gid]])
-    derp = append_fields(derp, ('jdutc', 'iname'), (jtmp, itmp), usemask=False)
-    gtargets[gid] = derp
+    #derp = np.vstack([x['cat'] for x in gmatches[gid]])
+    #jtmp = np.array([x['jd'] for x in gmatches[gid]])
+    #itmp = np.array([x['iname'] for x in gmatches[gid]])
+    #derp = append_fields(derp, ('jdutc', 'iname'), (jtmp, itmp), usemask=False)
+    #gtargets[gid] = derp
+    gtargets[gid] = repack_matches(gmatches[gid])
 sys.stderr.write("done.\n")
 #sys.stderr.write("At this point, RAM use (MB): %.2f\n" % check_mem_usage_MB())
 
@@ -658,20 +687,64 @@ lookie = [
 
 ##--------------------------------------------------------------------------##
 ## Kludgey Spitzer ephemeris:
-use_epoch_tdb = 2456712.3421157757
+#use_epoch_tdb = 2456712.3421157757
+use_epoch_tdb = 2457174.500000000
+use_epoch = astt.Time(2457174.50000000, format='jd', scale='tdb')
+use_epoch_tdb = use_epoch.tdb.jd
 sst_eph_file = 'ephemerides/spitz_ssb_data.csv'
 eee.load(sst_eph_file)
+gse_tuple_savefile = 'GSE_tuple.pickle'
 
 ## Check several:
-gse_data = {}
-for gid in lookie:
-    sys.stderr.write("Examining %d ... \n" % gid) 
-    gneat, sneat = gather_by_id(gid)
-    use_eph = eee.retrieve(sneat['iname'])
-    gse_data[gid] = (gneat, sneat, use_eph)
+_DO_EXPORT = True
+if _DO_EXPORT:
+    gse_data = {}
+    res_data = {}
+    sigcut = 5.0
+    for gid in lookie:
+        sys.stderr.write("Examining %d ... \n" % gid) 
+        gneat, sneat = gather_by_id(gid)
+        use_eph = eee.retrieve(sneat['iname'])
+        gse_data[gid] = (gneat, sneat, use_eph)
+    
+        tmpres = {}
+        sra, sde = sneat[_ra_key], sneat[_de_key]
+        af.setup(use_epoch_tdb, sra, sde, use_eph)
+        bestpars = af.fit_bestpars(sigcut=sigcut)
+        best_ra, best_de = af.eval_model(bestpars)
+        resid_ra, resid_de = af._calc_radec_residuals(bestpars)
+        tmpres['resid_ra'], tmpres['resid_de'] = resid_ra, resid_de
+        tmpres['jdtdb'] = use_eph['jdtdb'].copy()
+        res_data[gid] = tmpres
 
+        # single-object save files:
+        gsrc_dir = os.path.join(targ_dir, 'gaia_%d' % gid)
+        mkdir_p(gsrc_dir)
+        _gsave = os.path.join(gsrc_dir, gse_tuple_savefile)
+        with open(_gsave, 'wb') as ff:
+            pickle.dump((gneat, sneat, use_eph), ff)
 
-sys.exit(0)
+    # Save GSE and residuals for external use:
+    export_dir  = os.path.join(targ_dir, 'combo')
+    mkdir_p(export_dir)
+    export_file = os.path.join(export_dir, 'resid_and_gse.pickle')
+    with open(export_file, 'wb') as ef:
+        pickle.dump((res_data, gse_data), ef)
+    target_file = os.path.join(export_dir, 'target_data.pickle')
+    with open(target_file, 'wb') as tf:
+        pickle.dump(tgt_ccat, tf)
+
+    # single-object version of target data:
+    tsrc_dir = os.path.join(targ_dir, 'target')
+    mkdir_p(tsrc_dir)
+    _tsave = os.path.join(tsrc_dir, gse_tuple_savefile)
+    tgt_eph = eee.retrieve(tgt_ccat['iname'])
+    with open(_tsave, 'wb') as ff:
+        pickle.dump((None, tgt_ccat, tgt_eph), ff)
+
+##--------------------------------------------------------------------------##
+
+#sys.exit(0)
 ##--------------------------------------------------------------------------##
 ## GOT ONE:
 sys.stderr.write("%s\n" % fulldiv)
@@ -691,27 +764,18 @@ sys.stderr.write("pmDE:     %10.4f +/- %8.4f\n"
         % (gneat.pmdec, gneat.pmdec_error))
 
 ## Kludgey Spitzer ephemeris:
-use_epoch_tdb = 2456712.3421157757
+#use_epoch_tdb = 2456712.3421157757
 sst_eph_file = 'ephemerides/spitz_ssb_data.csv'
 eee.load(sst_eph_file)
 use_eph = eee.retrieve(sneat['iname'])
 #sjd_tdb = use_eph['jdtdb']
 
 ## Optionally save data for external plotting:
-exdir = 'examples'
-csv_name = os.path.basename(context.gaia_csv)
-targname = csv_name.split('.')[0].split('_')[-1]
 save_example = True
 if save_example:
-    if not os.path.isdir(exdir):
-        os.mkdir(exdir)
-    targ_dir = os.path.join(exdir, targname)
-    if not os.path.isdir(targ_dir):
-        os.mkdir(targ_dir)
-    save_dir = '%s/gaia_%d' % (targ_dir, use_gid)
-    if not os.path.isdir(save_dir):
-        os.mkdir(save_dir)
-    _gsave = os.path.join(save_dir, 'GSE_tuple.pickle')
+    gsrc_dir = os.path.join(exdir, targname, 'gaia_%d' % use_gid)
+    mkdir_p(gsrc_dir)
+    _gsave = os.path.join(gsrc_dir, 'GSE_tuple.pickle')
     with open(_gsave, 'wb') as ff:
         pickle.dump((gneat, sneat, use_eph), ff)
     pass
