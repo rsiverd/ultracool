@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2020-02-09
-# Last modified: 2020-02-09
+# Last modified: 2020-02-11
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 ## Optional matplotlib control:
 #from matplotlib import use, rc, rcParams
@@ -48,7 +48,7 @@ except NameError:
         from imp import reload          # Python 3.0 - 3.3
 
 ## Modules:
-#import argparse
+import argparse
 #import shutil
 #import resource
 #import signal
@@ -75,7 +75,7 @@ import matplotlib.pyplot as plt
 #import matplotlib.ticker as mt
 #import matplotlib._pylab_helpers as hlp
 #from matplotlib.colors import LogNorm
-#import matplotlib.colors as mplcolors
+import matplotlib.colors as mplcolors
 #import matplotlib.collections as mcoll
 #import matplotlib.gridspec as gridspec
 #from functools import partial
@@ -83,7 +83,7 @@ import matplotlib.pyplot as plt
 #from collections.abc import Iterable
 #import multiprocessing as mp
 #np.set_printoptions(suppress=True, linewidth=160)
-#import pandas as pd
+import pandas as pd
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 #from statsmodels.regression.quantile_regression import QuantReg
@@ -147,20 +147,20 @@ except ImportError:
 #    sys.exit(1)
 
 ## Various from astropy:
-#try:
+try:
 #    import astropy.io.ascii as aia
 #    import astropy.io.fits as pf
 #    import astropy.io.votable as av
 #    import astropy.table as apt
-#    import astropy.time as astt
+    import astropy.time as astt
 #    import astropy.wcs as awcs
 #    from astropy import constants as aconst
 #    from astropy import coordinates as coord
 #    from astropy import units as uu
-#except ImportError:
-#    logger.error("astropy module not found!  Install and retry.")
-#    sys.stderr.write("\nError: astropy module not found!\n")
-#    sys.exit(1)
+except ImportError:
+    logger.error("astropy module not found!  Install and retry.")
+    sys.stderr.write("\nError: astropy module not found!\n")
+    sys.exit(1)
 
 ##--------------------------------------------------------------------------##
 ## Colors for fancy terminal output:
@@ -196,92 +196,68 @@ fulldiv = '-' * 80
 ##--------------------------------------------------------------------------##
 
 ## Parse arguments and run script:
-#class MyParser(argparse.ArgumentParser):
-#    def error(self, message):
-#        sys.stderr.write('error: %s\n' % message)
-#        self.print_help()
-#        sys.exit(2)
-#
-### Enable raw text AND display of defaults:
-#class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
-#                        argparse.RawDescriptionHelpFormatter):
-#    pass
-#
-### Parse the command line:
-#if __name__ == '__main__':
-#
-#    # ------------------------------------------------------------------
-#    prog_name = os.path.basename(__file__)
-#    descr_txt = """
-#    PUT DESCRIPTION HERE.
-#    
-#    Version: %s
-#    """ % __version__
-#    parser = argparse.ArgumentParser(
-#            prog='PROGRAM_NAME_HERE',
-#            prog=os.path.basename(__file__),
-#            #formatter_class=argparse.RawTextHelpFormatter)
-#            description='PUT DESCRIPTION HERE.')
-#            #description=descr_txt)
-#    parser = MyParser(prog=prog_name, description=descr_txt)
-#                          #formatter_class=argparse.RawTextHelpFormatter)
-#    # ------------------------------------------------------------------
-#    parser.set_defaults(thing1='value1', thing2='value2')
-#    # ------------------------------------------------------------------
-#    parser.add_argument('firstpos', help='first positional argument')
-#    parser.add_argument('-w', '--whatever', required=False, default=5.0,
-#            help='some option with default [def: %(default)s]', type=float)
-#    parser.add_argument('-s', '--site',
-#            help='Site to retrieve data for', required=True)
-#    parser.add_argument('-n', '--number_of_days', default=1,
-#            help='Number of days of data to retrieve.')
-#    parser.add_argument('-o', '--output_file', 
-#            default='observations.csv', help='Output filename.')
-#    parser.add_argument('--start', type=str, default=None, 
-#            help="Start time for date range query.")
-#    parser.add_argument('--end', type=str, default=None,
-#            help="End time for date range query.")
-#    parser.add_argument('-d', '--dayshift', required=False, default=0,
-#            help='Switch between days (1=tom, 0=today, -1=yest', type=int)
-#    parser.add_argument('-e', '--encl', nargs=1, required=False,
-#            help='Encl to make URL for', choices=all_encls, default=all_encls)
-#    parser.add_argument('-s', '--site', nargs=1, required=False,
-#            help='Site to make URL for', choices=all_sites, default=all_sites)
-#    parser.add_argument('remainder', help='other stuff', nargs='*')
-#    # ------------------------------------------------------------------
-#    # ------------------------------------------------------------------
-#    #iogroup = parser.add_argument_group('File I/O')
-#    #iogroup.add_argument('-o', '--output_file', default=None, required=True,
-#    #        help='Output filename', type=str)
-#    #iogroup.add_argument('-R', '--ref_image', default=None, required=True,
-#    #        help='KELT image with WCS')
-#    # ------------------------------------------------------------------
-#    # ------------------------------------------------------------------
-#    ofgroup = parser.add_argument_group('Output format')
-#    fmtparse = ofgroup.add_mutually_exclusive_group()
-#    fmtparse.add_argument('--python', required=False, dest='output_mode',
-#            help='Return Python dictionary with results [default]',
-#            default='pydict', action='store_const', const='pydict')
-#    bash_var = 'ARRAY_NAME'
-#    bash_msg = 'output Bash code snippet (use with eval) to declare '
-#    bash_msg += 'an associative array %s containing results' % bash_var
-#    fmtparse.add_argument('--bash', required=False, default=None,
-#            help=bash_msg, dest='bash_array', metavar=bash_var)
-#    fmtparse.set_defaults(output_mode='pydict')
-#    # ------------------------------------------------------------------
-#    # Miscellany:
-#    miscgroup = parser.add_argument_group('Miscellany')
-#    miscgroup.add_argument('--debug', dest='debug', default=False,
-#            help='Enable extra debugging messages', action='store_true')
-#    miscgroup.add_argument('-q', '--quiet', action='count', default=0,
-#            help='less progress/status reporting')
-#    miscgroup.add_argument('-v', '--verbose', action='count', default=0,
-#            help='more progress/status reporting')
-#    # ------------------------------------------------------------------
-#
-#    context = parser.parse_args()
-#    context.vlevel = 99 if context.debug else (context.verbose-context.quiet)
-#    context.prog_name = prog_name
+class MyParser(argparse.ArgumentParser):
+    def error(self, message):
+        sys.stderr.write('error: %s\n' % message)
+        self.print_help()
+        sys.exit(2)
+
+## Enable raw text AND display of defaults:
+class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
+                        argparse.RawDescriptionHelpFormatter):
+    pass
+
+## Parse the command line:
+if __name__ == '__main__':
+
+    # ------------------------------------------------------------------
+    prog_name = os.path.basename(__file__)
+    descr_txt = """
+    Fit 5-parameter solution for a single object and inspect results.
+    
+    Version: %s
+    """ % __version__
+    parser = MyParser(prog=prog_name, description=descr_txt,
+                          formatter_class=argparse.RawTextHelpFormatter)
+    # ------------------------------------------------------------------
+    #parser.set_defaults(thing1='value1', thing2='value2')
+    parser.set_defaults(winpos=False)
+    # ------------------------------------------------------------------
+    #parser.add_argument('firstpos', help='first positional argument')
+    #parser.add_argument('-w', '--whatever', required=False, default=5.0,
+    #        help='some option with default [def: %(default)s]', type=float)
+    #parser.add_argument('remainder', help='other stuff', nargs='*')
+    # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    fitgroup = parser.add_argument_group('Fitting')
+    fitgroup.add_argument('-W', '--window', required=False,
+            dest='winpos', action='store_true',
+            help='use windowed position measurements')
+    fitgroup.add_argument('-U', '--nowindow', required=False,
+            dest='winpos', action='store_false',
+            help='use non-windowed position measurements')
+    # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    iogroup = parser.add_argument_group('File I/O')
+    iogroup.add_argument('-o', '--output_file', default='scatter_and_fits.png',
+            help='output plot filename [def: %(default)s]')
+    #iogroup.add_argument('-R', '--ref_image', default=None, required=True,
+    #        help='KELT image with WCS')
+    # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # Miscellany:
+    miscgroup = parser.add_argument_group('Miscellany')
+    miscgroup.add_argument('--debug', dest='debug', default=False,
+            help='Enable extra debugging messages', action='store_true')
+    miscgroup.add_argument('-q', '--quiet', action='count', default=0,
+            help='less progress/status reporting')
+    miscgroup.add_argument('-v', '--verbose', action='count', default=0,
+            help='more progress/status reporting')
+    # ------------------------------------------------------------------
+
+    context = parser.parse_args()
+    context.vlevel = 99 if context.debug else (context.verbose-context.quiet)
+    context.prog_name = prog_name
 
 ##--------------------------------------------------------------------------##
 ## Reload pickled data:
@@ -293,41 +269,74 @@ if not os.path.isfile(savefile):
 with open(savefile, 'rb') as f:
     gneat, sneat, use_eph = pickle.load(f)
 
-_ra_key, _de_key =  'dra',  'dde'
+_have_gaia = True if isinstance(gneat, pd.DataFrame) else False
+
+if context.winpos:
+    _ra_key, _de_key =  'wdra',  'wdde'
+else:
+    _ra_key, _de_key =  'dra',  'dde'
 use_epoch_tdb = 2456712.3421157757
 use_epoch_tdb = 2457174.500000000
+tstamps = astt.Time(use_eph['jdtdb'], scale='tdb', format='jd')
 
 # ----------------
-sys.stderr.write("Gaia info:\n\n")
-sys.stderr.write("RA:       %15.7f\n" % gneat['ra'])
-sys.stderr.write("DE:       %15.7f\n" % gneat['dec'])
-sys.stderr.write("parallax: %10.4f +/- %8.4f\n"
-        % (gneat.parallax, gneat.parallax_error))
-sys.stderr.write("pmRA:     %10.4f +/- %8.4f\n"
-        % (gneat.pmra, gneat.pmra_error))
-sys.stderr.write("pmDE:     %10.4f +/- %8.4f\n"
-        % (gneat.pmdec, gneat.pmdec_error))
+if _have_gaia:
+    sys.stderr.write("Gaia info:\n\n")
+    sys.stderr.write("RA:       %15.7f\n" % gneat['ra'])
+    sys.stderr.write("DE:       %15.7f\n" % gneat['dec'])
+    sys.stderr.write("pmRA:     %10.4f +/- %8.4f\n"
+            % (gneat.pmra, gneat.pmra_error))
+    sys.stderr.write("pmDE:     %10.4f +/- %8.4f\n"
+            % (gneat.pmdec, gneat.pmdec_error))
+    sys.stderr.write("parallax: %10.4f +/- %8.4f\n"
+            % (gneat.parallax, gneat.parallax_error))
+
+##--------------------------------------------------------------------------##
+## Split observer orbit into halves:
+avgra = np.average(sneat['dra'])
+twopi = 2.0 * np.pi
+obs_anomaly = np.arctan2(use_eph['y'], use_eph['x']) % twopi
+rel_phase = ((obs_anomaly - np.radians(avgra)) % twopi) / twopi
+#rel_phase = (rel_phase + 0.50) % 1.0
+#obs_anomaly[(obs_anomaly < 0)] += twopi
+#plt.clf()
+#plt.hist(rel_phase, range=(0,1), bins=20)
+##plt.hist(obs_anomaly, range=(0, twopi), bins=20)
+##plt.axvline(np.radians(avgra)+ 0.0, c='r', ls='--')
+##plt.axvline(np.radians(avgra)+np.pi, c='r', ls='--')
+#plt.tight_layout()
+
+#circle_mean = twopi * angle.circ_avg_phase(obs_anomaly / twopi)
+#obs_anomaly = (obs_anomaly - circle_mean) % twopi
 
 ##--------------------------------------------------------------------------##
 ## Theil-Sen fitting:
 sjd_utc, sra, sde = sneat['jdutc'], sneat[_ra_key], sneat[_de_key]
-syr = 2000.0 + ((sjd_utc - 2451544.5) / 365.25)
-smonth = (syr % 1.0) * 12.0
+#syr = 2000.0 + ((sjd_utc - 2451544.5) / 365.25)
+#smonth = (syr % 1.0) * 12.0
+#dt_yrs = (tstamps.tdb.jd - use_epoch_tdb) / 365.25
+syr = (tstamps.tdb.jd - use_epoch_tdb) / 365.25
 
 ts_ra_model = ts.linefit(syr, sra)
 ts_de_model = ts.linefit(syr, sde)
-ts_pmra_masyr = ts_ra_model[1] * 3.6e6 / np.cos(np.radians(ts_de_model[0]))
+#ts_ra_model = ts.linefit(dt_yrs, sra)
+#ts_de_model = ts.linefit(dt_yrs, sde)
+#ts_pmra_masyr = ts_ra_model[1] * 3.6e6 * np.cos(np.radians(ts_de_model[0]))
+ts_pmra_masyr = ts_ra_model[1] * 3.6e6
 ts_pmde_masyr = ts_de_model[1] * 3.6e6
 
 
 # initial RA/Dec guess:
-sys.stderr.write("%s\n" % fulldiv)
 guess_ra = sra.mean()
 guess_de = sde.mean()
-sys.stderr.write("guess_ra:  %15.7f\n" % guess_ra)
-sys.stderr.write("guess_de:  %15.7f\n" % guess_de)
+if (context.vlevel >= 2):
+    sys.stderr.write("%s\n" % fulldiv)
+    sys.stderr.write("guess_ra:  %15.7f\n" % guess_ra)
+    sys.stderr.write("guess_de:  %15.7f\n" % guess_de)
 
-afpars = [guess_ra, guess_de, ts_pmra_masyr/1e3, ts_pmde_masyr/1e3, 1.0]
+#afpars = [np.radians(guess_ra), np.radians(guess_de), ts_pmra_masyr/1e3, ts_pmde_masyr/1e3, 1.0]
+afpars = [np.radians(guess_ra), np.radians(guess_de), 
+        np.radians(ts_ra_model[1]), np.radians(ts_de_model[1]), 1.0]
 appcoo = af.apparent_radec(use_epoch_tdb, afpars, use_eph)
 
 # proper fit:
@@ -341,33 +350,35 @@ rlm_pmde_masyr = de_rlm_res.params[1] * 3.6e6
 rlm_pmra_masyr = ra_rlm_res.params[1] * 3.6e6 \
         * np.cos(np.radians(de_rlm_res.params[0]))
 
-
-sys.stderr.write("\nTheil-Sen intercepts:\n")
-sys.stderr.write("RA:   %15.7f\n" % ts_ra_model[0])
-sys.stderr.write("DE:   %15.7f\n" % ts_de_model[0])
-
-sys.stderr.write("\nTheil-Sen proper motions:\n")
-sys.stderr.write("RA:   %10.6f mas/yr\n" % ts_pmra_masyr)
-sys.stderr.write("DE:   %10.6f mas/yr\n" % ts_pmde_masyr)
-
-sys.stderr.write("\nRLM (Huber) proper motions:\n")
-sys.stderr.write("RA:   %10.6f mas/yr\n" % rlm_pmra_masyr)
-sys.stderr.write("DE:   %10.6f mas/yr\n" % rlm_pmde_masyr)
-
-sys.stderr.write("\n")
-sys.stderr.write("%s\n" % fulldiv)
+if (context.vlevel >= 1):
+    sys.stderr.write("%s\n" % fulldiv)
+    sys.stderr.write("\nTheil-Sen intercepts:\n")
+    sys.stderr.write("RA:   %15.7f\n" % ts_ra_model[0])
+    sys.stderr.write("DE:   %15.7f\n" % ts_de_model[0])
+    
+    sys.stderr.write("\nTheil-Sen proper motions:\n")
+    sys.stderr.write("RA:   %10.6f mas/yr\n" % ts_pmra_masyr)
+    sys.stderr.write("DE:   %10.6f mas/yr\n" % ts_pmde_masyr)
+    
+    sys.stderr.write("\nRLM (Huber) proper motions:\n")
+    sys.stderr.write("RA:   %10.6f mas/yr\n" % rlm_pmra_masyr)
+    sys.stderr.write("DE:   %10.6f mas/yr\n" % rlm_pmde_masyr)
+    
+    sys.stderr.write("\n")
+    sys.stderr.write("%s\n" % fulldiv)
 
 bfde_path = de_rlm_res.params[0] + de_rlm_res.params[1]*syr
 bfra_path = ra_rlm_res.params[0] + ra_rlm_res.params[1]*syr
 
 ##--------------------------------------------------------------------------##
 
+sys.stderr.write("%s\n" % fulldiv)
 af.setup(use_epoch_tdb, sra, sde, use_eph)
 af.set_exponent(2.0)
 winner = af.fit_bestpars(sigcut=5.0)
-win_ra, win_de = af.eval_model(winner)
-win_ra = np.degrees(win_ra)
-win_de = np.degrees(win_de)
+slv_ra, slv_de = af.eval_model(winner)
+slv_ra = np.degrees(slv_ra)
+slv_de = np.degrees(slv_de)
 
 rsig_RA, rsig_DE = af._calc_radec_residuals_sigma(af._par_guess)
 
@@ -380,13 +391,13 @@ sys.stderr.write("NOTE TO SELF: Gaia pmRA includes cos(dec)!\n")
 
 ##--------------------------------------------------------------------------##
 ## Plottable curves for the different proper motion fits:
-padding = 1.1
+padding = 0.0
 syr_range = syr.max() - syr.min()
 #syr_lspan = syr_range * 1.1
 syr_plt_1 = syr.min() - padding * syr_range
-syr_plt_2 = syr.min() + padding * syr_range
-#syr_edges = np.array([syr_plt_1, syr_plt_2])
-syr_edges = np.array([syr.min(), syr.max()])
+syr_plt_2 = syr.max() + padding * syr_range
+syr_edges = np.array([syr_plt_1, syr_plt_2])
+#syr_edges = np.array([syr.min(), syr.max()])
 p_ols_ra = ra_ols_res.params[0] + syr_edges * ra_ols_res.params[1]
 p_ols_de = de_ols_res.params[0] + syr_edges * de_ols_res.params[1]
 p_rlm_ra = ra_rlm_res.params[0] + syr_edges * ra_rlm_res.params[1]
@@ -394,8 +405,11 @@ p_rlm_de = de_rlm_res.params[0] + syr_edges * de_rlm_res.params[1]
 p_sen_ra = ts_ra_model[0] + syr_edges * ts_ra_model[1]
 p_sen_de = ts_de_model[0] + syr_edges * ts_de_model[1]
 
-p_gaia_ra = gneat['ra'].values + syr_edges * gneat['pmra'].values
-p_gaia_de = gneat['dec'].values + syr_edges * gneat['pmdec'].values
+if _have_gaia:
+    p_gaia_ra = gneat['ra'].values + syr_edges * gneat['pmra'].values
+    p_gaia_de = gneat['dec'].values + syr_edges * gneat['pmdec'].values
+else:
+    p_gaia_ra, p_gaia_de = None, None
 
 ##--------------------------------------------------------------------------##
 ## Misc:
@@ -426,70 +440,6 @@ def nice_limits(vec, pctiles=[1,99], pad=1.2):
 #    tpad = dt.timedelta(seconds=pad*trange)
 #    return (tstart - tpad, tstop + tpad)
 
-##--------------------------------------------------------------------------##
-## Solve prep:
-#ny, nx = img_vals.shape
-#x_list = (0.5 + np.arange(nx)) / nx - 0.5            # relative (centered)
-#y_list = (0.5 + np.arange(ny)) / ny - 0.5            # relative (centered)
-#xx, yy = np.meshgrid(x_list, y_list)                 # relative (centered)
-#xx, yy = np.meshgrid(nx*x_list, ny*y_list)           # absolute (centered)
-#xx, yy = np.meshgrid(np.arange(nx), np.arange(ny))   # absolute
-#yy, xx = np.meshgrid(np.arange(ny), np.arange(nx), indexing='ij') # absolute
-#yy, xx = np.nonzero(np.ones_like(img_vals))          # absolute
-#yy, xx = np.mgrid[0:ny,   0:nx].astype('uint16')     # absolute (array)
-#yy, xx = np.mgrid[1:ny+1, 1:nx+1].astype('uint16')   # absolute (pixel)
-
-## 1-D vectors:
-#x_pix, y_pix, ivals = xx.flatten(), yy.flatten(), img_vals.flatten()
-#w_vec = np.ones_like(ivals)            # start with uniform weights
-#design_matrix = np.column_stack((np.ones(x_pix.size), x_pix, y_pix))
-
-## Image fitting (statsmodels etc.):
-#data = sm.datasets.stackloss.load()
-#ols_res = sm.OLS(ivals, design_matrix).fit()
-#rlm_res = sm.RLM(ivals, design_matrix).fit()
-#rlm_model = sm.RLM(ivals, design_matrix, M=sm.robust.norms.HuberT())
-#rlm_res = rlm_model.fit()
-#data = pd.DataFrame({'xpix':x_pix, 'ypix':y_pix})
-#rlm_model = sm.RLM.from_formula("ivals ~ xpix + ypix", data)
-
-##--------------------------------------------------------------------------##
-## Theil-Sen line-fitting (linear):
-#model = ts.linefit(xvals, yvals)
-#icept, slope = ts.linefit(xvals, yvals)
-
-## Theil-Sen line-fitting (loglog):
-#xvals, yvals = np.log10(original_xvals), np.log10(original_yvals)
-#xvals, yvals = np.log10(df['x'].values), np.log10(df['y'].values)
-#llmodel = ts.linefit(np.log10(xvals), np.log10(yvals))
-#icept, slope = ts.linefit(xvals, yvals)
-#fit_exponent = slope
-#fit_multiplier = 10**icept
-#bestfit_x = np.arange(5000)
-#bestfit_y = fit_multiplier * bestfit_x**fit_exponent
-
-## Log-log evaluator:
-#def loglog_eval(xvals, model):
-#    icept, slope = model
-#    return 10**icept * xvals**slope
-#def loglog_eval(xvals, icept, slope):
-#    return 10**icept * xvals**slope
-
-##--------------------------------------------------------------------------##
-## KDE:
-#kde_pnts, kde_vals = mk.go(data_vec)
-
-##--------------------------------------------------------------------------##
-## Vaex plotting:
-#ds = vaex.open('big_file.hdf5')
-#ds = vaex.from_arrays(x=x, y=y)     # load from arrays
-#ds = vaex.from_csv('mydata.csv')
-
-## Stats:
-#ds.mean("x"), ds.std("x"), ds.correlation("vx**2+vy**2+vz**2", "E")
-#ds.plot(....)
-#http://vaex.astro.rug.nl/latest/tutorial_ipython_notebook.html
-
 
 ##--------------------------------------------------------------------------##
 #plain_crs = ccrs.PlateCarree()
@@ -509,7 +459,9 @@ ax1 = fig.add_subplot(111, aspect='equal')
 ax1.grid(True)
 #ax1.axis('off')
 
-ax1.scatter(sra, sde, lw=0, s=10)
+colorvec = use_eph['jdtdb']
+colorvec = rel_phase
+spts = ax1.scatter(sra, sde, lw=0, s=10, c=colorvec)
 afpars = [np.radians(guess_ra), np.radians(guess_de),
                ts_pmra_masyr, ts_pmde_masyr, 1.0]
 pxvals = np.array([0.1, 1., 10., 100.])
@@ -538,16 +490,18 @@ ax1.plot(p_ols_ra, p_ols_de, c='k', ls='-', lw=1, label='OLS')
 
 ax1.set_xlim(nice_limits(sra, pctiles=[0,100], pad=1.2))
 ax1.set_ylim(nice_limits(sde, pctiles=[0,100], pad=1.2))
-#ax1.legend(loc='best')
+#ax1.set_xlim(nice_limits(p_sen_ra, pctiles=[0,100], pad=1.2))
+#ax1.set_ylim(nice_limits(p_sen_de, pctiles=[0,100], pad=1.2))
 
 
-ax1.plot(win_ra, win_de, c='c', lw=1, label='optimized')
-ax1.legend(loc='lower left')
+ax1.plot(slv_ra, slv_de, c='c', lw=1, label='optimized')
+#ax1.legend(loc='lower left')
+ax1.legend(loc='best')
 
 
 ## Disable axis offsets:
 #ax1.xaxis.get_major_formatter().set_useOffset(False)
-#ax1.yaxis.get_major_formatter().set_useOffset(False)
+ax1.yaxis.get_major_formatter().set_useOffset(False)
 
 #ax1.plot(kde_pnts, kde_vals)
 
@@ -586,17 +540,19 @@ ax1.legend(loc='lower left')
 
 #spts = ax1.scatter(x, y, lw=0, s=5)
 ##cbar = fig.colorbar(spts, orientation='vertical')   # old way
-#cbnorm = mplcolors.Normalize(*spts.get_clim())
-#sm = plt.cm.ScalarMappable(norm=cbnorm, cmap=spts.cmap)
-#sm.set_array([])
-#cbar = fig.colorbar(sm, orientation='vertical')
-#cbar = fig.colorbar(sm, ticks=cs.levels, orientation='vertical') # contours
+cbnorm = mplcolors.Normalize(*spts.get_clim())
+scm = plt.cm.ScalarMappable(norm=cbnorm, cmap=spts.cmap)
+scm.set_array([])
+cbar = fig.colorbar(scm, orientation='horizontal')
+#cbar = fig.colorbar(scm, orientation='vertical')
+#cbar = fig.colorbar(scm, ticks=cs.levels, orientation='vertical') # contours
 #cbar.formatter.set_useOffset(False)
 #cbar.update_ticks()
 
+plot_name = 'scatter_and_fits.png'
 fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
 plt.draw()
-#fig.savefig(plot_name, bbox_inches='tight')
+fig.savefig(plot_name, bbox_inches='tight')
 
 
 
