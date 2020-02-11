@@ -256,16 +256,21 @@ class AstFit(object):
             return False
 
         # robust initial guess with Theil-Sen:
-        guess = self.ts_fit_radec_pm(self._dt_yrs, self._RA_rad, self._DE_rad)
+        uguess = self.ts_fit_radec_pm(self._dt_yrs, self._RA_rad, self._DE_rad)
+        wguess = self.ts_fit_radec_pm(self._dt_yrs, self._RA_rad, self._DE_rad,
+                weighted=True)
         #sys.stderr.write("Initial guess: %s\n" % str(guess))
-        sys.stderr.write("Initial guess:\n")
-        sys.stderr.write("==> %s\n" % str(self.nice_units(guess)))
+        sys.stderr.write("Initial guess (unweighted):\n")
+        sys.stderr.write("==> %s\n" % str(self.nice_units(uguess)))
+        sys.stderr.write("\n")
+        sys.stderr.write("Initial guess (weighted):\n")
+        sys.stderr.write("==> %s\n" % str(self.nice_units(wguess)))
         sys.stderr.write("\n")
 
         # check whether anything looks really bad:
-        self._par_guess = guess
+        self._par_guess = uguess
         #rsig_tot = np.hypot(*self._calc_radec_residuals_sigma(guess))
-        rsig_tot = self._calc_total_residuals_sigma(guess)
+        rsig_tot = self._calc_total_residuals_sigma(uguess)
         #sys.stderr.write("rsig_tot: %s\n" % str(rsig_tot))
         self.inliers = (rsig_tot < sigcut)
         ndropped = self.inliers.size - np.sum(self.inliers)
