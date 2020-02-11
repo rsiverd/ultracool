@@ -266,11 +266,12 @@ class AstFit(object):
         sys.stderr.write("Initial guess (weighted):\n")
         sys.stderr.write("==> %s\n" % str(self.nice_units(wguess)))
         sys.stderr.write("\n")
+        guess = uguess  # adopt unweighted for now
 
         # check whether anything looks really bad:
-        self._par_guess = uguess
+        self._par_guess = guess
         #rsig_tot = np.hypot(*self._calc_radec_residuals_sigma(guess))
-        rsig_tot = self._calc_total_residuals_sigma(uguess)
+        rsig_tot = self._calc_total_residuals_sigma(guess)
         #sys.stderr.write("rsig_tot: %s\n" % str(rsig_tot))
         self.inliers = (rsig_tot < sigcut)
         ndropped = self.inliers.size - np.sum(self.inliers)
