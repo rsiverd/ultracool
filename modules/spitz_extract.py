@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2019-10-15
-# Last modified: 2019-10-15
+# Last modified: 2020-02-12
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -84,6 +84,15 @@ except ImportError:
     sys.stderr.write("Error: easy_sep module not found!\n\n")
     sys.exit(1)
 
+## Spitzer pixel phase correction (cheesy version, IRAC ch1):
+try:
+    import spitz_pixphase
+    reload(spitz_pixphase)
+    iracfix = spitz_pixphase.IRACFix()
+except ImportError:
+    logger.error("failed to import spitz_pixphase module!")
+    sys.exit(1)
+
 ##--------------------------------------------------------------------------##
 ##------------------    Spitzer Star Extraction Class       ----------------##
 ##--------------------------------------------------------------------------##
@@ -96,7 +105,7 @@ _lacos_defaults = {
 
 _spitz_defaults = {
                 'minpixels'   :     5,
-               'pix_origin'   :   1.0,
+               'pix_origin'   :     1,  # MUST BE INTEGER
                 'win_sigma'   :   1.2,
                 'calc_wpos'   :  True,
         }
@@ -203,6 +212,14 @@ class SpitzFind(object):
         _err_mode = use_err_img and self._have_err_image
         self._pse.analyze(thresh, rel_err=_err_mode)
         dataset = self._pse.allobjs if keepall else self._pse.useobjs
+
+        # tack on pixel-phase corrected coordinates:
+        pix_origin = self._pse.settings['pix_origin']
+        ppx, ppy = iracfix.fix_centroid(dataset['x'], dataset['y'])
+        ppra, ppde = self._pse._wcs_func(ppx, ppy, pix_origin)
+        dataset = append_fields(dataset, ('ppx', 'ppy', 'ppdra', 'ppdde'),
+                (ppx, ppy, ppra, ppde), usemask=False)
+
 
         result = ec.ExtendedCatalog(data=dataset,
                 name=os.path.basename(self._ipath), header=self._ihdrs,
