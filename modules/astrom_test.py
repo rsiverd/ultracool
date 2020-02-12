@@ -132,7 +132,7 @@ class AstFit(object):
         #    return False
         self.inliers = np.ones_like(RA_deg, dtype='bool')
         self.rweight = np.ones_like(RA_deg)
-        self.obs_eph = obs_eph
+        self.obs_eph = self._augmented_eph(obs_eph)
         self.ref_tdb = jd_tdb_ref
         self._dt_yrs = (self.obs_eph['jdtdb'] - self.ref_tdb) / 365.25
         self._RA_rad = np.radians(RA_deg)
@@ -144,6 +144,13 @@ class AstFit(object):
         self._DE_err = np.radians(DE_err) if DE_err else self._DE_MAD
         self._is_set = True
         return True
+
+    @staticmethod
+    def _augmented_eph(obs_eph):
+        twopi = 2.0 * np.pi
+        anom = np.arctan2(obs_eph['y'], obs_eph['x']) % twopi
+        return append_fields(obs_eph, 'anom', anom, usemask=False)
+
 
     #def set_ref_time(self, t_ref):
     #    self.ref_time = t_ref
