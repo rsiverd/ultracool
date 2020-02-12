@@ -275,8 +275,10 @@ if context.winpos:
     _ra_key, _de_key =  'wdra',  'wdde'
 else:
     _ra_key, _de_key =  'dra',  'dde'
-use_epoch_tdb = 2456712.3421157757
-use_epoch_tdb = 2457174.500000000
+#use_epoch_tdb = 2456712.3421157757
+#use_epoch_tdb = 2457174.500000000
+use_epoch = astt.Time(2457174.500000000, scale='tdb', format='jd')
+use_epoch_tdb = use_epoch.tdb.jd
 tstamps = astt.Time(use_eph['jdtdb'], scale='tdb', format='jd')
 
 # ----------------
@@ -297,25 +299,33 @@ avgra = np.average(sneat['dra'])
 twopi = 2.0 * np.pi
 obs_anomaly = np.arctan2(use_eph['y'], use_eph['x']) % twopi
 rel_phase = ((obs_anomaly - np.radians(avgra)) % twopi) / twopi
-#rel_phase = (rel_phase + 0.50) % 1.0
-#obs_anomaly[(obs_anomaly < 0)] += twopi
-#plt.clf()
-#plt.hist(rel_phase, range=(0,1), bins=20)
-##plt.hist(obs_anomaly, range=(0, twopi), bins=20)
-##plt.axvline(np.radians(avgra)+ 0.0, c='r', ls='--')
-##plt.axvline(np.radians(avgra)+np.pi, c='r', ls='--')
-#plt.tight_layout()
+#phase_per_day = np.median(np.diff(rel_phase) / np.diff(tstamps.tdb.jd))
+#orb_period = 1.0 / phase_per_day
 
-#circle_mean = twopi * angle.circ_avg_phase(obs_anomaly / twopi)
-#obs_anomaly = (obs_anomaly - circle_mean) % twopi
+
+def period_check(params):
+    """params ~ (zeropoint_tdb, period_days)"""
+    mod_phase = ((tstamps.tdb.jd - params[0]) / params[1]) % 1.0
+    resid = rel_phase - mod_phase
+    return np.sum(resid**2)
+param0 = np.array([tstamps.tdb.jd[0], 365.25])
+orb_start, orb_period = opti.fmin(period_check, param0)
+
+#orb_period = 365.25
+#orb_start = tstamps.tdb.jd[0] - rel_phase[0] / phase_per_day
+#orb_start = tstamps.tdb.jd[0] - rel_phase[0] * orb_period
+tspan_days = tstamps.tdb.jd.max() - tstamps.tdb.jd.min()
+ncycles = np.ceil(tspan_days / orb_period)
+orb_zeros = orb_start + np.arange(ncycles) * orb_period
+cycle_ends_jd_tdb = np.column_stack((orb_zeros, orb_zeros + orb_period))
+cycle_ends_yr_tdb = (cycle_ends_jd_tdb - use_epoch.tdb.jd) / 365.25
 
 ##--------------------------------------------------------------------------##
 ## Theil-Sen fitting:
 sjd_utc, sra, sde = sneat['jdutc'], sneat[_ra_key], sneat[_de_key]
 #syr = 2000.0 + ((sjd_utc - 2451544.5) / 365.25)
 #smonth = (syr % 1.0) * 12.0
-#dt_yrs = (tstamps.tdb.jd - use_epoch_tdb) / 365.25
-syr = (tstamps.tdb.jd - use_epoch_tdb) / 365.25
+syr = (tstamps.tdb.jd - use_epoch.tdb.jd) / 365.25
 
 ts_ra_model = ts.linefit(syr, sra)
 ts_de_model = ts.linefit(syr, sde)
@@ -337,7 +347,7 @@ if (context.vlevel >= 2):
 #afpars = [np.radians(guess_ra), np.radians(guess_de), ts_pmra_masyr/1e3, ts_pmde_masyr/1e3, 1.0]
 afpars = [np.radians(guess_ra), np.radians(guess_de), 
         np.radians(ts_ra_model[1]), np.radians(ts_de_model[1]), 1.0]
-appcoo = af.apparent_radec(use_epoch_tdb, afpars, use_eph)
+appcoo = af.apparent_radec(use_epoch.tdb.jd, afpars, use_eph)
 
 # proper fit:
 design_matrix = np.column_stack((np.ones(syr.size), syr))
@@ -373,7 +383,7 @@ bfra_path = ra_rlm_res.params[0] + ra_rlm_res.params[1]*syr
 ##--------------------------------------------------------------------------##
 
 sys.stderr.write("%s\n" % fulldiv)
-af.setup(use_epoch_tdb, sra, sde, use_eph)
+af.setup(use_epoch.tdb.jd, sra, sde, use_eph)
 af.set_exponent(2.0)
 winner = af.fit_bestpars(sigcut=5.0)
 slv_ra, slv_de = af.eval_model(winner)
@@ -410,6 +420,9 @@ if _have_gaia:
     p_gaia_de = gneat['dec'].values + syr_edges * gneat['pmdec'].values
 else:
     p_gaia_ra, p_gaia_de = None, None
+
+##--------------------------------------------------------------------------##
+## Linear ephemeris approximation:
 
 ##--------------------------------------------------------------------------##
 ## Misc:
@@ -453,7 +466,7 @@ plt.gcf().clf()
 #fig.subplots_adjust(left=0.07, right=0.95)
 #ax1 = plt.subplot(gs[0, 0])
 #ax1 = fig.add_subplot(111, aspect='equal', projection=plain_crs)
-ax1 = fig.add_subplot(111, aspect='equal')
+ax1 = fig.add_subplot(211, aspect='equal')
 #ax1 = fig.add_axes([0, 0, 1, 1])
 #ax1.patch.set_facecolor((0.8, 0.8, 0.8))
 ax1.grid(True)
@@ -503,6 +516,31 @@ ax1.legend(loc='best')
 #ax1.xaxis.get_major_formatter().set_useOffset(False)
 ax1.yaxis.get_major_formatter().set_useOffset(False)
 
+#spts = ax1.scatter(x, y, lw=0, s=5)
+##cbar = fig.colorbar(spts, orientation='vertical')   # old way
+cbnorm = mplcolors.Normalize(*spts.get_clim())
+scm = plt.cm.ScalarMappable(norm=cbnorm, cmap=spts.cmap)
+scm.set_array([])
+#cbar = fig.colorbar(scm, orientation='horizontal')
+cbar = fig.colorbar(scm, orientation='vertical')
+#cbar = fig.colorbar(scm, orientation='vertical')
+#cbar = fig.colorbar(scm, ticks=cs.levels, orientation='vertical') # contours
+#cbar.formatter.set_useOffset(False)
+#cbar.update_ticks()
+
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
+
+ax2 = fig.add_subplot(212)
+ax2.grid(True)
+ax2.scatter(syr, rel_phase, lw=0, s=15, c=rel_phase)
+
+#ax2.scatter(syr, rel_phase, lw=0, s=15, c=rel_phase)
+
+phase_ends = np.array([0, 1])
+for cyc_yrs in cycle_ends_yr_tdb:
+    ax2.plot(cyc_yrs, phase_ends, c='r', lw=0.75, ls=':')
+
 #ax1.plot(kde_pnts, kde_vals)
 
 #blurb = "some text"
@@ -537,17 +575,6 @@ ax1.yaxis.get_major_formatter().set_useOffset(False)
 
 #ax1.xaxis.label.set_fontsize(18)
 #ax1.yaxis.label.set_fontsize(18)
-
-#spts = ax1.scatter(x, y, lw=0, s=5)
-##cbar = fig.colorbar(spts, orientation='vertical')   # old way
-cbnorm = mplcolors.Normalize(*spts.get_clim())
-scm = plt.cm.ScalarMappable(norm=cbnorm, cmap=spts.cmap)
-scm.set_array([])
-cbar = fig.colorbar(scm, orientation='horizontal')
-#cbar = fig.colorbar(scm, orientation='vertical')
-#cbar = fig.colorbar(scm, ticks=cs.levels, orientation='vertical') # contours
-#cbar.formatter.set_useOffset(False)
-#cbar.update_ticks()
 
 plot_name = 'scatter_and_fits.png'
 fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
