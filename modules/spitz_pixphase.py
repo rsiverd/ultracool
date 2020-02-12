@@ -148,16 +148,17 @@ class IRACFix(object):
         Report the measurement errors in X,Y given apparent
         (sub)pixel source position. Sense of value is X_obs - X_true.
         """
-        x_nudge = np.interp(x_obs % 1.0, self.pfrac, self.xcorr)
-        y_nudge = np.interp(y_obs % 1.0, self.pfrac, self.ycorr)
+        x_frac = (x_obs % 1.0) - 0.5
+        y_frac = (y_obs % 1.0) - 0.5
+        x_nudge = np.interp(x_frac, self.pfrac, self.xcorr)
+        y_nudge = np.interp(y_frac, self.pfrac, self.ycorr)
         return (x_nudge, y_nudge)
 
     def fix_centroid(self, x_obs, y_obs):
         """
         De-bias input centroids based on sub-pixel position.
         """
-        x_nudge = np.interp(x_obs % 1.0, self.pfrac, self.xcorr)
-        y_nudge = np.interp(y_obs % 1.0, self.pfrac, self.ycorr)
+        x_nudge, y_nudge = self.get_xy_bias(x_obs, y_obs)
         return (x_obs - x_nudge, y_obs - y_nudge)
 
 ##--------------------------------------------------------------------------##
