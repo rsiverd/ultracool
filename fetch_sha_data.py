@@ -424,5 +424,5 @@ for nn,targ in enumerate(targets, 1):
 #
 #  2019-08-27:
 #     -- Increased __version__ to 0.1.0.
-#     -- First created fetch_hsa_data.py.
+#     -- First created fetch_sha_data.py.
 #
