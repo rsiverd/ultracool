@@ -1,5 +1,5 @@
 
-%run ./fetch_sha_data.py -t targets.txt -o ~/ucd_project/ucd_data
+%run ./fetch_sha_data.py -t targets.txt -o ~/ucd_project/ucd_sha_data
 
 # ----------------------------------------------------------------------- 
 
@@ -10,18 +10,18 @@
 
 # extraction test:
 %run ./extract_and_match_gaia.py -g ultracool/csv/gaia_wise1828.csv \
-   -i ucd_data/SPITZER_I2_61246976_0004_0000_1_cbcd.fits
+   -i ucd_sha_data/SPITZER_I2_61246976_0004_0000_1_cbcd.fits
 %run ./extract_and_match_gaia.py -g ultracool/csv/gaia_wise1828.csv \
-   -i ucd_data/SPITZER_I2_61246976_0004_0000_1_cbcd.fits            \
-   -u ucd_data/SPITZER_I2_61246976_0004_0000_1_cbunc.fits
+   -i ucd_sha_data/SPITZER_I2_61246976_0004_0000_1_cbcd.fits        \
+   -u ucd_sha_data/SPITZER_I2_61246976_0004_0000_1_cbunc.fits
 %run ./extract_and_match_gaia.py -g ultracool/csv/gaia_wise1828.csv \
-   -i ucd_data/SPITZER_I2_61246976_0004_0000_1_cbcd.fits            \
-   -u ucd_data/SPITZER_I2_61246976_0004_0000_1_cbunc.fits           \
+   -i ucd_sha_data/SPITZER_I2_61246976_0004_0000_1_cbcd.fits        \
+   -u ucd_sha_data/SPITZER_I2_61246976_0004_0000_1_cbunc.fits       \
    -o ucd_fcat/SPITZER_I2_61246976_0004_0000_1_fcat.fits
 
 %run ./extract_and_match_gaia.py -g ultracool/csv/gaia_wise1828.csv \
-   -i ucd_data/SPITZER_I2_61246976_0004_0000_1_cbcd.fits            \
-   -u ucd_data/SPITZER_I2_61246976_0004_0000_1_cbunc.fits           \
+   -i ucd_sha_data/SPITZER_I2_61246976_0004_0000_1_cbcd.fits        \
+   -u ucd_sha_data/SPITZER_I2_61246976_0004_0000_1_cbunc.fits       \
    -r detections.reg
 
 # ----------------------------------------------------------------------- 
@@ -36,20 +36,20 @@
 # ----------------------------------------------------------------------- 
 # PIPELINE execution:
 
-./05_extract_all_spitzer.py -I ../ucd_data -O ../ucd_fcat
+./05_extract_all_spitzer.py -I ../ucd_sha_data -O ../ucd_fcat
 
 # unweighted ...
-./06_sextract_spitzer.sh --original -I ../ucd_data -O ../ucd_scat_orig --START -r
-./06_sextract_spitzer.sh --cosclean -I ../ucd_data -O ../ucd_scat_ccln --START -r
+./06_sextract_spitzer.sh --original -I ../ucd_sha_data -O ../ucd_scat_orig --START -r
+./06_sextract_spitzer.sh --cosclean -I ../ucd_sha_data -O ../ucd_scat_ccln --START -r
 
 # weighted!
-./06_sextract_spitzer.sh --original -I ../ucd_data -O ../wei_scat_orig --START -r --rmswei
-./06_sextract_spitzer.sh --cosclean -I ../ucd_data -O ../wei_scat_ccln --START -r --rmswei
+./06_sextract_spitzer.sh --original -I ../ucd_sha_data -O ../wei_scat_orig --START -r --rmswei
+./06_sextract_spitzer.sh --cosclean -I ../ucd_sha_data -O ../wei_scat_ccln --START -r --rmswei
 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
 # ancillary stuff:
 
-./compare_distortion.py -i ~/ucd_project/ucd_data/SPITZER_I2_61246976_0004_0000_1_cbcd.fits
+./compare_distortion.py -i ~/ucd_project/ucd_sha_data/SPITZER_I2_61246976_0004_0000_1_cbcd.fits
 
