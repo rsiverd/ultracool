@@ -51,18 +51,6 @@ import numpy as np
 from zipfile import ZipFile
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
-## Because obviously:
-#import warnings
-#if not sys.warnoptions:
-#    warnings.simplefilter("ignore", category=DeprecationWarning)
-#    warnings.simplefilter("ignore", category=UserWarning)
-#    warnings.simplefilter("ignore")
-#with warnings.catch_warnings():
-#    some_risky_activity()
-#with warnings.catch_warnings():
-#    warnings.filterwarnings("ignore", category=DeprecationWarning)
-#    import problem_child1, problem_child2
-
 ##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
 class Unbuffered(object):
