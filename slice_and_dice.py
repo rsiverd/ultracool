@@ -352,6 +352,14 @@ if context.gaia_csv:
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
+## RA/DE coordinate keys for various methods:
+centroid_colmap = {
+        'simple'    :   ('dra', 'dde'),
+        'window'    :   ('wdra', 'wdde'),
+        'pp_fix'    :   ('ppdra', 'ppdde'),
+        }
+
+
 ##--------------------------------------------------------------------------##
 ## Example and data-saving config:
 exdir = 'examples'
@@ -437,8 +445,11 @@ im2ex = {kk:vv for kk,vv in zip(cbcd_name, expo_time)}
 
 ##--------------------------------------------------------------------------##
 ## Concatenated list of RA/Dec coordinates:
-_ra_key, _de_key =  'dra',  'dde'
-_ra_key, _de_key = 'wdra', 'wdde'
+
+centroid_method = 'simple'
+#centroid_method = 'window'
+#centroid_method = 'pp_fix'
+_ra_key, _de_key = centroid_colmap[centroid_method]
 every_dra = np.concatenate([x._imcat[_ra_key] for x in cdata])
 every_dde = np.concatenate([x._imcat[_de_key] for x in cdata])
 every_jdutc = np.concatenate([n*[jd] for n,jd in zip(n_sources, jdutc)])   
@@ -631,6 +642,9 @@ for ii,gid in enumerate(gmatches.keys(), 1):
 sys.stderr.write("done.\n")
 #sys.stderr.write("At this point, RAM use (MB): %.2f\n" % check_mem_usage_MB())
 
+gtg_npts = {gg:len(cc) for gg,cc in gtargets.items()} 
+npts_100 = [gg for gg,nn in gtg_npts.items() if nn>100]
+
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
@@ -685,6 +699,10 @@ lookie = [
     3192150334409729536,
     ]
 
+#lookie = list(set(lookie + npts_100))
+
+lookie = npts_100
+
 ##--------------------------------------------------------------------------##
 ## Kludgey Spitzer ephemeris:
 #use_epoch_tdb = 2456712.3421157757
@@ -695,27 +713,51 @@ sst_eph_file = 'ephemerides/spitz_ssb_data.csv'
 eee.load(sst_eph_file)
 gse_tuple_savefile = 'GSE_tuple.pickle'
 
+def get_fit_residuals(sneat, use_eph, sigcut):
+    tmpres = {}
+    sra, sde = sneat[_ra_key], sneat[_de_key]
+    af.setup(use_epoch_tdb, sra, sde, use_eph)
+    bestpars = af.fit_bestpars(sigcut=sigcut)
+    best_ra, best_de = af.eval_model(bestpars)
+    resid_ra, resid_de = af._calc_radec_residuals(bestpars)
+    tmpres['resid_ra'], tmpres['resid_de'] = resid_ra, resid_de
+    tmpres['jdtdb'] = use_eph['jdtdb'].copy()
+    tmpres['flux'] = sneat['flux'].copy()
+    return tmpres
+
 ## Check several:
 _DO_EXPORT = True
 if _DO_EXPORT:
     gse_data = {}
     res_data = {}
     sigcut = 5.0
+
+    # single-object version of target data:
+    tsrc_dir = os.path.join(targ_dir, 'target')
+    mkdir_p(tsrc_dir)
+    _tsave = os.path.join(tsrc_dir, gse_tuple_savefile)
+    tgt_eph = eee.retrieve(tgt_ccat['iname'])
+    with open(_tsave, 'wb') as ff:
+        pickle.dump((None, tgt_ccat, tgt_eph), ff)
+    res_data['tgt'] = get_fit_residuals(tgt_ccat, tgt_eph, sigcut)
+
+    # fit residuals for field objects:
     for gid in lookie:
         sys.stderr.write("Examining %d ... \n" % gid) 
         gneat, sneat = gather_by_id(gid)
         use_eph = eee.retrieve(sneat['iname'])
         gse_data[gid] = (gneat, sneat, use_eph)
     
-        tmpres = {}
-        sra, sde = sneat[_ra_key], sneat[_de_key]
-        af.setup(use_epoch_tdb, sra, sde, use_eph)
-        bestpars = af.fit_bestpars(sigcut=sigcut)
-        best_ra, best_de = af.eval_model(bestpars)
-        resid_ra, resid_de = af._calc_radec_residuals(bestpars)
-        tmpres['resid_ra'], tmpres['resid_de'] = resid_ra, resid_de
-        tmpres['jdtdb'] = use_eph['jdtdb'].copy()
-        res_data[gid] = tmpres
+        #tmpres = {}
+        #sra, sde = sneat[_ra_key], sneat[_de_key]
+        #af.setup(use_epoch_tdb, sra, sde, use_eph)
+        #bestpars = af.fit_bestpars(sigcut=sigcut)
+        #best_ra, best_de = af.eval_model(bestpars)
+        #resid_ra, resid_de = af._calc_radec_residuals(bestpars)
+        #tmpres['resid_ra'], tmpres['resid_de'] = resid_ra, resid_de
+        #tmpres['jdtdb'] = use_eph['jdtdb'].copy()
+        #res_data[gid] = tmpres
+        res_data[gid] = get_fit_residuals(sneat, use_eph, sigcut)
 
         # single-object save files:
         gsrc_dir = os.path.join(targ_dir, 'gaia_%d' % gid)
@@ -729,18 +771,10 @@ if _DO_EXPORT:
     mkdir_p(export_dir)
     export_file = os.path.join(export_dir, 'resid_and_gse.pickle')
     with open(export_file, 'wb') as ef:
-        pickle.dump((res_data, gse_data), ef)
+        pickle.dump((res_data, gse_data, centroid_method), ef)
     target_file = os.path.join(export_dir, 'target_data.pickle')
     with open(target_file, 'wb') as tf:
         pickle.dump(tgt_ccat, tf)
-
-    # single-object version of target data:
-    tsrc_dir = os.path.join(targ_dir, 'target')
-    mkdir_p(tsrc_dir)
-    _tsave = os.path.join(tsrc_dir, gse_tuple_savefile)
-    tgt_eph = eee.retrieve(tgt_ccat['iname'])
-    with open(_tsave, 'wb') as ff:
-        pickle.dump((None, tgt_ccat, tgt_eph), ff)
 
 ##--------------------------------------------------------------------------##
 

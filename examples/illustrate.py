@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2020-02-09
-# Last modified: 2020-02-11
+# Last modified: 2020-02-13
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 ## Optional matplotlib control:
 #from matplotlib import use, rc, rcParams
@@ -98,8 +98,14 @@ reload(angle)
 import astrom_test
 reload(astrom_test)
 af = astrom_test.AstFit()
-eee = astrom_test.SSTEph()
 
+sys.stderr.write("Loading hourly Spitzer ephemeris ... ")
+import horiz_ephem
+reload(horiz_ephem)
+he = horiz_ephem.HorizEphem()
+sst_hourly_file = '/home/rsiverd/Spitzer/timekeeping/hourly/concat_sst_hourly.txt'
+he.load_ascii_ephemeris(sst_hourly_file)
+sys.stderr.write("done.\n")
 
 ##--------------------------------------------------------------------------##
 ## Projections with cartopy:
@@ -221,7 +227,7 @@ if __name__ == '__main__':
                           formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
     #parser.set_defaults(thing1='value1', thing2='value2')
-    parser.set_defaults(winpos=False)
+    parser.set_defaults(pos_method='simple')
     # ------------------------------------------------------------------
     #parser.add_argument('firstpos', help='first positional argument')
     #parser.add_argument('-w', '--whatever', required=False, default=5.0,
@@ -231,11 +237,14 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------
     fitgroup = parser.add_argument_group('Fitting')
     fitgroup.add_argument('-W', '--window', required=False,
-            dest='winpos', action='store_true',
+            dest='pos_method', action='store_const', const='window',
             help='use windowed position measurements')
-    fitgroup.add_argument('-U', '--nowindow', required=False,
-            dest='winpos', action='store_false',
-            help='use non-windowed position measurements')
+    fitgroup.add_argument('-S', '--simple', required=False,
+            dest='pos_method', action='store_const', const='simple',
+            help='use simple (non-windowed) position measurements')
+    fitgroup.add_argument('-P', '--pixphase', required=False,
+            dest='pos_method', action='store_const', const='pp_fix',
+            help='use pixel phase-corrected position (testing)')
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
     iogroup = parser.add_argument_group('File I/O')
@@ -260,6 +269,26 @@ if __name__ == '__main__':
     context.prog_name = prog_name
 
 ##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
+## RA/DE coordinate keys for various methods:
+centroid_colmap = {
+        'simple'    :   ('dra', 'dde'),
+        'window'    :   ('wdra', 'wdde'),
+        'pp_fix'    :   ('ppdra', 'ppdde'),
+        }
+
+## Stop in case of method confusion:
+if not context.pos_method in centroid_colmap.keys():
+    sys.stderr.write("unrecognized method: '%s'\n" % context.pos_method)
+    sys.exit(1)
+_ra_key, _de_key = centroid_colmap.get(context.pos_method)
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
 ## Reload pickled data:
 savefile = 'GSE_tuple.pickle'
 if not os.path.isfile(savefile):
@@ -271,10 +300,11 @@ with open(savefile, 'rb') as f:
 
 _have_gaia = True if isinstance(gneat, pd.DataFrame) else False
 
-if context.winpos:
-    _ra_key, _de_key =  'wdra',  'wdde'
-else:
-    _ra_key, _de_key =  'dra',  'dde'
+## Set coord keys:
+#if context.pos_kind:
+#    _ra_key, _de_key =  'wdra',  'wdde'
+#else:
+#    _ra_key, _de_key =  'dra',  'dde'
 #use_epoch_tdb = 2456712.3421157757
 #use_epoch_tdb = 2457174.500000000
 use_epoch = astt.Time(2457174.500000000, scale='tdb', format='jd')
@@ -455,6 +485,36 @@ def nice_limits(vec, pctiles=[1,99], pad=1.2):
 
 
 ##--------------------------------------------------------------------------##
+## RA/DE figures:
+cfsize = (10, 5)
+figcoo = plt.figure(4, figsize=(10,4))
+figcoo.clf()
+figRA = plt.figure(2, figsize=cfsize)
+figDE = plt.figure(3, figsize=cfsize)
+figRA.clf()
+figDE.clf()
+
+t_all = he._eph_data['JDTDB'][::12]
+x_all = he._eph_data['X'][::12]
+y_all = he._eph_data['Y'][::12]
+z_all = he._eph_data['Z'][::12]
+dense_eph = np.core.records.fromarrays((t_all, x_all, y_all, z_all),
+        names='t,x,y,z')
+dense_ra, dense_de = af.apparent_radec(use_epoch.tdb.jd, winner, dense_eph)
+
+#axRA = figRA.add_subplot(111)
+axRA = figcoo.add_subplot(121)
+axRA.scatter(tstamps.tdb.jd, sra, lw=0, s=5)
+axRA.plot(dense_eph['t'], np.degrees(dense_ra), c='k')
+axRA.set_ylim(nice_limits(sra))
+
+
+#axDE = figDE.add_subplot(111)
+axDE = figcoo.add_subplot(122)
+axDE.scatter(tstamps.tdb.jd, sde, lw=0, s=5)
+axDE.plot(dense_eph['t'], np.degrees(dense_de), c='k')
+axDE.set_ylim(nice_limits(sde, [2,98]))
+
 #plain_crs = ccrs.PlateCarree()
 #plt.style.use('bmh')   # Bayesian Methods for Hackers style
 fig_dims = (12, 10)
@@ -516,30 +576,24 @@ ax1.legend(loc='best')
 #ax1.xaxis.get_major_formatter().set_useOffset(False)
 ax1.yaxis.get_major_formatter().set_useOffset(False)
 
-#spts = ax1.scatter(x, y, lw=0, s=5)
-##cbar = fig.colorbar(spts, orientation='vertical')   # old way
-cbnorm = mplcolors.Normalize(*spts.get_clim())
-scm = plt.cm.ScalarMappable(norm=cbnorm, cmap=spts.cmap)
-scm.set_array([])
-#cbar = fig.colorbar(scm, orientation='horizontal')
-cbar = fig.colorbar(scm, orientation='vertical')
+#cbnorm = mplcolors.Normalize(*spts.get_clim())
+#scm = plt.cm.ScalarMappable(norm=cbnorm, cmap=spts.cmap)
+#scm.set_array([])
+##cbar = fig.colorbar(scm, orientation='horizontal')
 #cbar = fig.colorbar(scm, orientation='vertical')
-#cbar = fig.colorbar(scm, ticks=cs.levels, orientation='vertical') # contours
-#cbar.formatter.set_useOffset(False)
-#cbar.update_ticks()
 
 ## -----------------------------------------------------------------------
 ## -----------------------------------------------------------------------
 
-ax2 = fig.add_subplot(212)
-ax2.grid(True)
-ax2.scatter(syr, rel_phase, lw=0, s=15, c=rel_phase)
-
+#ax2 = fig.add_subplot(212)
+#ax2.grid(True)
 #ax2.scatter(syr, rel_phase, lw=0, s=15, c=rel_phase)
-
-phase_ends = np.array([0, 1])
-for cyc_yrs in cycle_ends_yr_tdb:
-    ax2.plot(cyc_yrs, phase_ends, c='r', lw=0.75, ls=':')
+#
+##ax2.scatter(syr, rel_phase, lw=0, s=15, c=rel_phase)
+#
+#phase_ends = np.array([0, 1])
+#for cyc_yrs in cycle_ends_yr_tdb:
+#    ax2.plot(cyc_yrs, phase_ends, c='r', lw=0.75, ls=':')
 
 #ax1.plot(kde_pnts, kde_vals)
 

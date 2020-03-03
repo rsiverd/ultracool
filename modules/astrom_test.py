@@ -200,8 +200,10 @@ class AstFit(object):
         #delta_de = (t_diff_yr * pmde / _ARCSEC_PER_RADIAN) + (prlx * pfde)
         #delta_ra = (t_diff_yr * pmra + prlx * pfra) / _ARCSEC_PER_RADIAN
         #delta_de = (t_diff_yr * pmde + prlx * pfde) / _ARCSEC_PER_RADIAN
-        delta_ra = (t_diff_yr * pmra + prlx * pfra) / _MAS_PER_RADIAN
-        delta_de = (t_diff_yr * pmde + prlx * pfde) / _MAS_PER_RADIAN
+        #delta_ra = (t_diff_yr * pmra + prlx * pfra) / _MAS_PER_RADIAN
+        #delta_de = (t_diff_yr * pmde + prlx * pfde) / _MAS_PER_RADIAN
+        delta_ra = (t_diff_yr * pmra + prlx * pfra)
+        delta_de = (t_diff_yr * pmde + prlx * pfde)
     
         return (rra + delta_ra, rde + delta_de)
 
