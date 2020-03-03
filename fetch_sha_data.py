@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2019-08-27
-# Last modified: 2019-09-30
+# Last modified: 2020-03-02
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.3.6"
+__version__ = "0.4.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -198,18 +198,20 @@ if __name__ == '__main__':
     parser = MyParser(prog=prog_name, description=descr_txt,
                           formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
-    #parser.set_defaults(search_rad_deg=0.1)
     # ------------------------------------------------------------------
-    #parser.add_argument('firstpos', help='first positional argument')
-    #parser.add_argument('-w', '--whatever', required=False, default=5.0,
-    #        help='some option with default [def: %(default)s]', type=float)
-    #parser.add_argument('-n', '--number_of_days', default=1,
-    #        help='Number of days of data to retrieve.')
-    #parser.add_argument('remainder', help='other stuff', nargs='*')
+    #parser.set_defaults(data_source=None)
+    #telgroup = parser.add_argument_group('Data/Telescope Choice')
+    #telgroup = telgroup.add_mutually_exclusive_group()
+    #telgroup.add_argument('-S', '--spitzer', required=False,
+    #        dest='data_source', action='store_const', const='spitzer',
+    #        help='retrieve data from Spitzer Heritage Archive')
+    #telgroup.add_argument('--CFHT', required=False,
+    #        dest='data_source', action='store_const', const='CFHT',
+    #        help='retrieve data from CFHT archive')
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
     iogroup = parser.add_argument_group('File I/O')
-    iogroup.add_argument('-F', '--fetch_list', required=False, default=None,
+    iogroup.add_argument('-f', '--fetch_list', required=False, default=None,
             help='save list of download(ed) files to FILE', type=str)
     iogroup.add_argument('-o', '--output_dir', required=True, default=None,
             help='output folder for retrieved files', type=str)
@@ -243,6 +245,11 @@ if __name__ == '__main__':
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
+
+### Quit if no imaging DB selected:
+#if not context.data_source:
+#    sys.stderr.write("Must select imaging source!\n")
+#    sys.exit(1)
 
 ## Create target list:
 targets = []
