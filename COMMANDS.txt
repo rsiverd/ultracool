@@ -1,5 +1,5 @@
 
-%run ./fetch_imaging_data.py --spitzer -t targets.txt -o ../ucd_data
+%run ./fetch_imaging_data.py --spitzer -t targets.txt -o ~/ucd_project/ucd_data
 
 # ----------------------------------------------------------------------- 
 
