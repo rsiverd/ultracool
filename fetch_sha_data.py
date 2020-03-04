@@ -268,15 +268,15 @@ with open(context.target_list, 'r') as f:
 
 ## Slightly less dumb parsing (assume deg units if unspecified):
 def skycoordify(text):
+    tcoo = None
     try:
-        return coord.SkyCoord(x)
+        tcoo = coord.SkyCoord(x)
     except:
         try:
-            return coord.SkyCoord(x, unit="deg")
+            tcoo = coord.SkyCoord(x, unit="deg")
         except:
             sys.stderr.write("Failed to parse coordinates: '%s'\n" % text)
-            return None
-    return None     # just in case
+    return tcoo
 
 ## Make SkyCoords:
 targets += [skycoordify(x) for x in contents]
