@@ -266,8 +266,21 @@ with open(context.target_list, 'r') as f:
         nocomment = line.split('#')[0].strip()
         contents.append(nocomment)
 
+## Slightly less dumb parsing (assume deg units if unspecified):
+def skycoordify(text):
+    try:
+        return coord.SkyCoord(x)
+    except:
+        try:
+            return coord.SkyCoord(x, unit="deg")
+        except:
+            sys.stderr.write("Failed to parse coordinates: '%s'\n" % text)
+            return None
+    return None     # just in case
+
 ## Make SkyCoords:
-targets += [coord.SkyCoord(x) for x in contents]
+targets += [skycoordify(x) for x in contents]
+targets = [x for x in targets if x]
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##

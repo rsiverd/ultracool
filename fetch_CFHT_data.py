@@ -25,8 +25,6 @@ except NameError:
 ## Modules:
 import argparse
 import shutil
-#import resource
-import signal
 import gc
 import os
 import sys
@@ -35,55 +33,25 @@ import numpy as np
 #from numpy.lib.recfunctions import append_fields
 #import datetime as dt
 #from dateutil import parser as dtp
-#import matplotlib.pyplot as plt
-#import matplotlib.cm as cm
-#import matplotlib.ticker as mt
-#import matplotlib._pylab_helpers as hlp
-#from matplotlib.colors import LogNorm
-#from matplotlib import colors
-#import matplotlib.colors as mplcolors
-#import matplotlib.gridspec as gridspec
 #from functools import partial
 #from collections import OrderedDict
 #import multiprocessing as mp
 #np.set_printoptions(suppress=True, linewidth=160)
 #import itertools as itt
-from zipfile import ZipFile
+#from zipfile import ZipFile
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
-
-##--------------------------------------------------------------------------##
-## Disable buffering on stdout/stderr:
-class Unbuffered(object):
-   def __init__(self, stream):
-       self.stream = stream
-   def write(self, data):
-       self.stream.write(data)
-       self.stream.flush()
-   def __getattr__(self, attr):
-       return getattr(self.stream, attr)
-
-sys.stdout = Unbuffered(sys.stdout)
-sys.stderr = Unbuffered(sys.stderr)
 
 ##--------------------------------------------------------------------------##
 
 ## Various from astropy:
 try:
-    from astroquery import sha
+    from astroquery.cadc import Cadc
+    cadc = Cadc()
     from astropy import coordinates as coord
     from astropy import units as uu
 except ImportError:
-    sys.stderr.write("\nError: astropy module not found!\n")
+    sys.stderr.write("\nError: astropy/astroquery import failed!\n")
     sys.exit(1)
-
-### SHA retrieval module:
-#try:
-#    import download_sha
-#    reload(download_sha)
-#    dsha = download_sha.DownloadSHA()
-#except ImportError:
-#    sys.stderr.write("\nError: hsa_fetch module not found!\n")
-#    sys.exit(1)
 
 ##--------------------------------------------------------------------------##
 ## Colors for fancy terminal output:
@@ -113,39 +81,6 @@ degree_sign = u'\N{DEGREE SIGN}'
 ## Dividers:
 halfdiv = '-' * 40
 fulldiv = '-' * 80
-
-##--------------------------------------------------------------------------##
-## Catch interruption cleanly:
-def signal_handler(signum, frame):
-    sys.stderr.write("\nInterrupted!\n\n")
-    sys.exit(1)
-
-signal.signal(signal.SIGINT, signal_handler)
-
-##--------------------------------------------------------------------------##
-## Save FITS image with clobber (astropy / pyfits):
-#def qsave(iname, idata, header=None, padkeys=1000, **kwargs):
-#    this_func = sys._getframe().f_code.co_name
-#    parent_func = sys._getframe(1).f_code.co_name
-#    sys.stderr.write("Writing to '%s' ... " % iname)
-#    if header:
-#        while (len(header) < padkeys):
-#            header.append() # pad header
-#    if os.path.isfile(iname):
-#        os.remove(iname)
-#    pf.writeto(iname, idata, header=header, **kwargs)
-#    sys.stderr.write("done.\n")
-
-##--------------------------------------------------------------------------##
-## Save FITS image with clobber (fitsio):
-#def qsave(iname, idata, header=None, **kwargs):
-#    this_func = sys._getframe().f_code.co_name
-#    parent_func = sys._getframe(1).f_code.co_name
-#    sys.stderr.write("Writing to '%s' ... " % iname)
-#    #if os.path.isfile(iname):
-#    #    os.remove(iname)
-#    fitsio.write(iname, idata, clobber=True, header=header, **kwargs)
-#    sys.stderr.write("done.\n")
 
 ##--------------------------------------------------------------------------##
 #def ldmap(things):
@@ -254,8 +189,22 @@ with open(context.target_list, 'r') as f:
         nocomment = line.split('#')[0].strip()
         contents.append(nocomment)
 
-## Make SkyCoords:
-targets += [coord.SkyCoord(x) for x in contents]
+## Slightly less dumb parsing (assume deg units if unspecified):
+def skycoordify(text):
+    try:
+        return coord.SkyCoord(x)
+    except:
+        try:
+            return coord.SkyCoord(x, unit="deg")
+        except:
+            sys.stderr.write("Failed to parse coordinates: '%s'\n" % text)
+            return None
+    return None     # just in case
+
+
+## Make SkyCoords (resort to deg, deg if parse fails):
+targets += [skycoordify(x) for x in contents]
+targets = [x for x in targets if x]
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
@@ -327,6 +276,8 @@ def already_have_data(item, suff_list, outdir):
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
+sys.exit(0)
+
 ## Search for results:
 max_imgs = 0
 max_objs = 0
@@ -338,7 +289,7 @@ for nn,targ in enumerate(targets, 1):
     sys.stderr.write("%s\n" % fulldiv)
 
     # retrieve query results
-    sys.stderr.write("Querying SHA database ... ")
+    sys.stderr.write("Querying CFHT database ... ")
     hits = sha.query(coord=targ, size=context.search_rad_deg, dataset=1)
     sys.stderr.write("done.\n")
 
