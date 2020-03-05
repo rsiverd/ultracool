@@ -145,6 +145,7 @@ if __name__ == '__main__':
     parser = MyParser(prog=prog_name, description=descr_txt,
                           formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
+    #parser.set_defaults(temp_folder='/tmp')
     # ------------------------------------------------------------------
     #parser.set_defaults(data_source=None)
     #telgroup = parser.add_argument_group('Data/Telescope Choice')
@@ -164,6 +165,8 @@ if __name__ == '__main__':
             help='output folder for retrieved files', type=str)
     iogroup.add_argument('-t', '--target_list', required=True, default=None,
             help='input list of target coordinates', type=str)
+    iogroup.add_argument('--temp_folder', required=False, default='/tmp',
+            help='where to store in-process downloads')
     #iogroup.add_argument('-o', '--output_file', default=None, required=True,
     #        help='Output filename', type=str)
     #iogroup.add_argument('-R', '--ref_image', default=None, required=True,
@@ -193,25 +196,10 @@ if __name__ == '__main__':
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
-### Quit if no imaging DB selected:
-#if not context.data_source:
-#    sys.stderr.write("Must select imaging source!\n")
-#    sys.exit(1)
-
-## Create target list:
-targets = []
-
 ## Ensure target list exists:
 if not os.path.isfile(context.target_list):
     sys.stderr.write("Error: file not found: %s\n" % context.target_list)
     sys.exit(1)
-
-## Load targets from list:
-with open(context.target_list, 'r') as f:
-    contents = []
-    for line in [x.strip() for x in f.readlines()]:
-        nocomment = line.split('#')[0].strip()
-        contents.append(nocomment)
 
 ## Slightly less dumb parsing (assume deg units if unspecified):
 def skycoordify(text):
@@ -225,83 +213,68 @@ def skycoordify(text):
             sys.stderr.write("Failed to parse coordinates: '%s'\n" % text)
     return tcoo
 
-## Make SkyCoords (resort to deg, deg if parse fails):
-targets += [skycoordify(x) for x in contents]
-targets = [x for x in targets if x]
+## Load data from list:
+with open(context.target_list, 'r') as f:
+    contents = [x.strip() for x in f.readlines()]
+
+## Parse target info:
+delim = '#'
+targets = []
+for ii, line in enumerate(contents, 1):
+    tname = 'pointing%03d' % ii
+    if delim in line:
+        tname = line.split(delim)[1].strip()
+    nocomment = line.split(delim)[0].strip()
+    tcoord = skycoordify(nocomment)
+    if tcoord:
+        targets.append((tcoord, tname))
+
+
+#    #fldnames = []
+#    for ii,line in enumerate([x.strip() for x in f.readlines()], 1):
+#        nocomment = line.split('#')[0].strip()
+#        contents.append(nocomment)
+#        if not '#' in line:
+#            sys.stderr.write("\n")
+#
+### Make SkyCoords (resort to deg, deg if parse fails):
+#targets += [skycoordify(x) for x in contents]
+#targets = [x for x in targets if x]
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
-## Flavor-specific storage path for a known output basename:
-def make_storage_relpath(save_name):
-    imname = os.path.basename(save_name)
-    subdir = None
-    impath = os.path.join(subdir, imname) if subdir else imname
-    return impath
-
-def make_flavor_imname(item, suffix):
-    return item['ibase'].replace('_bcd.fits', suffix)
-
-#def make_storage_relpath(save_name, suffix):
-#    imname = os.path.basename(save_name).replace('_bcd.fits', suffix)
-#    imname = 
+### Flavor-specific storage path for a known output basename:
+#def make_storage_relpath(save_name):
+#    imname = os.path.basename(save_name)
 #    subdir = None
 #    impath = os.path.join(subdir, imname) if subdir else imname
 #    return impath
-
-#def fetch_cfh_image(url, save_path, tmp_path):
-
-
-### Retrieve item+ancillary and save zip archive:
-#def get_all_as_zip(item, save_path,
-#        urlkey='accessWithAnc1Url', tpath='./.spitzer'):
-#    data_url = item[urlkey].strip()
-#    _tmp_dir = os.path.dirname(tpath) + '/'
-#    _tmpfile = os.path.basename(tpath)
-#    _tmppath = tpath + '.zip'
-#    sha.save_file(data_url, out_dir=_tmp_dir, out_name=_tmpfile)
-#    if not os.path.isfile(_tmppath):
-#        sys.stderr.write("result missing!!!!")
-#        return False
-#    shutil.move(_tmppath, save_path)
-#    return True
 #
-#def unzip_and_move_by_suffix(zfile, suffix, outdir):
-#    with ZipFile(zfile, 'r') as zz:
-#        for zi in zz.infolist():
-#            if zi.filename.endswith(suffix):
-#                #zi.filename = os.path.basename(zi.filename)
-#                zi.filename = make_storage_relpath(zi.filename)
-#                zz.extract(zi, outdir)
-#    return
-#
-### Driver routine to retrieve zip file and unpack desired flavors:
-#def retrieve_anc_zip(item, suff_list, outdir):
-#    tzpath = 'temp.zip'
-#    if not get_all_as_zip(item, tzpath):
-#        sys.stderr.write("retrieval error!!\n")
-#        return False
-#    for flavor in suff_list:
-#        unzip_and_move_by_suffix(tzpath, flavor, outdir)
-#    os.unlink(tzpath)
-#    return True
-#
-### Check whether files already retrieved:
-#def already_have_data(item, suff_list, outdir):
-#    found = []
-#    for suffix in suff_list:
-#        flav_name = make_flavor_imname(item, suffix)
-#        flav_path = os.path.join(outdir, make_storage_relpath(flav_name))
-#        found.append(os.path.isfile(flav_path))
-#    return all(found)
+#def make_flavor_imname(item, suffix):
+#    return item['ibase'].replace('_bcd.fits', suffix)
 
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
-#sys.exit(0)
+## Ensure presence of temporary folder:
+if not os.path.isdir(context.temp_folder):
+    sys.stderr.write("\nError: temporary folder '%s' not found!\n"
+            % context.temp_folder)
+    sys.exit(1)
+
+## Ensure presence of output folder:
+if not os.path.isdir(context.output_dir):
+    sys.stderr.write("\nError: output folder '%s' not found!\n"
+            % context.output_dir)
+    sys.exit(1)
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
 
 ## Search for results:
 srch_deg = uu.deg * context.search_rad_deg
@@ -319,7 +292,8 @@ instr_names = ['WIRCam'] #, 'jeffcam']
 prod_suffix = ['p', 's']
 ntodo = 0
 chunksize = 50
-tmp_dl_file = '/tmp/tmpfetch.%d.fits' % os.getpid()
+tmp_dl_base = 'tmpfetch.%d.fits' % os.getpid()
+tmp_dl_path = os.path.join(context.temp_folder, tmp_dl_base)
 fdl.prefer_requests()
 
 ## Select the things I want:
@@ -337,9 +311,18 @@ def pick_favorites(results):
     # return whatever remains:
     return hits
     
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
 
-for nn,targ in enumerate(targets, 1):
+for nn,tinfo in enumerate(targets, 1):
     sys.stderr.write("%s\n" % fulldiv)
+    targ, tname = tinfo
+
+    # ensure output folder exists:
+    save_dir = os.path.join(context.output_dir, tname)
+    if not os.path.isdir(save_dir):
+        os.mkdir(save_dir)
 
     # retrieve query results
     sys.stderr.write("Querying CFHT database ... ")
@@ -352,8 +335,7 @@ for nn,targ in enumerate(targets, 1):
     sys.stderr.write("Selecting useful subset ... ")
     useful = pick_favorites(hits)
     useful['ibase'] = ['%s.fits.fz'%x for x in useful['productID']]
-    useful['isave'] = [os.path.join(context.output_dir, x) \
-            for x in useful['ibase']]
+    useful['isave'] = [os.path.join(save_dir, x) for x in useful['ibase']]
     sys.stderr.write("done. Identified %d images.\n" % len(useful))
 
     # exclude images already retrieved:
@@ -375,7 +357,7 @@ for nn,targ in enumerate(targets, 1):
         sys.stderr.write("Chunk %d of %d ...\n" % (ii, nchunks))
         snag = useful[cidx]
         imurls = cadc.get_data_urls(snag)
-        dlspec = [(uu, ss, tmp_dl_file) for uu,ss in zip(imurls, snag['isave'])]
+        dlspec = [(uu, ss, tmp_dl_path) for uu,ss in zip(imurls, snag['isave'])]
         fdl.smart_fetch_bulk(dlspec)
 
 
