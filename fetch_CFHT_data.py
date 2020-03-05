@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2020-03-02
-# Last modified: 2020-03-02
+# Last modified: 2020-03-04
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -41,10 +41,34 @@ import numpy as np
 #from zipfile import ZipFile
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
+## Fancy downloading:
+try:
+    import downloading
+    reload(downloading)
+    fdl = downloading.Downloader()
+except ImportError:
+    sys.stderr.write("\nRequired 'downloading' module not found!\n")
+    #raise ImportError
+
+##--------------------------------------------------------------------------##
+## Disable buffering on stdout/stderr:
+class Unbuffered(object):
+   def __init__(self, stream):
+       self.stream = stream
+   def write(self, data):
+       self.stream.write(data)
+       self.stream.flush()
+   def __getattr__(self, attr):
+       return getattr(self.stream, attr)
+
+sys.stdout = Unbuffered(sys.stdout)
+sys.stderr = Unbuffered(sys.stderr)
+
 ##--------------------------------------------------------------------------##
 
 ## Various from astropy:
 try:
+    import astropy.table as apt
     from astroquery.cadc import Cadc
     cadc = Cadc()
     from astropy import coordinates as coord
@@ -195,9 +219,7 @@ def skycoordify(text):
     try:
         tcoo = coord.SkyCoord(text)
     except:
-        sys.stderr.write("blind parse failed ...\n")
         try:
-            sys.stderr.write("trying as degrees ...\n") 
             tcoo = coord.SkyCoord(text, unit="deg")
         except:
             sys.stderr.write("Failed to parse coordinates: '%s'\n" % text)
@@ -228,123 +250,134 @@ def make_flavor_imname(item, suffix):
 #    impath = os.path.join(subdir, imname) if subdir else imname
 #    return impath
 
+#def fetch_cfh_image(url, save_path, tmp_path):
 
-## Retrieve item+ancillary and save zip archive:
-def get_all_as_zip(item, save_path,
-        urlkey='accessWithAnc1Url', tpath='./.spitzer'):
-    data_url = item[urlkey].strip()
-    _tmp_dir = os.path.dirname(tpath) + '/'
-    _tmpfile = os.path.basename(tpath)
-    _tmppath = tpath + '.zip'
-    sha.save_file(data_url, out_dir=_tmp_dir, out_name=_tmpfile)
-    if not os.path.isfile(_tmppath):
-        sys.stderr.write("result missing!!!!")
-        return False
-    shutil.move(_tmppath, save_path)
-    return True
 
-def unzip_and_move_by_suffix(zfile, suffix, outdir):
-    with ZipFile(zfile, 'r') as zz:
-        for zi in zz.infolist():
-            if zi.filename.endswith(suffix):
-                #zi.filename = os.path.basename(zi.filename)
-                zi.filename = make_storage_relpath(zi.filename)
-                zz.extract(zi, outdir)
-    return
-
-## Driver routine to retrieve zip file and unpack desired flavors:
-def retrieve_anc_zip(item, suff_list, outdir):
-    tzpath = 'temp.zip'
-    if not get_all_as_zip(item, tzpath):
-        sys.stderr.write("retrieval error!!\n")
-        return False
-    for flavor in suff_list:
-        unzip_and_move_by_suffix(tzpath, flavor, outdir)
-    os.unlink(tzpath)
-    return True
-
-## Check whether files already retrieved:
-def already_have_data(item, suff_list, outdir):
-    found = []
-    for suffix in suff_list:
-        flav_name = make_flavor_imname(item, suffix)
-        flav_path = os.path.join(outdir, make_storage_relpath(flav_name))
-        found.append(os.path.isfile(flav_path))
-    return all(found)
+### Retrieve item+ancillary and save zip archive:
+#def get_all_as_zip(item, save_path,
+#        urlkey='accessWithAnc1Url', tpath='./.spitzer'):
+#    data_url = item[urlkey].strip()
+#    _tmp_dir = os.path.dirname(tpath) + '/'
+#    _tmpfile = os.path.basename(tpath)
+#    _tmppath = tpath + '.zip'
+#    sha.save_file(data_url, out_dir=_tmp_dir, out_name=_tmpfile)
+#    if not os.path.isfile(_tmppath):
+#        sys.stderr.write("result missing!!!!")
+#        return False
+#    shutil.move(_tmppath, save_path)
+#    return True
+#
+#def unzip_and_move_by_suffix(zfile, suffix, outdir):
+#    with ZipFile(zfile, 'r') as zz:
+#        for zi in zz.infolist():
+#            if zi.filename.endswith(suffix):
+#                #zi.filename = os.path.basename(zi.filename)
+#                zi.filename = make_storage_relpath(zi.filename)
+#                zz.extract(zi, outdir)
+#    return
+#
+### Driver routine to retrieve zip file and unpack desired flavors:
+#def retrieve_anc_zip(item, suff_list, outdir):
+#    tzpath = 'temp.zip'
+#    if not get_all_as_zip(item, tzpath):
+#        sys.stderr.write("retrieval error!!\n")
+#        return False
+#    for flavor in suff_list:
+#        unzip_and_move_by_suffix(tzpath, flavor, outdir)
+#    os.unlink(tzpath)
+#    return True
+#
+### Check whether files already retrieved:
+#def already_have_data(item, suff_list, outdir):
+#    found = []
+#    for suffix in suff_list:
+#        flav_name = make_flavor_imname(item, suffix)
+#        flav_path = os.path.join(outdir, make_storage_relpath(flav_name))
+#        found.append(os.path.isfile(flav_path))
+#    return all(found)
 
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
-sys.exit(0)
+#sys.exit(0)
 
 ## Search for results:
+srch_deg = uu.deg * context.search_rad_deg
 max_imgs = 0
 max_objs = 0
-tmp_zsave = 'temp.zip'
-wanted_instruments = ['I1', 'I2']
-wanted_image_types = ['_bcd.fits', '_cbcd.fits', '_cbunc.fits']
+#tmp_zsave = 'temp.zip'
+#wanted_instruments = ['I1', 'I2']
+#wanted_instruments = ['WIRCam', 'jeffcam']
+#wanted_image_types = ['_bcd.fits', '_cbcd.fits', '_cbunc.fits']
 #data_storage_specs = {'bcd':'_bcd.fits', 'cbcd':'_cbcd.fits'}
+#searchkw = {'radius':uu.deg * context.search_rad_deg, 'collection':'CFHT'}
+
+## How to select things 
+instr_names = ['WIRCam'] #, 'jeffcam']
+prod_suffix = ['p', 's']
+ntodo = 0
+chunksize = 50
+tmp_dl_file = '/tmp/tmpfetch.%d.fits' % os.getpid()
+fdl.prefer_requests()
+
+## Select the things I want:
+def pick_favorites(results):
+    # work on a duplicate:
+    hits = results.copy()
+
+    # select desired instruments:
+    hits = apt.vstack([hits[(hits['instrument_name'] == x)] for x in instr_names])
+
+    # select desired productID suffixes:
+    which = np.array([any([pp.endswith(x) for x in prod_suffix]) \
+            for pp in hits['productID']])
+    hits = hits[which]
+    # return whatever remains:
+    return hits
+    
+
 for nn,targ in enumerate(targets, 1):
     sys.stderr.write("%s\n" % fulldiv)
 
     # retrieve query results
     sys.stderr.write("Querying CFHT database ... ")
-    hits = sha.query(coord=targ, size=context.search_rad_deg, dataset=1)
+    #hits = cadc.query(coord=targ, size=context.search_rad_deg, dataset=1)
+    hits = cadc.query_region(targ, radius=srch_deg, collection='CFHT')
+    hits.sort('productID')
     sys.stderr.write("done.\n")
 
-    # Added value and sanity checking:
-    hits['ibase'] = [os.path.basename(x.strip()) for x in hits['externalname']]
-    if not all([x.startswith('SPITZER') for x in hits['ibase']]):
-        sys.stderr.write("Unexpected file name structure, please address!\n")
-        sys.exit(1)
-    hits['bcd_url'] = [x.strip() for x in hits['accessUrl']]
-    hits['anc_url'] = [x.strip() for x in hits['accessWithAnc1Url']]
-    hits['instr'] = [x.split('_')[1] for x in hits['ibase']]
+    # select useful subset:
+    sys.stderr.write("Selecting useful subset ... ")
+    useful = pick_favorites(hits)
+    useful['ibase'] = ['%s.fits.fz'%x for x in useful['productID']]
+    useful['isave'] = [os.path.join(context.output_dir, x) \
+            for x in useful['ibase']]
+    sys.stderr.write("done. Identified %d images.\n" % len(useful))
 
-    # drop unavailable files:
-    blocked = (hits['bcd_url'] == 'NONE')
-    keep = hits[~blocked]
+    # exclude images already retrieved:
+    already_have = np.array([os.path.isfile(x) for x in useful['isave']])
+    nfound = np.sum(already_have)
+    sys.stderr.write("Excluding %d already-retrieved images.\n" % nfound)
+    useful = useful[~already_have]
 
-    # select IRAC images:
-    chosen = np.array([x in wanted_instruments for x in keep['instr']])
-    images = keep[chosen]
-    nfound = len(images)
-    sys.stderr.write("Found %d images to download around:\n%s\n"
-            % (nfound, str(targ)))
+    if (ntodo > 0):
+        useful = useful[:ntodo]
 
-    # optionally augment list of files to fetch:
-    if context.fetch_list:
-        sys.stderr.write("Saving list of images to fetch ... ")
-        with open(context.fetch_list, 'a') as fl:
-            for item in images['ibase']:
-                fl.write("%s\n" % item)
-        sys.stderr.write("done.\n")
+    # Download new images in chunks (URL-fetch is slow):
+    #sys.stderr.write("making URLs ... ")
+    nchunks = int(np.ceil(len(useful) / float(chunksize)))
+    sys.stderr.write("nchunks: %d\n" % nchunks)
+    uidx = np.arange(len(useful))
+    chunkidx = np.array_split(np.arange(len(useful)), nchunks)
+    for ii,cidx in enumerate(chunkidx, 1):
+        sys.stderr.write("Chunk %d of %d ...\n" % (ii, nchunks))
+        snag = useful[cidx]
+        imurls = cadc.get_data_urls(snag)
+        dlspec = [(uu, ss, tmp_dl_file) for uu,ss in zip(imurls, snag['isave'])]
+        fdl.smart_fetch_bulk(dlspec)
 
-    # retrieve everything:
-    n_retrieved = 0
-    for ii,item in enumerate(images, 1):
-        sys.stderr.write("\rFile %d of %d: %s ... "
-                % (ii, nfound, item['ibase']))
-        if already_have_data(item, wanted_image_types, context.output_dir):
-            sys.stderr.write("already retrieved!     ")
-            continue
-        n_retrieved += 1
-
-        sys.stderr.write("downloading ... ")
-        if not retrieve_anc_zip(item, wanted_image_types, context.output_dir):
-            sys.stderr.write("problem!!!\n")
-            sys.exit(1)
-        sys.stderr.write("done.\n") 
-        if (max_imgs > 0) and (n_retrieved >= max_imgs):
-            sys.stderr.write("Stopping early (max_imgs=%d)\n" % max_imgs)
-            break
-
-    sys.stderr.write("\n")
-    if (max_objs > 0) and (nn >= max_objs):
-        sys.stderr.write("Stopping early (max_objs=%d)\n" % max_objs)
-        break
 
 
 ######################################################################
