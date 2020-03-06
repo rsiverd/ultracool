@@ -298,7 +298,7 @@ ntodo = 0
 chunksize = 50
 tmp_dl_base = 'tmpfetch.%d.fits' % os.getpid()
 tmp_dl_path = os.path.join(context.temp_folder, tmp_dl_base)
-fdl.prefer_requests()
+#fdl.prefer_requests()
 
 ## Select the things I want:
 def pick_favorites(results):
@@ -369,10 +369,6 @@ def download_from_cadc(dlspec, stream=sys.stderr):
         stream.write("done.\n")
         pass
     return
-
-
-#fdl.enable_validation(file_is_FITS)
-#sys.exit(0)
 
 ##--------------------------------------------------------------------------##
 ##------------------         Download Everything            ----------------##
