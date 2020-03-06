@@ -11,7 +11,7 @@
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -30,6 +30,9 @@ import os
 import sys
 import time
 import numpy as np
+import warnings
+import requests
+import traceback
 #from numpy.lib.recfunctions import append_fields
 #import datetime as dt
 #from dateutil import parser as dtp
@@ -42,13 +45,13 @@ import numpy as np
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
 ## Fancy downloading:
-try:
-    import downloading
-    reload(downloading)
-    fdl = downloading.Downloader()
-except ImportError:
-    sys.stderr.write("\nRequired 'downloading' module not found!\n")
-    #raise ImportError
+#try:
+#    import downloading
+#    reload(downloading)
+#    fdl = downloading.Downloader()
+#except ImportError:
+#    sys.stderr.write("\nRequired 'downloading' module not found!\n")
+#    #raise ImportError
 
 ##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
@@ -69,6 +72,7 @@ sys.stderr = Unbuffered(sys.stderr)
 ## Various from astropy:
 try:
     import astropy.table as apt
+    import astropy.io.fits as pf
     from astroquery.cadc import Cadc
     cadc = Cadc()
     from astropy import coordinates as coord
@@ -310,9 +314,68 @@ def pick_favorites(results):
     hits = hits[which]
     # return whatever remains:
     return hits
-    
+
 ##--------------------------------------------------------------------------##
+##------------------      Download and Validate Images      ----------------##
 ##--------------------------------------------------------------------------##
+
+def file_is_FITS(filename):
+    try:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            pix = pf.getdata(filename)
+        return True
+    except:
+        return False
+
+def rfetch(url, save_file):
+    with open(save_file, 'wb') as f:
+        f.write(requests.get(url).content)
+    return
+
+def download_from_cadc(dlspec, stream=sys.stderr):
+    total = len(dlspec)
+    for ii,(url, save_path, tmp_path) in enumerate(dlspec, 1):
+        # retrieve data:
+        stream.write("Downloading file %d of %d ... " % (ii, total))
+        try:
+            rfetch(url, tmp_path)
+        except (KeyboardInterrupt, SystemExit) as e:
+            raise e
+        except:
+            stream.write("error during download!\n")
+            trouble = sys.exc_info()
+            etype, evalue, etrace = sys.exc_info()
+            sys.stderr.write("etype: %s\n" % str(etype))
+            sys.stderr.write("evalue: %s\n" % str(evalue))
+            print(etrace)
+            print(dir(etrace))
+            sys.stderr.write("PROBLEM: %s\n" % str(trouble))
+            print(traceback.format_exc())
+            #return False
+            continue
+
+        # validate file:
+        stream.write("validating ... ")
+        if not file_is_FITS(tmp_path):
+            stream.write("failed!\n")
+            os.unlink(tmp_path)
+            #return False
+            continue
+
+        # move to final destination:
+        stream.write("moving ... ") 
+        shutil.move(tmp_path, save_path)
+        stream.write("done.\n")
+        pass
+    return
+
+
+#fdl.enable_validation(file_is_FITS)
+#sys.exit(0)
+
+##--------------------------------------------------------------------------##
+##------------------         Download Everything            ----------------##
 ##--------------------------------------------------------------------------##
 
 for nn,tinfo in enumerate(targets, 1):
@@ -354,7 +417,7 @@ for nn,tinfo in enumerate(targets, 1):
     # Download new images in chunks (URL-fetch is slow):
     #sys.stderr.write("making URLs ... ")
     nchunks = int(np.ceil(len(useful) / float(chunksize)))
-    sys.stderr.write("nchunks: %d\n" % nchunks)
+    #sys.stderr.write("nchunks: %d\n" % nchunks)
     uidx = np.arange(len(useful))
     chunkidx = np.array_split(np.arange(len(useful)), nchunks)
     for ii,cidx in enumerate(chunkidx, 1):
@@ -362,7 +425,11 @@ for nn,tinfo in enumerate(targets, 1):
         snag = useful[cidx]
         imurls = cadc.get_data_urls(snag)
         dlspec = [(uu, ss, tmp_dl_path) for uu,ss in zip(imurls, snag['isave'])]
-        fdl.smart_fetch_bulk(dlspec)
+        #fdl.smart_fetch_bulk(dlspec)
+        download_from_cadc(dlspec)
+        #for uu,ss in zip(imurls, snag['isave']):
+        #    success = download_from_cadc(uu, ss, tmp_dl_path)
+
 
 
 
