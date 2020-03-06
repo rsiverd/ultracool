@@ -316,8 +316,9 @@ def pick_favorites(results):
 ##--------------------------------------------------------------------------##
 
 for nn,tinfo in enumerate(targets, 1):
-    sys.stderr.write("%s\n" % fulldiv)
     targ, tname = tinfo
+    sys.stderr.write("%s\n" % fulldiv)
+    sys.stderr.write("Target %d of %d: %s\n" % (nn, len(targets), tname))
 
     # ensure output folder exists:
     save_dir = os.path.join(context.output_dir, tname)
@@ -343,6 +344,9 @@ for nn,tinfo in enumerate(targets, 1):
     nfound = np.sum(already_have)
     sys.stderr.write("Excluding %d already-retrieved images.\n" % nfound)
     useful = useful[~already_have]
+    if (len(useful) == 0):
+        sys.stderr.write("Nothing to do, next object!\n")
+        continue
 
     if (ntodo > 0):
         useful = useful[:ntodo]
