@@ -1,6 +1,6 @@
 astropy==3.2.1
 astropy-helpers
-astroquery==0.3.9
+astroquery==0.4
 ephem==3.7.7.0
 fitsio==1.0.5
 matplotlib==3.0.3

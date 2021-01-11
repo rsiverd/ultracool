@@ -140,8 +140,15 @@ class AstFit(object):
         self._RA_med, self._RA_MAD = calc_ls_med_MAD(self._RA_rad)
         self._DE_med, self._DE_MAD = calc_ls_med_MAD(self._DE_rad)
         #self._RA_MAD *= np.cos(self._DE_med)
-        self._RA_err = np.radians(RA_err) if RA_err else self._RA_MAD
-        self._DE_err = np.radians(DE_err) if DE_err else self._DE_MAD
+        if isinstance(RA_err, np.ndarray):
+            self._RA_err = np.radians(RA_err)
+        else:
+            self._RA_err = self._RA_MAD
+        if isinstance(DE_err, np.ndarray):
+            self._DE_err = np.radians(DE_err)
+        else:
+            self._DE_err = self._DE_MAD
+        #self._DE_err = np.radians(DE_err) if DE_err else self._DE_MAD
         self._is_set = True
         return True
 

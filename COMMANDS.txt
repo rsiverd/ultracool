@@ -1,5 +1,8 @@
 
 %run ./fetch_sha_data.py -t targets.txt -o ~/ucd_project/ucd_sha_data
+%run ./fetch_CFHT_data.py -t etc/WIRCam/calib_fields.txt \
+      -o ~/ucd_project/ucd_cfh_data
+%run ./fetch_CFHT_data.py -t targets.txt -o ~/ucd_project/ucd_cfh_data
 
 # ----------------------------------------------------------------------- 
 

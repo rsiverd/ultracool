@@ -351,7 +351,21 @@ cycle_ends_jd_tdb = np.column_stack((orb_zeros, orb_zeros + orb_period))
 cycle_ends_yr_tdb = (cycle_ends_jd_tdb - use_epoch.tdb.jd) / 365.25
 
 ##--------------------------------------------------------------------------##
-## Theil-Sen fitting:
+##------------------     Exposure Times Kludge (temp)       ----------------##
+##--------------------------------------------------------------------------##
+
+sys.stderr.write("Kludgey exposure time retrieval ... ")
+import astropy.io.fits as pf
+ffpath = '/home/rsiverd/ucd_project/ucd_sha_data'   # where files live
+ipaths = np.array([os.path.join(ffpath, x) for x in sneat['iname']])
+expsec = np.array([pf.getheader(x)['EXPTIME'] for x in ipaths])
+relSNR = np.sqrt(expsec)
+sys.stderr.write("done.\n")
+
+##--------------------------------------------------------------------------##
+##------------------           Theil-Sen Fitting            ----------------##
+##--------------------------------------------------------------------------##
+
 sjd_utc, sra, sde = sneat['jdutc'], sneat[_ra_key], sneat[_de_key]
 #syr = 2000.0 + ((sjd_utc - 2451544.5) / 365.25)
 #smonth = (syr % 1.0) * 12.0
@@ -412,8 +426,10 @@ bfra_path = ra_rlm_res.params[0] + ra_rlm_res.params[1]*syr
 
 ##--------------------------------------------------------------------------##
 
+ast_err = 1e-4 / relSNR
 sys.stderr.write("%s\n" % fulldiv)
 af.setup(use_epoch.tdb.jd, sra, sde, use_eph)
+#af.setup(use_epoch.tdb.jd, sra, sde, use_eph, RA_err=ast_err, DE_err=ast_err)
 af.set_exponent(2.0)
 winner = af.fit_bestpars(sigcut=5.0)
 slv_ra, slv_de = af.eval_model(winner)
