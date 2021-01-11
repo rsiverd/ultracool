@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2019-08-27
-# Last modified: 2020-03-02
+# Last modified: 2021-01-11
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 ## Python version-agnostic module reloading:
 try:
@@ -270,10 +270,10 @@ with open(context.target_list, 'r') as f:
 def skycoordify(text):
     tcoo = None
     try:
-        tcoo = coord.SkyCoord(x)
+        tcoo = coord.SkyCoord(text)
     except:
         try:
-            tcoo = coord.SkyCoord(x, unit="deg")
+            tcoo = coord.SkyCoord(text, unit="deg")
         except:
             sys.stderr.write("Failed to parse coordinates: '%s'\n" % text)
     return tcoo
