@@ -41,7 +41,7 @@
 # ----------------------------------------------------------------------- 
 # PIPELINE execution:
 
-./05_extract_all_spitzer.py -I ../ucd_sha_data -O ../ucd_fcat
+./05_extract_all_spitzer.py -I ../ucd_sha_data -O ../ucd_sha_fcat
 
 # unweighted ...
 ./06_sextract_spitzer.sh --original -I ../ucd_sha_data -O ../ucd_scat_orig --START -r
