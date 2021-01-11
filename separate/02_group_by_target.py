@@ -61,7 +61,7 @@ old_size = len(data)
 #data  = rdata[(rdata['EXPTIME'] > 1.1)]
 data  = data[(data['EXPTIME'] > 1.1)]
 new_size = len(data)
-sys.stderr.write("Droppe %d of %d sources with short exposures.\n"
+sys.stderr.write("Dropped %d of %d sources with short exposures.\n"
         % (old_size - new_size, old_size))
 
 north = data[_DE] > 0.0
