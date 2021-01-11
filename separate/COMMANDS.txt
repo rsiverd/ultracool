@@ -1,0 +1,11 @@
+
+# Ensure correct environment:
+source ~/venv/astrom/bin/activate
+source ../ENVIRONMENT.sh
+
+# Update list of fcat files with script:
+./01_image_headers.sh
+
+# Separate files according to target (using coordinates):
+./02_group_by_target.py   # TO BE SUPERCEDED ...
+
