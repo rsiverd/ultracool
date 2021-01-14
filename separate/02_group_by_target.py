@@ -17,7 +17,7 @@ def dateobs2jd(date_obs):
     return astt.Time(date_obs, format='isot', scale='utc').jd
 
 def fcat2cbcd(x):
-    return x.replace('ucd_fcat', 'ucd_data').replace('fcat.fits', 'cbcd.fits')
+    return x.replace('ucd_sha_fcat', 'ucd_sha_data').replace('fcat.fits', 'cbcd.fits')
 
 ## Targets of interest:
 ntarg_ra = 277.12595833    # WISE1828

@@ -1,7 +1,7 @@
 
 # Ensure correct environment:
 source ~/venv/astrom/bin/activate
-source ../ENVIRONMENT.sh
+cd ..; source ENVIRONMENT.sh; cd -
 
 # Update list of fcat files with script:
 ./01_image_headers.sh
