@@ -6,6 +6,7 @@ import os, sys, time
 import numpy as np
 import robust_stats as rs
 
+tstart = time.time()
 imlist = sorted(glob.glob('SPITZ*fits'))
 
 imdata = [fitsio.read(ff) for ff in imlist]   
@@ -37,13 +38,21 @@ for frame in imdata:
 #bpmask = [(np.sign(im) * np.sqrt(np.abs(im))) for im in imdata]
 
 
-# FFT-assisted cross-correlation:
-def qcorr(rowcol1, rowcol2):
-    npix = rowcol1.size
+## FFT-assisted cross-correlation:
+def ccalc(rowcol1, rowcol2):
     cft1 = np.fft.fft(rowcol1)
     cft2 = np.fft.fft(rowcol2)
     cft2.imag *= -1.0
     corr = np.fft.ifft(cft1 * cft2)
+    return corr
+
+def qcorr(rowcol1, rowcol2):
+    npix = rowcol1.size
+    corr = ccalc(rowcol1, rowcol2)
+    #cft1 = np.fft.fft(rowcol1)
+    #cft2 = np.fft.fft(rowcol2)
+    #cft2.imag *= -1.0
+    #corr = np.fft.ifft(cft1 * cft2)
     nshift = corr.argmax()
     sys.stderr.write("--------------------------------\n")
     if (nshift > 0):
@@ -71,4 +80,21 @@ for ff,im,dx,dy in zip(imlist, imdata, xnudges, ynudges):
     npdata = np.pad(im, yxpads, constant_values=np.nan)
     r2data = np.roll(np.roll(npdata, dx, axis=1), dy, axis=0)
     fitsio.write('r' + ff, r2data, clobber=True)
+
+tstop = time.time()
+ttook = tstop - tstart
+sys.stderr.write("Shifted images in %.3f seconds.\n" % ttook)
+
+## Optionally save intermediate data for inspection:
+inspection = True
+if inspection:
+    fitsio.write('xsmashed.fits', np.array(xsmashed), clobber=True)
+    fitsio.write('ysmashed.fits', np.array(ysmashed), clobber=True)
+    xftcorr = [ccalc(ysmashed[0], rr) for rr in ysmashed]
+    yftcorr = [ccalc(xsmashed[0], cc) for cc in xsmashed]
+    fitsio.write('xftcorr.fits', np.array(xftcorr).real, clobber=True)
+    fitsio.write('yftcorr.fits', np.array(yftcorr).real, clobber=True)
+
+
+
 
