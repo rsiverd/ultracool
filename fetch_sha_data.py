@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2019-08-27
-# Last modified: 2021-01-11
+# Last modified: 2021-01-20
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.4.1"
+__version__ = "0.4.2"
 
 ## Python version-agnostic module reloading:
 try:
@@ -286,10 +286,15 @@ targets = [x for x in targets if x]
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
+## Name parsing helpers:
+def aor_from_ibase(base_name):
+    return base_name.split('_')[2]
+
 ## Flavor-specific storage path for a known output basename:
 def make_storage_relpath(save_name):
     imname = os.path.basename(save_name)
-    subdir = None
+    #subdir = None
+    subdir = 'r' + aor_from_ibase(imname)
     impath = os.path.join(subdir, imname) if subdir else imname
     return impath
 
@@ -353,7 +358,7 @@ def already_have_data(item, suff_list, outdir):
 ##--------------------------------------------------------------------------##
 
 ## Search for results:
-max_imgs = 0
+max_imgs = 1
 max_objs = 0
 tmp_zsave = 'temp.zip'
 wanted_instruments = ['I1', 'I2']
@@ -374,7 +379,10 @@ for nn,targ in enumerate(targets, 1):
         sys.exit(1)
     hits['bcd_url'] = [x.strip() for x in hits['accessUrl']]
     hits['anc_url'] = [x.strip() for x in hits['accessWithAnc1Url']]
-    hits['instr'] = [x.split('_')[1] for x in hits['ibase']]
+    hits[  'instr'] = [x.split('_')[1] for x in hits['ibase']]
+    #hits[ 'aorkey'] = [x.split('_')[2] for x in hits['ibase']]
+    hits[ 'aorkey'] = [aor_from_ibase(x) for x in hits['ibase']]
+    #sys.exit(0)
 
     # drop unavailable files:
     blocked = (hits['bcd_url'] == 'NONE')
@@ -412,12 +420,14 @@ for nn,targ in enumerate(targets, 1):
         sys.stderr.write("done.\n") 
         if (max_imgs > 0) and (n_retrieved >= max_imgs):
             sys.stderr.write("Stopping early (max_imgs=%d)\n" % max_imgs)
-            break
+            sys.exit(0)
+            #break
 
     sys.stderr.write("\n")
     if (max_objs > 0) and (nn >= max_objs):
         sys.stderr.write("Stopping early (max_objs=%d)\n" % max_objs)
-        break
+        sys.exit(0)
+        #break
 
 
 ######################################################################
