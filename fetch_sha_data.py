@@ -263,6 +263,8 @@ if not os.path.isfile(context.target_list):
 with open(context.target_list, 'r') as f:
     contents = []
     for line in [x.strip() for x in f.readlines()]:
+        if line.startswith('#'):
+            continue    # skip comments
         nocomment = line.split('#')[0].strip()
         contents.append(nocomment)
 
