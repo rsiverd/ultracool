@@ -69,6 +69,11 @@ import numpy as np
 import itertools as itt
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
+## Load 'medianize' capability:
+import medianize
+reload(medianize)
+mmm = medianize
+
 ## Fresh start (for ipython):
 gc.collect()
 
@@ -339,6 +344,22 @@ ysmashed = [np.sum(im, axis=0) for im in bpmask]    # sum each col
 xnudges = [qcorr(ysmashed[0], rr) for rr in ysmashed]
 ynudges = [qcorr(xsmashed[0], cc) for cc in xsmashed]
 
+
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
+## Inner/joint area median stack routine. This does a standard median assuming
+## all pixels are valid. In a second pass, any pixel marked undesirable in ANY
+## of the input frames is wiped from the result. Output is effectively an
+## image of the pixels common to all frames.
+def dumb_stack(im_list):
+    tstack = np.median(im_list, axis=0)
+    for im in im_list:
+        which = np.isnan(im) | np.isinf(im)
+        tstack[which] = np.nan
+    return tstack
+
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
@@ -346,24 +367,48 @@ ynudges = [qcorr(xsmashed[0], cc) for cc in xsmashed]
 if context.tight_pad:
     tight_ypad = np.abs(ynudges).max()
     tight_xpad = np.abs(xnudges).max()
-    yxpads = (tight_ypad, tight_xpad)
+    yxpads = np.abs(xnudges + ynudges).max() + 1
+    #yxpads = ((tight_ypad, tight_xpad),)
 
 #sys.exit(0)
 # FIXME: should roll a NaN-padded image so stacking works properly ...
 layers = []
+r2list = []
+r2folder = '.'
+#r2folder = '/dev/shm'
 for ff,im,dx,dy in zip(context.imlist, imdata, xnudges, ynudges):
     npdata = np.pad(im, yxpads, constant_values=np.nan)
     r2data = np.roll(np.roll(npdata, dx, axis=1), dy, axis=0)
     layers.append(r2data)
-    fitsio.write('r' + ff, r2data, clobber=True)
+    r2file = os.path.join(r2folder, 'r' + ff)
+    r2list.append(r2file)
+    fitsio.write(r2file, r2data, clobber=True)
 imcube = np.array(layers)
 lshape = r2data.shape
-del layers
+#del layers
 tstop = time.time()
 ttook = tstop - tstart
-sys.stderr.write("Shifted images in %.3f seconds.\n" % ttook)
+sys.stderr.write("Shifted images in %.4f seconds.\n" % ttook)
 sys.stderr.write("Using layer shape: %s\n" % str(lshape))
+
+#mstack = mmm.medianize_arrays(layers)
+#fitsio.write('jeff.fits', mstack, clobber=True)
+
+sys.stderr.write("\n\nTIME TEST:\n") 
+tik = time.time()
+derp = dumb_stack(layers)
+tok = time.time()
+sys.stderr.write("Took %.5f seconds.\n" % (tok-tik))
+
+sys.exit(0)
+## Stack with medianize:
+tik = time.time()
+mstack = mmm.medianize_files(file_list=r2list) #, output='mtest.fits')
+tok = time.time()
+sys.stderr.write("Medianize stacking completed in %.4f seconds.\n" % (tok-tik))
+
 #sys.exit(0)
+
 
 ## Reshape and stack:
 tstart = time.time()
@@ -382,38 +427,6 @@ tstop = time.time()
 ttook = tstop - tstart
 sys.stderr.write("Shifted images in %.3f seconds.\n" % ttook)
 
-
-##--------------------------------------------------------------------------##
-## Quick FITS I/O:
-#data_file = 'image.fits'
-#img_vals = pf.getdata(data_file)
-#hdr_keys = pf.getheader(data_file)
-#img_vals, hdr_keys = pf.getdata(data_file, header=True)
-#img_vals, hdr_keys = pf.getdata(data_file, header=True, uint=True) # USHORT
-#img_vals, hdr_keys = fitsio.read(data_file, header=True)
-
-#date_obs = hdr_keys['DATE-OBS']
-#site_lat = hdr_keys['LATITUDE']
-#site_lon = hdr_keys['LONGITUD']
-
-## Initialize time:
-#img_time = astt.Time(hdr_keys['DATE-OBS'], scale='utc', format='isot')
-#img_time += astt.TimeDelta(0.5 * hdr_keys['EXPTIME'], format='sec')
-#jd_image = img_time.jd
-
-## Initialize location:
-#observer = ephem.Observer()
-#observer.lat = np.radians(site_lat)
-#observer.lon = np.radians(site_lon)
-#observer.date = img_time.datetime
-
-#pf.writeto('new.fits', img_vals)
-#qsave('new.fits', img_vals)
-#qsave('new.fits', img_vals, header=hdr_keys)
-
-## Star extraction:
-#pse.set_image(img_vals, gain=3.6)
-#objlist = pse.analyze(sigthresh=5.0)
 
 
 
