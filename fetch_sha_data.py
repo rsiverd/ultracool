@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2019-08-27
-# Last modified: 2021-01-21
+# Last modified: 2021-01-26
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.4.3"
+__version__ = "0.4.4"
 
 ## Python version-agnostic module reloading:
 try:
@@ -224,7 +224,7 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
     srchgroup = parser.add_argument_group('Search Options')
-    srchgroup.add_argument('-R', '--radius', required=False, default=0.1,
+    srchgroup.add_argument('-R', '--radius', required=False, default=0.05,
             dest='search_rad_deg', help='radius of search cone in DEGREES')
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
