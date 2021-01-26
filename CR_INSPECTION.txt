@@ -4,25 +4,26 @@
 # visual comparison. Triple-click a line and paste into a terminal
 # to inspect/compare the clean/dirty/mask for a single Spitzer frame.
 
+sha_img_root="~/ucd_project/ucd_targets"
 
 # fastest (but assumes files exist):
-ls ../ucd_data/SPIT*_cbcd.fits | awk '{
+ls $sha_img_root/*/r*/SPIT*_cbcd.fits | awk '{
    cbcd  = $1
    clean = $1 ; gsub("cbcd", "clean", clean)
    crmsk = $1 ; gsub("cbcd", "crmsk", crmsk)
    printf "flztf %s %s %s\n", cbcd, clean, crmsk
 }' | less
 
-# faster (remove items with grep -v to reduce grep -f work):
-ls ../ucd_data/SPIT*clean.fits | sed 's/clean\.fits//' > /tmp/jbegin
-ls ../ucd_data/SPIT*fits | grep -v '_bcd.fits$' \
-   | grep -v '_cbunc.fits$' | grep -f /tmp/jbegin \
-   | paste - - - | awk '{ print "flztf "$0 }' > /tmp/ds9cmds
-#less
-
-# old way (slow):
-#ls ../ucd_data/SPIT*clean.fits | sed 's/clean\.fits//' > /tmp/jbegin
-#ls ../ucd_data/SPIT*fits | grep -f /tmp/jbegin \
-#   | grep -v '_bcd.fits$' | grep -v '_cbunc.fits$' \
-#   | paste - - - | awk '{ print "flztf "$0 }' | less
+## faster (remove items with grep -v to reduce grep -f work):
+#ls $sha_img_root/*/r*/SPIT*clean.fits | sed 's/clean\.fits//' > /tmp/jbegin
+#ls $sha_img_root/*/r*/SPIT*fits | grep -v '_bcd.fits$' \
+#   | grep -v '_cbunc.fits$' | grep -f /tmp/jbegin \
+#   | paste - - - | awk '{ print "flztf "$0 }' > /tmp/ds9cmds
+##less
+#
+## old way (slow):
+##ls ../ucd_data/SPIT*clean.fits | sed 's/clean\.fits//' > /tmp/jbegin
+##ls ../ucd_data/SPIT*fits | grep -f /tmp/jbegin \
+##   | grep -v '_bcd.fits$' | grep -v '_cbunc.fits$' \
+##   | paste - - - | awk '{ print "flztf "$0 }' | less
 
