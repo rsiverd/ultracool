@@ -1,0 +1,24 @@
+
+[rsiverd@hbfhpc-lp1 /net/hbfhpc1/bigraid/rsiverd/ucd_targets] 
+$ guess_pixel_scale **/SPITZER_I2_17576448_0020_0000_6_cbcd.fits
+xcenter: 128.5
+ycenter: 128.5
+
+Center RA:   63.855201
+Center DE:   -9.702659
+
+Origin RA:   63.893988
+Origin DE:   -9.656221
+
+Image origin is north,east of image center.
+
+xscale: 1.21884 arcsec
+yscale: 1.21586 arcsec
+
+North angle: -174.51101   -->  left  (-X)
+East  angle:  -84.47498   -->  down  (-Y)
+
+FOV (arcsec):     312.023 x     311.260
+FOV (arcmin):       5.200 x       5.188
+FOV (degree):       0.087 x       0.086
+
