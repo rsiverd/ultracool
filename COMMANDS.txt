@@ -4,6 +4,15 @@
       -o ~/ucd_project/ucd_cfh_data
 %run ./fetch_CFHT_data.py -t targets.txt -o ~/ucd_project/ucd_cfh_data
 
+./fetch_sha_data.py -t targets/2m0415.txt -o ~/ucd_project/ucd_targets/2m0415 \
+      -f manifest_2m0415.txt
+./fetch_sha_data.py -t targets/J0212.txt -o ~/ucd_project/ucd_targets/J0212 \
+      -f manifest_J0212.txt
+./fetch_sha_data.py -t targets/J1832.txt -o ~/ucd_project/ucd_targets/J1832 \
+      -f manifest_J1832.txt
+./fetch_sha_data.py -t targets/wise1828.txt -o ~/ucd_project/ucd_targets/wise1828 \
+      -f manifest_wise1828.txt
+
 # ----------------------------------------------------------------------- 
 
 ./fetch_gaia_nearby.py -R 0.5 277.12595833  +26.84355556 -o wise1828.csv
