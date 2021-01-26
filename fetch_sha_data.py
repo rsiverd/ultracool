@@ -284,6 +284,11 @@ def skycoordify(text):
 targets += [skycoordify(x) for x in contents]
 targets = [x for x in targets if x]
 
+## Warn/abort if no targets:
+if not targets:
+    sys.stderr.write("No targets loaded from file(s)!  Nothing to do.\n")
+    sys.exit(0)
+
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
