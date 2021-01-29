@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2019-10-30
-# Last modified: 2019-10-30
+# Last modified: 2021-01-29
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -178,7 +178,7 @@ if __name__ == '__main__':
     descr_txt = """
     Clean Spitzer images by removing cosmic rays and/or large-scale
     background light.
-    
+
     Version: %s
     """ % __version__
     parser = MyParser(prog=prog_name, description=descr_txt,
@@ -216,6 +216,8 @@ if __name__ == '__main__':
     context.prog_name = prog_name
 
 ##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
 ## Get list of CBCD files:
 im_wildpath = '%s/SPITZ*_cbcd.fits' % context.image_folder
 cbcd_files = sorted(glob.glob(im_wildpath))
@@ -224,6 +226,13 @@ if context.random:
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
+
+## Vertical stacker:
+
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
 ## LA Cosmic config:
 def fresh_cr_args():
     return {'contrast': 12.0,
@@ -237,10 +246,12 @@ total = len(cbcd_files)
 for ii,img_ipath in enumerate(cbcd_files, 1):
     #sys.stderr.write("%s\n" % fulldiv)
     unc_ipath = img_ipath.replace('cbcd', 'cbunc')
+    vst_ipath = img_ipath.replace('cbcd',  'vmed')
+    hcf_ipath = img_ipath.replace('cbcd', 'hcfix')
     cln_ipath = img_ipath.replace('cbcd', 'clean')
     msk_ipath = img_ipath.replace('cbcd', 'crmsk')
     sys.stderr.write("\rFile %s (%d of %d) ... " % (cln_ipath, ii, total))
-    done_list = [cln_ipath, msk_ipath]
+    done_list = [vst_ipath, cln_ipath, msk_ipath]
     if all([os.path.isfile(x) for x in done_list]):
         sys.stderr.write("already done!   ")
         continue
@@ -250,6 +261,18 @@ for ii,img_ipath in enumerate(cbcd_files, 1):
     # load data:
     idata, ihdrs = pf.getdata(img_ipath, header=True)
     udata, uhdrs = pf.getdata(unc_ipath, header=True)
+
+    # get median image value:
+    ignore = np.isnan(idata) | np.isinf(idata)
+    medval = np.median(idata[~ignore])
+
+    # vertical median to fix hot columns:
+    itemp  = idata.copy()
+    itemp[ignore] = medval
+    vstack = np.median(itemp, axis=0)
+    qsave(vst_ipath, vstack)
+    idata -= vstack[np.newaxis, :]
+    qsave(hcf_ipath, idata, header=ihdrs)
 
     # CR removal:
     lakw = fresh_cr_args()
