@@ -4,6 +4,15 @@
 # Clean CBCD Spitzer images by removing cosmic rays and/or removing
 # large-scale background.
 #
+# NOTE: This script assumes a directory structure as created by the
+# related fetch_sha_data.py script. Specifically, the images to be
+# processed are expected to reside in a structure like:
+# object_dir/r<AOR_number>/SPITZER*_cbcd.fits
+#
+# The object_dir contains data for a specific target/sky position to
+# be reduced. <AOR_number> represents a Spitzer AOR (a visit to a sky
+# position at which data were obtained).
+#
 # Rob Siverd
 # Created:       2019-10-30
 # Last modified: 2021-01-29
@@ -92,6 +101,14 @@ except ImportError:
     logger.error("astropy module not found!  Install and retry.")
 #    sys.stderr.write("\nError: astropy module not found!\n")
     sys.exit(1)
+
+### FITSIO module (provides compression ability):
+#try:
+#    import fitsio
+#except ImportError:
+#    logger.error("fitsio module not found!  Install and retry.")
+#    sys.stderr.write("Error: fitsio module not found!\n\n")
+#    sys.exit(1)
 
 ## Star extraction:
 try:
@@ -195,8 +212,14 @@ if __name__ == '__main__':
     iogroup = parser.add_argument_group('File I/O')
     iogroup.add_argument('-I', '--image_folder', default=None, required=True,
             help='where to find CBCD images', type=str)
-    iogroup.add_argument('-r', '--random', default=False, action='store_true',
-            help='randomize image processing order', required=False)
+    iogroup.add_argument('-W', '--walk', default=False, action='store_true',
+            help='recursively walk subfolders to find CBCD images')
+    # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    jobgroup = parser.add_argument_group('Processing Options')
+    jobgroup.add_argument('-r', '--random', default=False, action='store_true',
+            help='randomize image processing order\n(for parallel processing)',
+            required=False)
     #iogroup.add_argument('-R', '--ref_image', default=None, required=True,
     #        help='KELT image with WCS')
     # ------------------------------------------------------------------
@@ -216,18 +239,46 @@ if __name__ == '__main__':
     context.prog_name = prog_name
 
 ##--------------------------------------------------------------------------##
+##------------------      Input Image List Generators       ----------------##
+##--------------------------------------------------------------------------##
+
+def get_cbcd_single_folder(dirpath):
+    im_wildpath = '%s/SPITZ*_cbcd.fits' % dirpath
+    return sorted(glob.glob(im_wildpath))
+
+def get_cbcd_recursive_walk(targ_root):
+    image_list = []
+    for thisdir, subdirs, files in os.walk(targ_root):
+        #sys.stderr.write("\n%s\n" % fulldiv)
+        #sys.stderr.write("thisdir:  %s\n" % thisdir)
+        #sys.stderr.write("subdirs:  %s\n" % str(subdirs))
+        #sys.stderr.write("files: %s\n" % str(files))
+        cbcd_files = [x for x in files if x.endswith('_cbcd.fits')]
+        image_list += [os.path.join(thisdir, x) for x in cbcd_files]
+        #sys.stderr.write("cbcds: %s\n" % str(cbcd_files))
+        #sys.stderr.write("\n")
+    return sorted(image_list)
+
+##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
 ## Get list of CBCD files:
-im_wildpath = '%s/SPITZ*_cbcd.fits' % context.image_folder
-cbcd_files = sorted(glob.glob(im_wildpath))
+#im_wildpath = '%s/SPITZ*_cbcd.fits' % context.image_folder
+#cbcd_files = sorted(glob.glob(im_wildpath))
+if context.walk:
+    cbcd_files = get_cbcd_recursive_walk(context.image_folder)
+else:
+    cbcd_files = get_cbcd_single_folder(context.image_folder)
+
+## Randomize image order on request (for parallel processing):
 if context.random:
     random.shuffle(cbcd_files)  # for parallel operation
 
-##--------------------------------------------------------------------------##
-##--------------------------------------------------------------------------##
-
-## Vertical stacker:
+## Abort with warning if no files identified:
+if not cbcd_files:
+    sys.stderr.write("\nError: no cbcd files found in specified location:\n")
+    sys.stderr.write("--> %s\n\n" % context.image_folder)
+    sys.exit(1)
 
 
 ##--------------------------------------------------------------------------##
@@ -261,6 +312,7 @@ for ii,img_ipath in enumerate(cbcd_files, 1):
     # load data:
     idata, ihdrs = pf.getdata(img_ipath, header=True)
     udata, uhdrs = pf.getdata(unc_ipath, header=True)
+    #fdata, fhdrs = fitsio.read(img_ipath, header=True)
 
     # get median image value:
     ignore = np.isnan(idata) | np.isinf(idata)
@@ -287,6 +339,8 @@ for ii,img_ipath in enumerate(cbcd_files, 1):
     # save results:
     qsave(cln_ipath, cleaned, header=ihdrs)
     qsave(msk_ipath, cr_mask.astype('uint8'), header=ihdrs)
+    #fitsio.write(msk_ipath, cr_mask.astype('uint8'), header=fhdrs, 
+    #        clobber=True, compress='RICE')
     sys.stderr.write("%s\n" % fulldiv)
 
     if (ntodo > 0) and (nproc >= ntodo):
