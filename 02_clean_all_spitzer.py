@@ -242,8 +242,8 @@ if __name__ == '__main__':
 ##------------------      Input Image List Generators       ----------------##
 ##--------------------------------------------------------------------------##
 
-def get_cbcd_single_folder(dirpath):
-    im_wildpath = '%s/SPITZ*_cbcd.fits' % dirpath
+def get_cbcd_single_folder(dirpath, suffix):
+    im_wildpath = '%s/SPITZ*%s' % (dirpath, suffix)
     return sorted(glob.glob(im_wildpath))
 
 def get_cbcd_recursive_walk(targ_root, suffix):
