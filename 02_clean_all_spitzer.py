@@ -70,6 +70,15 @@ except ImportError:
     logger.error("failed to import lacosmic module!")
     sys.exit(1)
 
+## Spitzer pipeline filesystem helpers:
+try:
+    import spitz_fs_helpers
+    reload(spitz_fs_helpers)
+except ImportError:
+    logger.error("failed to import spitz_fs_helpers module!")
+    sys.exit(1)
+sfh = spitz_fs_helpers
+
 ##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
 class Unbuffered(object):
@@ -239,30 +248,17 @@ if __name__ == '__main__':
     context.prog_name = prog_name
 
 ##--------------------------------------------------------------------------##
-##------------------      Input Image List Generators       ----------------##
-##--------------------------------------------------------------------------##
-
-def get_cbcd_single_folder(dirpath, suffix):
-    im_wildpath = '%s/SPITZ*%s' % (dirpath, suffix)
-    return sorted(glob.glob(im_wildpath))
-
-def get_cbcd_recursive_walk(targ_root, suffix):
-    image_list = []
-    for thisdir, subdirs, files in os.walk(targ_root):
-        cbcd_files = [x for x in files if x.endswith(suffix)]
-        image_list += [os.path.join(thisdir, x) for x in cbcd_files]
-    return sorted(image_list)
-
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
 ## Get list of CBCD files:
 #im_wildpath = '%s/SPITZ*_cbcd.fits' % context.image_folder
 #cbcd_files = sorted(glob.glob(im_wildpath))
+#imsuffix = '_cbcd.fits'
 if context.walk:
-    cbcd_files = get_cbcd_recursive_walk(context.image_folder, '_cbcd.fits')
+    cbcd_files = sfh.get_files_walk(context.image_folder, flavor='cbcd')
 else:
-    cbcd_files = get_cbcd_single_folder(context.image_folder)
+    cbcd_files = sfh.get_files_single(context.image_folder, flavor='cbcd')
 
 ## Randomize image order on request (for parallel processing):
 if context.random:
