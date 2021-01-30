@@ -246,17 +246,11 @@ def get_cbcd_single_folder(dirpath):
     im_wildpath = '%s/SPITZ*_cbcd.fits' % dirpath
     return sorted(glob.glob(im_wildpath))
 
-def get_cbcd_recursive_walk(targ_root):
+def get_cbcd_recursive_walk(targ_root, suffix):
     image_list = []
     for thisdir, subdirs, files in os.walk(targ_root):
-        #sys.stderr.write("\n%s\n" % fulldiv)
-        #sys.stderr.write("thisdir:  %s\n" % thisdir)
-        #sys.stderr.write("subdirs:  %s\n" % str(subdirs))
-        #sys.stderr.write("files: %s\n" % str(files))
-        cbcd_files = [x for x in files if x.endswith('_cbcd.fits')]
+        cbcd_files = [x for x in files if x.endswith(suffix)]
         image_list += [os.path.join(thisdir, x) for x in cbcd_files]
-        #sys.stderr.write("cbcds: %s\n" % str(cbcd_files))
-        #sys.stderr.write("\n")
     return sorted(image_list)
 
 ##--------------------------------------------------------------------------##
@@ -266,7 +260,7 @@ def get_cbcd_recursive_walk(targ_root):
 #im_wildpath = '%s/SPITZ*_cbcd.fits' % context.image_folder
 #cbcd_files = sorted(glob.glob(im_wildpath))
 if context.walk:
-    cbcd_files = get_cbcd_recursive_walk(context.image_folder)
+    cbcd_files = get_cbcd_recursive_walk(context.image_folder, '_cbcd.fits')
 else:
     cbcd_files = get_cbcd_single_folder(context.image_folder)
 
