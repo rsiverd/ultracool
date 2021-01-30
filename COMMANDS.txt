@@ -22,6 +22,17 @@
 
 # ----------------------------------------------------------------------- 
 
+# clean images:
+cd ~/ucd_project/ultracool
+source ~/venv/astrom/bin/activate
+source ENVIRONMENT.sh
+for imdir in `ls -d ~/ucd_project/ucd_targets/*/r*`; do
+   echo "imdir: $imdir"
+   cmde "./02_clean_all_spitzer.py -I $imdir" || break
+done
+
+# ----------------------------------------------------------------------- 
+
 # extraction test:
 %run ./extract_and_match_gaia.py -g ultracool/csv/gaia_wise1828.csv \
    -i ucd_sha_data/SPITZER_I2_61246976_0004_0000_1_cbcd.fits
