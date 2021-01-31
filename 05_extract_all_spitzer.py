@@ -53,6 +53,15 @@ import numpy as np
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
 ##--------------------------------------------------------------------------##
+## Spitzer pipeline filesystem helpers:
+try:
+    import spitz_fs_helpers
+    reload(spitz_fs_helpers)
+except ImportError:
+    logger.error("failed to import spitz_fs_helpers module!")
+    sys.exit(1)
+sfh = spitz_fs_helpers
+
 ## Spitzer star detection routine:
 try:
     import spitz_extract
