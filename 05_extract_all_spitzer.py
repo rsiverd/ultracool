@@ -5,7 +5,7 @@
 # uncertainty images.
 #
 # Rob Siverd
-# Created:       2019-10-29
+# Created:       2021-01-30
 # Last modified: 2019-10-29
 #--------------------------------------------------------------------------
 #**************************************************************************
@@ -52,18 +52,6 @@ import numpy as np
 #np.set_printoptions(suppress=True, linewidth=160)
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
-## Because obviously:
-#import warnings
-#if not sys.warnoptions:
-#    warnings.simplefilter("ignore", category=DeprecationWarning)
-#    warnings.simplefilter("ignore", category=UserWarning)
-#    warnings.simplefilter("ignore")
-#with warnings.catch_warnings():
-#    some_risky_activity()
-#with warnings.catch_warnings():
-#    warnings.filterwarnings("ignore", category=DeprecationWarning)
-#    import problem_child1, problem_child2
-
 ##--------------------------------------------------------------------------##
 ## Spitzer star detection routine:
 try:
@@ -87,44 +75,6 @@ class Unbuffered(object):
 
 sys.stdout = Unbuffered(sys.stdout)
 sys.stderr = Unbuffered(sys.stderr)
-
-##--------------------------------------------------------------------------##
-
-#unlimited = (resource.RLIM_INFINITY, resource.RLIM_INFINITY)
-#if (resource.getrlimit(resource.RLIMIT_DATA) == unlimited):
-#    resource.setrlimit(resource.RLIMIT_DATA,  (3e9, 6e9))
-#if (resource.getrlimit(resource.RLIMIT_AS) == unlimited):
-#    resource.setrlimit(resource.RLIMIT_AS, (3e9, 6e9))
-
-## Memory management:
-#def get_memory():
-#    with open('/proc/meminfo', 'r') as mem:
-#        free_memory = 0
-#        for i in mem:
-#            sline = i.split()
-#            if str(sline[0]) in ('MemFree:', 'Buffers:', 'Cached:'):
-#                free_memory += int(sline[1])
-#    return free_memory
-#
-#def memory_limit():
-#    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
-#    resource.setrlimit(resource.RLIMIT_AS, (get_memory() * 1024 / 2, hard))
-
-### Measure memory used so far:
-#def check_mem_usage_MB():
-#    max_kb_used = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-#    return max_kb_used / 1000.0
-
-##--------------------------------------------------------------------------##
-
-##--------------------------------------------------------------------------##
-## Catch interruption cleanly:
-#def signal_handler(signum, frame):
-#    sys.stderr.write("\nInterrupted!\n\n")
-#    sys.exit(1)
-#
-#signal.signal(signal.SIGINT, signal_handler)
-
 
 ##--------------------------------------------------------------------------##
 ##------------------         Parse Command Line             ----------------##
