@@ -5,7 +5,7 @@
 # uncertainty images.
 #
 # Rob Siverd
-# Created:       2021-01-30
+# Created:       2021-02-01
 # Last modified: 2019-10-29
 #--------------------------------------------------------------------------
 #**************************************************************************
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 ## Python version-agnostic module reloading:
 try:
