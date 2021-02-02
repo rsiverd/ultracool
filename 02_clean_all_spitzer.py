@@ -15,7 +15,7 @@
 #
 # Rob Siverd
 # Created:       2019-10-30
-# Last modified: 2021-01-29
+# Last modified: 2021-02-02
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -211,6 +211,7 @@ if __name__ == '__main__':
                           formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
     #parser.set_defaults(thing1='value1', thing2='value2')
+    parser.set_defaults(ignore_short=True)
     # ------------------------------------------------------------------
     #parser.add_argument('firstpos', help='first positional argument')
     #parser.add_argument('-w', '--whatever', required=False, default=5.0,
@@ -251,15 +252,39 @@ if __name__ == '__main__':
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
+## Ensure input folder exists:
+if not os.path.isdir(context.image_folder):
+    sys.stderr.write("\nError! Folder not found:\n")
+    sys.stderr.write("--> %s\n\n" % context.image_folder)
+    sys.exit(1)
+
 ## Get list of CBCD files:
-#im_wildpath = '%s/SPITZ*_cbcd.fits' % context.image_folder
-#cbcd_files = sorted(glob.glob(im_wildpath))
-#imsuffix = '_cbcd.fits'
 if context.walk:
     cbcd_files = sfh.get_files_walk(context.image_folder, flavor='cbcd')
 else:
     cbcd_files = sfh.get_files_single(context.image_folder, flavor='cbcd')
 
+## Inspect headers and ignore short/medium frames:
+if context.ignore_short:
+    keep_cbcd = []
+    drop_cbcd = []
+    sys.stderr.write("Checking for short frames ... ")
+    trouble = 'PTGCPD'
+    for ipath in cbcd_files:
+        thdr = pf.getheader(ipath)
+        if (trouble in thdr.keys()):
+            drop_cbcd.append(ipath)
+        else:
+            keep_cbcd.append(ipath)
+        pass
+    sys.stderr.write("done. Found %d short and %d long image(s).\n"
+            % (len(drop_cbcd), len(keep_cbcd)))
+    sys.stderr.write("Dropped short frames!\n")
+    cbcd_files = [x for x in keep_cbcd]
+    #with open('non_long.txt', 'w') as f:
+    #    f.write('\n'.join(drop_cbcd))
+
+#sys.exit(0)
 ## Randomize image order on request (for parallel processing):
 if context.random:
     random.shuffle(cbcd_files)  # for parallel operation
