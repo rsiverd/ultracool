@@ -62,6 +62,7 @@ except ImportError:
     sys.exit(1)
 sfh = spitz_fs_helpers
 
+
 ## Spitzer star detection routine:
 try:
     import spitz_extract
