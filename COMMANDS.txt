@@ -31,6 +31,9 @@ for imdir in `ls -d ~/ucd_project/ucd_targets/*/r*`; do
    cmde "./02_clean_all_spitzer.py -I $imdir" || break
 done
 
+# cleaning command to test short-exposure avoidance:
+./02_clean_all_spitzer.py -I /home/rsiverd/ucd_project/ucd_targets/wise1828/r46438912
+
 # ----------------------------------------------------------------------- 
 
 # extraction test:
