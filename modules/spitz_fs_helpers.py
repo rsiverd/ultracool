@@ -58,6 +58,16 @@ def get_files_walk(targ_root, flavor):
         files_found += [os.path.join(thisdir, x) for x in these_files]
     return sorted(files_found)
 
+##--------------------------------------------------------------------------##
+##------------------       File and Path Manipulation       ----------------##
+##--------------------------------------------------------------------------##
+
+#def is_spitzer_image(ipath):
+
+def get_irac_aor_tag(ipath):
+    ibase = os.path.basename(ipath)
+    imtag = '_'.join(ibase.split('_')[:3])
+    return imtag
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
