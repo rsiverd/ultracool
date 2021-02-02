@@ -1,0 +1,21 @@
+
+Many Spitzer observations begin with a short, throwaway exposure for
+instrumental reasons. These frames should not be used for science and
+ought to be quarantined from the get-go for simplicity.
+
+Commands below may were used to investigate the nature of the beast.
+./01_collect_files_headers.sh    --> lists CBCD files and select headers
+./03_inspect_metadata.py         --> interactive python commands
+
+
+Findings:
+* in all cases seen so far, short frames appear to be part of HDR imaging
+* short frames can be identified by the presence of the PTGCPD keyword,
+      which indicates the pointing information was copied from a 'long'
+      frame obtained at the same location
+* skipping images with PTGCPD in the header during preprocessing is a quick
+      and easy way to remove these images from workflow without requiring
+      adjustments to download scripts or more complicated analysis
+* it may be useful to incorporate short frame information (in theory this
+      ought to help ...) at a future time
+
