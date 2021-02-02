@@ -1,0 +1,33 @@
+
+medval=0.009
+idirty="SPITZER_I2_46987776_0136_0000_2_clean.fits"
+cmde "fitspatch -c$medval $idirty -o tmp.fits"
+
+bleach tmp.fits -a \!amp.fits -n \!noi.fits -o \!fix.fits
+
+----------------------------------------------------------------------- 
+# in ipython:
+
+import astropy.io.fits as pf
+
+ipath = './SPITZER_I2_46987776_0136_0000_2_clean.fits'
+ipath = './SPITZER_I2_46987776_0136_0000_2_cbcd.fits'
+idata, ihdrs = pf.getdata(ipath, header=True)
+
+ignore = np.isnan(idata) | np.isinf(idata)
+medval = np.median(idata[~ignore])
+
+itemp = idata.copy()
+itemp[ignore] = medval
+
+vstack = np.median(itemp, axis=0)
+hcols = np.zeros_like(itemp, dtype='float32')
+hcols += vstack[np.newaxis, :]
+
+pf.writeto("hcols.fits", hcols, overwrite=True)
+
+iclean = idata - hcols
+pf.writeto("fixed.fits", iclean, overwrite=True)
+
+
+
