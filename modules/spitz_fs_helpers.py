@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2021-01-29
-# Last modified: 2021-01-29
+# Last modified: 2021-02-02
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -26,8 +26,7 @@ __version__ = "0.1.0"
 #import shutil
 #import resource
 #import signal
-#import glob
-#import gc
+import glob
 import os
 import sys
 import time
@@ -47,8 +46,8 @@ _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 ##--------------------------------------------------------------------------##
 
 def get_files_single(dirpath, flavor):
-    want_suffix = '_%s.fits' % flavor
-    im_wildpath = '%s/SPITZ*_%s.fits' % (dirpath, want_suffix)
+    want_suffix = '%s.fits' % flavor
+    im_wildpath = '%s/SPITZ*_%s' % (dirpath, want_suffix)
     return sorted(glob.glob(im_wildpath))
 
 def get_files_walk(targ_root, flavor):
