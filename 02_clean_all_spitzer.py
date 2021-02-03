@@ -42,19 +42,13 @@ except NameError:
 
 ## Modules:
 import argparse
-#import shutil
 import random
-#import resource
 import signal
-import glob
-#import gc
 import os
 import sys
 import time
 import numpy as np
 #from numpy.lib.recfunctions import append_fields
-#import datetime as dt
-#from dateutil import parser as dtp
 #from functools import partial
 #from collections import OrderedDict
 #from collections.abc import Iterable
@@ -210,7 +204,6 @@ if __name__ == '__main__':
     parser = MyParser(prog=prog_name, description=descr_txt,
                           formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
-    #parser.set_defaults(thing1='value1', thing2='value2')
     parser.set_defaults(ignore_short=True)
     # ------------------------------------------------------------------
     #parser.add_argument('firstpos', help='first positional argument')
@@ -287,7 +280,6 @@ if context.ignore_short:
     #with open('non_long.txt', 'w') as f:
     #    f.write('\n'.join(drop_cbcd))
 
-#sys.exit(0)
 ## Randomize image order on request (for parallel processing):
 if context.random:
     random.shuffle(cbcd_files)  # for parallel operation
