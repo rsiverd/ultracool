@@ -8,7 +8,7 @@
 #
 # Rob Siverd
 # Created:       2021-02-02
-# Last modified: 2021-02-02
+# Last modified: 2021-02-03
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -129,7 +129,7 @@ if __name__ == '__main__':
     parser = MyParser(prog=prog_name, description=descr_txt)
                           #formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
-    parser.set_defaults(imtype='cbcd') #'clean')
+    parser.set_defaults(imtype=None) #'cbcd') #'clean')
     parser.set_defaults(sigthresh=3.0)
     # ------------------------------------------------------------------
     #parser.add_argument('firstpos', help='first positional argument')
@@ -143,8 +143,10 @@ if __name__ == '__main__':
     iogroup.add_argument('-O', '--output_folder', default=None, required=False,
             help='where to save extended catalog outputs', type=str)
     imtype = iogroup.add_mutually_exclusive_group()
-    imtype.add_argument('--cbcd', required=False, action='store_const',
-            dest='imtype', const='cbcd', help='use cbcd images')
+    #imtype.add_argument('--cbcd', required=False, action='store_const',
+    #        dest='imtype', const='cbcd', help='use cbcd images')
+    imtype.add_argument('--hcfix', required=False, action='store_const',
+            dest='imtype', const='hcfix', help='use hcfix images')
     imtype.add_argument('--clean', required=False, action='store_const',
             dest='imtype', const='clean', help='use clean images')
     #iogroup.add_argument('-R', '--ref_image', default=None, required=True,
@@ -169,6 +171,11 @@ if __name__ == '__main__':
     if not context.output_folder:
         context.output_folder = context.input_folder
 
+    # Ensure an image type is selected:
+    if not context.imtype:
+        sys.stderr.write("\nNo image type selected!\n\n")
+        sys.exit(1)
+
 ##--------------------------------------------------------------------------##
 ##------------------         Make Input Image List          ----------------##
 ##--------------------------------------------------------------------------##
@@ -184,7 +191,7 @@ sys.stderr.write("Listing %s frames ... " % context.imtype)
 #    img_list[imsuff] = sorted(glob.glob(os.path.join(context.
 #img_files = sorted(glob.glob(os.path.join(context.input_folder, im_wildpath)))
 
-img_files = sfh.get_files_single(context.input_folder, flavor='cbcd')
+img_files = sfh.get_files_single(context.input_folder, flavor=context.imtype)
 sys.stderr.write("done.\n")
 
 ## Abort in case of no input:
@@ -249,9 +256,25 @@ for aor_tag,tag_files in images_by_tag.items():
             break
 
 
+import astropy.io.fits as pf
+
 sys.stderr.write("\n\n\n")
 sys.stderr.write("sxc.shift_and_stack(tag_files)\n")
 result = sxc.shift_and_stack(tag_files)
+
+layers = sxc.pad_and_shift(sxc._im_data, sxc._x_shifts, sxc._y_shifts)
+tstack = sxc.dumb_stack(layers)
+pf.writeto('tstack.fits', tstack, overwrite=True)
+
+tdir = 'zzz'
+if not os.path.isdir(tdir):
+    os.mkdir(tdir)
+
+tag_bases = [os.path.basename(x) for x in tag_files]
+for ibase,idata in zip(tag_bases, layers):
+    tsave = os.path.join(tdir, 'r' + ibase)
+    sys.stderr.write("Saving %s ... \n" % tsave) 
+    pf.writeto(tsave, idata, overwrite=True)
 
 sys.stderr.write("\n\n\n")
 sys.stderr.write("visual inspection with:\n") 
