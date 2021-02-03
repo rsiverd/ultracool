@@ -266,6 +266,7 @@ else:
 
 ## Inspect headers and ignore short/medium frames:
 if context.ignore_short:
+    tik = time.time()
     keep_cbcd = []
     drop_cbcd = []
     sys.stderr.write("Checking for short frames ... ")
@@ -281,6 +282,8 @@ if context.ignore_short:
             % (len(drop_cbcd), len(keep_cbcd)))
     sys.stderr.write("Dropped short frames!\n")
     cbcd_files = [x for x in keep_cbcd]
+    tok = time.time()
+    sys.stderr.write("Short-exposure check took %.3f seconds.\n" % (tok-tik))
     #with open('non_long.txt', 'w') as f:
     #    f.write('\n'.join(drop_cbcd))
 
