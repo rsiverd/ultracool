@@ -83,6 +83,23 @@ except ImportError:
     sys.exit(1)
 
 ##--------------------------------------------------------------------------##
+## Fast FITS I/O:
+try:
+    import fitsio
+except ImportError:
+    logger.error("fitsio module not found!  Install and retry.")
+    sys.stderr.write("\nError: fitsio module not found!\n")
+    sys.exit(1)
+
+## Save FITS image with clobber (fitsio):
+def qsave(iname, idata, header=None, **kwargs):
+    this_func = sys._getframe().f_code.co_name
+    parent_func = sys._getframe(1).f_code.co_name
+    sys.stderr.write("Writing to '%s' ... " % iname)
+    fitsio.write(iname, idata, clobber=True, header=header, **kwargs)
+    sys.stderr.write("done.\n")
+
+##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
 class Unbuffered(object):
    def __init__(self, stream):
@@ -228,9 +245,25 @@ ntodo = 0
 nproc = 0
 ntotal = len(img_files)
 
+skip_stuff = True
+
 for aor_tag,tag_files in images_by_tag.items():
     sys.stderr.write("\n\nProcessing images from %s ...\n" % aor_tag)
 
+    # File/folder paths:
+    aor_dir = os.path.dirname(tag_files[0])
+    stack_ibase = '%s_%s_stack.fits' % (aor_tag, context.imtype)
+    stack_ipath = os.path.join(aor_dir, stack_ibase)
+    #sys.stderr.write("stack_ibase: %s\n" % stack_ibase)
+
+    sys.stderr.write("Cross-correlating and stacking ... ")
+    result = sxc.shift_and_stack(tag_files)
+    sys.stderr.write("done.\n")
+    istack = sxc.get_stacked()
+    qsave(stack_ipath, istack)
+
+    if skip_stuff:
+        continue
 
     # process individual files with cross-correlation help:
     for ii,img_ipath in enumerate(tag_files, 1):
@@ -246,7 +279,7 @@ for aor_tag,tag_files in images_by_tag.items():
         if os.path.isfile(cat_ipath):
             sys.stderr.write("exists!  Skipping ... \n")
             continue
-        break
+        #break
         nproc += 1
         sys.stderr.write("not found ... creating ...\n")
         spf.use_images(ipath=img_ipath, upath=unc_ipath)
@@ -255,30 +288,33 @@ for aor_tag,tag_files in images_by_tag.items():
         if (ntodo > 0) and (nproc >= ntodo):
             break
 
-
-import astropy.io.fits as pf
-
-sys.stderr.write("\n\n\n")
-sys.stderr.write("sxc.shift_and_stack(tag_files)\n")
-result = sxc.shift_and_stack(tag_files)
-
-layers = sxc.pad_and_shift(sxc._im_data, sxc._x_shifts, sxc._y_shifts)
-tstack = sxc.dumb_stack(layers)
-pf.writeto('tstack.fits', tstack, overwrite=True)
-
-tdir = 'zzz'
-if not os.path.isdir(tdir):
-    os.mkdir(tdir)
-
-tag_bases = [os.path.basename(x) for x in tag_files]
-for ibase,idata in zip(tag_bases, layers):
-    tsave = os.path.join(tdir, 'r' + ibase)
-    sys.stderr.write("Saving %s ... \n" % tsave) 
-    pf.writeto(tsave, idata, overwrite=True)
-
-sys.stderr.write("\n\n\n")
-sys.stderr.write("visual inspection with:\n") 
-sys.stderr.write("flztfs %s\n" % ' '.join(tag_files))
+#import astropy.io.fits as pf
+#
+#imra = np.array([hh['CRVAL1'] for hh in sxc._im_hdrs])
+#imde = np.array([hh['CRVAL2'] for hh in sxc._im_hdrs])
+#
+##sys.stderr.write("\n\n\n")
+##sys.stderr.write("sxc.shift_and_stack(tag_files)\n")
+##result = sxc.shift_and_stack(tag_files)
+#sys.exit(0)
+#
+#layers = sxc.pad_and_shift(sxc._im_data, sxc._x_shifts, sxc._y_shifts)
+#tstack = sxc.dumb_stack(layers)
+#pf.writeto('tstack.fits', tstack, overwrite=True)
+#
+#tdir = 'zzz'
+#if not os.path.isdir(tdir):
+#    os.mkdir(tdir)
+#
+##tag_bases = [os.path.basename(x) for x in tag_files]
+##for ibase,idata in zip(tag_bases, layers):
+##    tsave = os.path.join(tdir, 'r' + ibase)
+##    sys.stderr.write("Saving %s ... \n" % tsave) 
+##    pf.writeto(tsave, idata, overwrite=True)
+#
+#sys.stderr.write("\n\n\n")
+#sys.stderr.write("visual inspection with:\n") 
+#sys.stderr.write("flztfs %s\n" % ' '.join(tag_files))
 
 ##--------------------------------------------------------------------------##
 
