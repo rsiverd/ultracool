@@ -166,6 +166,8 @@ if __name__ == '__main__':
             dest='imtype', const='hcfix', help='use hcfix images')
     imtype.add_argument('--clean', required=False, action='store_const',
             dest='imtype', const='clean', help='use clean images')
+    iogroup.add_argument('-W', '--walk', default=False, action='store_true',
+            help='recursively walk subfolders to find CBCD images')
     #iogroup.add_argument('-R', '--ref_image', default=None, required=True,
     #        help='KELT image with WCS')
     # ------------------------------------------------------------------
@@ -208,7 +210,10 @@ sys.stderr.write("Listing %s frames ... " % context.imtype)
 #    img_list[imsuff] = sorted(glob.glob(os.path.join(context.
 #img_files = sorted(glob.glob(os.path.join(context.input_folder, im_wildpath)))
 
-img_files = sfh.get_files_single(context.input_folder, flavor=context.imtype)
+if context.walk:
+    img_files = sfh.get_files_walk(context.input_folder, flavor=context.imtype)
+else:
+    img_files = sfh.get_files_single(context.input_folder, flavor=context.imtype)
 sys.stderr.write("done.\n")
 
 ## Abort in case of no input:
@@ -279,7 +284,7 @@ for aor_tag,tag_files in images_by_tag.items():
         if os.path.isfile(cat_ipath):
             sys.stderr.write("exists!  Skipping ... \n")
             continue
-        #break
+        break
         nproc += 1
         sys.stderr.write("not found ... creating ...\n")
         spf.use_images(ipath=img_ipath, upath=unc_ipath)
