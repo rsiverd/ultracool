@@ -226,9 +226,6 @@ class SpitzFind(object):
             ecopts['uname']   = os.path.basename(self._upath)
             ecopts['uheader'] = self._uhdrs
         result = ec.ExtendedCatalog(data=dataset, **ecopts)
-        #result = ec.ExtendedCatalog(data=dataset,
-        #        name=os.path.basename(self._ipath), header=self._ihdrs,
-        #        uname=os.path.basename(self._upath), uheader=self._uhdrs)
         return result
 
 ##--------------------------------------------------------------------------##
