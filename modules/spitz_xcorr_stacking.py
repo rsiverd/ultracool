@@ -158,6 +158,7 @@ class SpitzerXCorr(object):
         self._medoid   = None
         self._ref_idx  = 0
         self._imstack  = None
+        self._mzstack  = None
         self._im_paths = []
         self._im_hdrs  = [] # image header content
         self._im_data  = [] # image pixel data
@@ -236,7 +237,18 @@ class SpitzerXCorr(object):
         return result
 
     def save_istack(self, filename):
-        return qsave(filename, self._imstack)
+        if isinstance(self._imstack, np.ndarray):
+            return qsave(filename, self._imstack)
+        else:
+            logger.warning("Dumb-stacked image not yet created!")
+            return None
+
+    def save_mstack(self, filename):
+        if isinstance(self._mzstack, np.ndarray):
+            return qsave(filename, self._mzstack)
+        else:
+            logger.warning("Medianize-stacked image not yet created!")
+            return None
 
     # --------------------------------------------------------- #
     #               Reference Image Selection:                  #
@@ -356,6 +368,14 @@ class SpitzerXCorr(object):
             rdata = np.roll(np.roll(pdata, dx, axis=1), dy, axis=0)
             layers.append(rdata)
         return layers
+
+    # Perform medianize stacking:
+    def make_mstack(self):
+        if not self._reg_data:
+            logger.warning("Padded/shifted data not found!")
+            return
+        self._mzstack = mmm.medianize_arrays(self._reg_data)
+        return
 
     # Median-combination of listed overlapping frames:
     @staticmethod
