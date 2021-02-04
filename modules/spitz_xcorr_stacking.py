@@ -372,7 +372,7 @@ class SpitzerXCorr(object):
 
 
 ######################################################################
-# CHANGELOG (spitz_stacking.py):
+# CHANGELOG (spitz_xcorr_stacking.py):
 #---------------------------------------------------------------------
 #
 #  2021-02-03:
@@ -381,5 +381,5 @@ class SpitzerXCorr(object):
 #
 #  2021-02-02:
 #     -- Increased __version__ to 0.1.0.
-#     -- First created spitz_ccorr_stacking.py.
+#     -- First created spitz_xcorr_stacking.py.
 #
