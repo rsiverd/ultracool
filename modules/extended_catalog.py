@@ -8,7 +8,7 @@
 #
 # Rob Siverd
 # Created:       2019-10-12
-# Last modified: 2019-10-14
+# Last modified: 2021-02-04
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.5"
+__version__ = "0.1.6"
 
 ## Python version-agnostic module reloading:
 try:
@@ -186,7 +186,7 @@ class ExtendedCatalog(object):
     # --------------------------------------- #
 
     def get_catalog(self):
-        return self._imcat
+        return self._imcat.copy()
 
     def set_catalog(self, data):
         self._imcat = data
