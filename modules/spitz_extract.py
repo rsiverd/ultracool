@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2019-10-15
-# Last modified: 2020-02-12
+# Last modified: 2021-02-03
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 ## Python version-agnostic module reloading:
 try:
@@ -220,10 +220,15 @@ class SpitzFind(object):
         dataset = append_fields(dataset, ('ppx', 'ppy', 'ppdra', 'ppdde'),
                 (ppx, ppy, ppra, ppde), usemask=False)
 
-
-        result = ec.ExtendedCatalog(data=dataset,
-                name=os.path.basename(self._ipath), header=self._ihdrs,
-                uname=os.path.basename(self._upath), uheader=self._uhdrs)
+        # encapsulate result:
+        ecopts = {'name':os.path.basename(self._ipath), 'header':self._ihdrs}
+        if self._have_err_image:
+            ecopts['uname']   = os.path.basename(self._upath)
+            ecopts['uheader'] = self._uhdrs
+        result = ec.ExtendedCatalog(data=dataset, **ecopts)
+        #result = ec.ExtendedCatalog(data=dataset,
+        #        name=os.path.basename(self._ipath), header=self._ihdrs,
+        #        uname=os.path.basename(self._upath), uheader=self._uhdrs)
         return result
 
 ##--------------------------------------------------------------------------##
