@@ -8,7 +8,7 @@
 #
 # Rob Siverd
 # Created:       2021-02-02
-# Last modified: 2021-02-03
+# Last modified: 2021-02-04
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 ## Python version-agnostic module reloading:
 try:
@@ -66,6 +66,17 @@ except ImportError:
     sys.stderr.write("\nError!  robust_stats module not found!\n"
            "Please install and try again ...\n\n")
     sys.exit(1)
+
+## External 'medianize' utility (TESTING):
+try:
+    import medianize
+    reload(medianize)
+except ImportError:
+    logger.error("module medianize not found!  Install and retry.")
+    sys.stderr.write("\nError!  medianize module not found!\n"
+           "Please install and try again ...\n\n")
+    sys.exit(1)
+mmm = medianize
 
 ##--------------------------------------------------------------------------##
 
@@ -174,9 +185,13 @@ class SpitzerXCorr(object):
     #                Data Product Retrieval:                    #
     # --------------------------------------------------------- #
 
-    def get_xy_offsets(self):
+    def get_image_offsets(self):
         """Returns the lists of X- and Y- pixel offsets."""
         return self._x_shifts, self._y_shifts
+
+    def get_image_paths(self):
+        """Returns the list of input image paths."""
+        return self._im_paths
 
     def get_aligned(self):
         """Returns a list of padded, cross-correlation-aligned frames."""
@@ -185,6 +200,14 @@ class SpitzerXCorr(object):
     def get_stacked(self):
         """Returns the stacked image."""
         return self._imstack
+
+    def get_stackcat_offsets(self):
+        """Returns the X- and Y- offsets expected between positions
+        in the stacked frame and positions in the individual frames.
+        Data are provided in a dictionary indexed by image path."""
+        cx_shifts = [x-self._padpix for x in self._x_shifts]
+        cy_shifts = [y-self._padpix for y in self._y_shifts]
+        return cx_shifts, cy_shifts
 
     # --------------------------------------------------------- #
     #                  High-Level Routines:                     #
@@ -212,8 +235,8 @@ class SpitzerXCorr(object):
 
         return result
 
-    #def _make_result(self):
-    #    result = 
+    def save_istack(self, filename):
+        return qsave(filename, self._imstack)
 
     # --------------------------------------------------------- #
     #               Reference Image Selection:                  #
