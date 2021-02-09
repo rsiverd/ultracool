@@ -1,0 +1,31 @@
+
+%run ./05_compare_SE_sep.py
+
+# fiddle with last catalog pair ...
+ec_xycoo = np.array(list(zip(ex, ey)))
+se_xycoo = np.array(list(zip(sx, sy)))
+
+usx, usy = se_objs['X_IMAGE'], se_objs['Y_IMAGE']
+wsx, wsy = se_objs['XWIN_IMAGE'], se_objs['YWIN_IMAGE']
+uex, uey = ec_objs['x'], ec_objs['y']
+wex, wey = ec_objs['wx'], ec_objs['wy']
+
+def centered_subpix(pixpos):
+    subpix_pos = pixpos % 1.0                # in [0.0, 1.0)
+    subpix_pos[subpix_pos >= 0.5] -= 1.0     # now in [-0.5, 0.5)
+    return subpix_pos
+
+
+ctr_usx, ctr_usy = centered_subpix(usx), centered_subpix(usy)
+ctr_wsx, ctr_wsy = centered_subpix(wsx), centered_subpix(wsy)
+ctr_uex, ctr_uey = centered_subpix(uex), centered_subpix(uey)
+ctr_wex, ctr_wey = centered_subpix(wex), centered_subpix(wey)
+
+clf()
+opts = {'lw':0, 's':25, 'alpha':0.5}
+scatter(ctr_usx, ctr_usy, label='us', **opts)
+scatter(ctr_wsx, ctr_wsy, label='ws', **opts)
+scatter(ctr_uex, ctr_uey, label='ue', **opts)
+scatter(ctr_wex, ctr_wey, label='we', **opts)
+legend(loc='best')
+
