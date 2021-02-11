@@ -1,0 +1,6 @@
+
+* Definitely observed cases where significant differences were obtained
+   with and without LACOSMIC. Most significant difference has to do with
+   false positive in measured cross-correlation shift. This was observed
+   without careful selection of reference frame for shifting, however.
+
