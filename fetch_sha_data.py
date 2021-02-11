@@ -272,31 +272,6 @@ if not os.path.isfile(context.target_list):
 
 targets = cfr.load_coords(context.target_list)
 
-### Load targets from list:
-#with open(context.target_list, 'r') as f:
-#    contents = []
-#    for line in [x.strip() for x in f.readlines()]:
-#        if line.startswith('#'):
-#            continue    # skip comments
-#        nocomment = line.split('#')[0].strip()
-#        contents.append(nocomment)
-#
-### Slightly less dumb parsing (assume deg units if unspecified):
-#def skycoordify(text):
-#    tcoo = None
-#    try:
-#        tcoo = coord.SkyCoord(text)
-#    except:
-#        try:
-#            tcoo = coord.SkyCoord(text, unit="deg")
-#        except:
-#            sys.stderr.write("Failed to parse coordinates: '%s'\n" % text)
-#    return tcoo
-#
-### Make SkyCoords:
-#targets += [skycoordify(x) for x in contents]
-#targets = [x for x in targets if x]
-
 ## Warn/abort if no targets:
 if not targets:
     sys.stderr.write("No targets loaded from file(s)!  Nothing to do.\n")
