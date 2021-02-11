@@ -1,0 +1,9 @@
+
+# Steps in the fitting process ...
+
+* Timestamp(s) and observer ephemeris (X, Y, Z, VX, VY, VZ) gathered from
+individual extended catalog (EC) file metadata. 
+
+* Reference epoch chosen to be near the center of the available time range 
+to avoid correlation.
+
