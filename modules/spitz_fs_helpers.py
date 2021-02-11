@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2021-01-29
-# Last modified: 2021-02-02
+# Last modified: 2021-02-11
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.5"
 
 ## Modules:
 #import shutil
@@ -36,6 +36,12 @@ import numpy as np
 #from dateutil import parser as dtp
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
+## Various from astropy:
+try:
+    from astropy import coordinates as coord
+except ImportError:
+    sys.stderr.write("\nError: astropy module not found!\n")
+    sys.exit(1)
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
@@ -68,6 +74,51 @@ def get_irac_aor_tag(ipath):
     ibase = os.path.basename(ipath)
     imtag = '_'.join(ibase.split('_')[:3])
     return imtag
+
+
+##--------------------------------------------------------------------------##
+##------------------       Target Coordinate Loading        ----------------##
+##--------------------------------------------------------------------------##
+
+class CoordFileReader(object):
+
+    def __init__(self):
+        return
+
+    def load_coords(self, filename):
+        contents = self._read_text_file(filename)
+        targets = [self._skycoordify(x) for x in contents]
+        targets = [x for x in targets if x]
+        return targets
+
+    # -------------------------------
+    # Helpers:
+    # -------------------------------
+
+    @staticmethod
+    def _read_text_file(filename):
+        with open(filename, 'r') as f:
+            contents = []
+            for line in [x.strip() for x in f.readlines()]:
+                if line.startswith('#'):
+                    continue    # skip comments
+                nocomment = line.split('#')[0].strip()
+                contents.append(nocomment)
+                pass
+            pass
+        return contents
+
+    @staticmethod
+    def _skycoordify(text):
+        tcoo = None
+        try:
+            tcoo = coord.SkyCoord(text)
+        except:
+            try:
+                tcoo = coord.SkyCoord(text, unit="deg")
+            except:
+                sys.stderr.write("Failed to parse coordinates: '%s'\n" % text)
+        return tcoo
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##

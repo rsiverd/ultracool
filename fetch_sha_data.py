@@ -64,6 +64,17 @@ _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 #    import problem_child1, problem_child2
 
 ##--------------------------------------------------------------------------##
+## Spitzer pipeline filesystem helpers:
+try:
+    import spitz_fs_helpers
+    reload(spitz_fs_helpers)
+except ImportError:
+    logger.error("failed to import spitz_fs_helpers module!")
+    sys.exit(1)
+sfh = spitz_fs_helpers
+cfr = spitz_fs_helpers.CoordFileReader()
+
+##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
 class Unbuffered(object):
    def __init__(self, stream):
@@ -259,30 +270,32 @@ if not os.path.isfile(context.target_list):
     sys.stderr.write("Error: file not found: %s\n" % context.target_list)
     sys.exit(1)
 
-## Load targets from list:
-with open(context.target_list, 'r') as f:
-    contents = []
-    for line in [x.strip() for x in f.readlines()]:
-        if line.startswith('#'):
-            continue    # skip comments
-        nocomment = line.split('#')[0].strip()
-        contents.append(nocomment)
+targets = cfr.load_coords(context.target_list)
 
-## Slightly less dumb parsing (assume deg units if unspecified):
-def skycoordify(text):
-    tcoo = None
-    try:
-        tcoo = coord.SkyCoord(text)
-    except:
-        try:
-            tcoo = coord.SkyCoord(text, unit="deg")
-        except:
-            sys.stderr.write("Failed to parse coordinates: '%s'\n" % text)
-    return tcoo
-
-## Make SkyCoords:
-targets += [skycoordify(x) for x in contents]
-targets = [x for x in targets if x]
+### Load targets from list:
+#with open(context.target_list, 'r') as f:
+#    contents = []
+#    for line in [x.strip() for x in f.readlines()]:
+#        if line.startswith('#'):
+#            continue    # skip comments
+#        nocomment = line.split('#')[0].strip()
+#        contents.append(nocomment)
+#
+### Slightly less dumb parsing (assume deg units if unspecified):
+#def skycoordify(text):
+#    tcoo = None
+#    try:
+#        tcoo = coord.SkyCoord(text)
+#    except:
+#        try:
+#            tcoo = coord.SkyCoord(text, unit="deg")
+#        except:
+#            sys.stderr.write("Failed to parse coordinates: '%s'\n" % text)
+#    return tcoo
+#
+### Make SkyCoords:
+#targets += [skycoordify(x) for x in contents]
+#targets = [x for x in targets if x]
 
 ## Warn/abort if no targets:
 if not targets:
