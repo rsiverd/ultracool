@@ -34,6 +34,10 @@ done
 # cleaning command to test short-exposure avoidance:
 ./02_clean_all_spitzer.py -I /home/rsiverd/ucd_project/ucd_targets/wise1828/r46438912
 
+# cleaning command to test short-exposure and off-target avoidance:
+./02_clean_all_spitzer.py -I /home/rsiverd/ucd_project/ucd_targets/2m0415/r57909248 \
+      -t targets/wise1828.txt --ignore_off_target
+
 # ----------------------------------------------------------------------- 
 
 # extraction test:
