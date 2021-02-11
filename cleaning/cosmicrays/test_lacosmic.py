@@ -1,8 +1,4 @@
 
-%run ./extract_and_match_gaia.py -g ultracool/csv/gaia_wise1828.csv \ 
-   -i ucd_data/SPITZER_I2_61246976_0004_0000_1_cbcd.fits            \ 
-   -u ucd_data/SPITZER_I2_61246976_0004_0000_1_cbunc.fits 
-
 from lacosmic import lacosmic
 
 _mask_NaNs = True
