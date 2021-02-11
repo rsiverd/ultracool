@@ -238,17 +238,26 @@ class SpitzerXCorr(object):
 
     def save_istack(self, filename):
         if isinstance(self._imstack, np.ndarray):
-            return qsave(filename, self._imstack)
+            return qsave(filename, self._imstack, 
+                    header=self.make_stack_header())
         else:
             logger.warning("Dumb-stacked image not yet created!")
             return None
 
     def save_mstack(self, filename):
         if isinstance(self._mzstack, np.ndarray):
-            return qsave(filename, self._mzstack)
+            return qsave(filename, self._mzstack,
+                    header=self.make_stack_header())
         else:
             logger.warning("Medianize-stacked image not yet created!")
             return None
+
+    def make_stack_header(self):
+        hkw_list = []
+        nstacked = len(self._reg_data)
+        hkw_list.append({'name':'NUMSTACK', 'value':nstacked,
+                'comment':'total images stacked'})
+        return hkw_list
 
     # --------------------------------------------------------- #
     #               Reference Image Selection:                  #
