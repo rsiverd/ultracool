@@ -1,0 +1,10 @@
+/net/hbfhpc1/bigraid/rsiverd/ucd_targets/2m0415/r3954944/SPITZER_I1_3954944_0001_0000_7_cbcd.fits
+/net/hbfhpc1/bigraid/rsiverd/ucd_targets/2m0415/r3954944/SPITZER_I1_3954944_0003_0000_7_cbcd.fits
+/net/hbfhpc1/bigraid/rsiverd/ucd_targets/2m0415/r3954944/SPITZER_I1_3954944_0005_0000_7_cbcd.fits
+/net/hbfhpc1/bigraid/rsiverd/ucd_targets/2m0415/r3954944/SPITZER_I1_3954944_0007_0000_7_cbcd.fits
+/net/hbfhpc1/bigraid/rsiverd/ucd_targets/2m0415/r3954944/SPITZER_I1_3954944_0009_0000_7_cbcd.fits
+/net/hbfhpc1/bigraid/rsiverd/ucd_targets/2m0415/r3954944/SPITZER_I2_3954944_0011_0000_7_cbcd.fits
+/net/hbfhpc1/bigraid/rsiverd/ucd_targets/2m0415/r3954944/SPITZER_I2_3954944_0013_0000_7_cbcd.fits
+/net/hbfhpc1/bigraid/rsiverd/ucd_targets/2m0415/r3954944/SPITZER_I2_3954944_0015_0000_7_cbcd.fits
+/net/hbfhpc1/bigraid/rsiverd/ucd_targets/2m0415/r3954944/SPITZER_I2_3954944_0017_0000_7_cbcd.fits
+/net/hbfhpc1/bigraid/rsiverd/ucd_targets/2m0415/r3954944/SPITZER_I2_3954944_0019_0000_7_cbcd.fits
