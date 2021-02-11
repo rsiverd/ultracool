@@ -66,12 +66,12 @@ sfh = spitz_fs_helpers
 
 ## Spitzer pipeline cross-correlation:
 try:
-    import spitz_ccorr_stacking
-    reload(spitz_ccorr_stacking)
+    import spitz_xcorr_stacking
+    reload(spitz_xcorr_stacking)
 except ImportError:
-    logger.error("failed to import spitz_ccor_stacking module!")
+    logger.error("failed to import spitz_xcor_stacking module!")
     sys.exit(1)
-sxc = spitz_ccorr_stacking.SpitzerXCorr()
+sxc = spitz_xcorr_stacking.SpitzerXCorr()
 
 ## Spitzer star detection routine:
 try:
@@ -243,6 +243,29 @@ for ii in img_files:
 
 
 ##--------------------------------------------------------------------------##
+##------------------        Diagnostic Region Files         ----------------##
+##--------------------------------------------------------------------------##
+
+def regify_excat_pix(data, rpath, win=False, rr=2.0):
+    colnames = ('wx', 'wy') if win else ('x', 'y')
+    xpix, ypix = [data[x] for x in colnames]
+    with open(rpath, 'w') as rfile:
+        for xx,yy in zip(xpix, ypix):
+            rfile.write("image; circle(%8.3f, %8.3f, %8.3f)\n" % (xx, yy, rr))
+    return
+
+##--------------------------------------------------------------------------##
+##------------------         Stack/Image Comparison         ----------------##
+##--------------------------------------------------------------------------##
+
+def xcheck(idata, sdata):
+    nstack = len(sdata)
+    nimage = len(idata)
+    sys.stderr.write("nstack: %d\n" % nstack)
+    sys.stderr.write("nimage: %d\n" % nimage)
+    return
+
+##--------------------------------------------------------------------------##
 ##------------------           Process All Images           ----------------##
 ##--------------------------------------------------------------------------##
 
@@ -258,15 +281,38 @@ for aor_tag,tag_files in images_by_tag.items():
     # File/folder paths:
     aor_dir = os.path.dirname(tag_files[0])
     stack_ibase = '%s_%s_stack.fits' % (aor_tag, context.imtype)
+    stack_cbase = '%s_%s_stack.fcat' % (aor_tag, context.imtype)
+    medze_ibase = '%s_%s_medze.fits' % (aor_tag, context.imtype)
     stack_ipath = os.path.join(aor_dir, stack_ibase)
+    stack_cpath = os.path.join(aor_dir, stack_cbase)
+    medze_ipath = os.path.join(aor_dir, medze_ibase)
     #sys.stderr.write("stack_ibase: %s\n" % stack_ibase)
 
     sys.stderr.write("Cross-correlating and stacking ... ")
     result = sxc.shift_and_stack(tag_files)
     sys.stderr.write("done.\n")
-    istack = sxc.get_stacked()
-    qsave(stack_ipath, istack)
+    sxc.save_istack(stack_ipath)
+    #istack = sxc.get_stacked()
+    #qsave(stack_ipath, istack)
 
+    # Extract shifts for each image:
+    xshifts, yshifts = sxc.get_stackcat_offsets()
+
+    # Extract stars from stacked image:
+    spf.use_images(ipath=stack_ipath)
+    stack_cat = spf.find_stars(context.sigthresh)
+    stack_cat.save_as_fits(stack_cpath, overwrite=True)
+    sdata = stack_cat.get_catalog()
+ 
+    # region file for diagnostics:
+    stack_rfile = stack_ipath + '.reg'
+    regify_excat_pix(sdata, stack_rfile)
+
+    # Make/save 'medianize' stack for comparison:
+    sxc.make_mstack()
+    sxc.save_mstack(medze_ipath)
+
+    # Stop here for now ...
     if skip_stuff:
         continue
 
@@ -279,12 +325,14 @@ for aor_tag,tag_files in images_by_tag.items():
             continue
         img_ibase = os.path.basename(img_ipath)
         cat_ibase = img_ibase.replace(context.imtype, 'fcat')
+        ### FIXME ###
+        ### context.output_folder is not appropriate for walk mode ...
         cat_ipath = os.path.join(context.output_folder, cat_ibase)
+        ### FIXME ###
         sys.stderr.write("Catalog %s ... " % cat_ipath)
         if os.path.isfile(cat_ipath):
             sys.stderr.write("exists!  Skipping ... \n")
             continue
-        break
         nproc += 1
         sys.stderr.write("not found ... creating ...\n")
         spf.use_images(ipath=img_ipath, upath=unc_ipath)
@@ -292,6 +340,7 @@ for aor_tag,tag_files in images_by_tag.items():
         result.save_as_fits(cat_ipath, overwrite=True)
         if (ntodo > 0) and (nproc >= ntodo):
             break
+        break
 
 #import astropy.io.fits as pf
 #
