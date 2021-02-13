@@ -72,6 +72,7 @@ except ImportError:
     logger.error("failed to import spitz_fs_helpers module!")
     sys.exit(1)
 sfh = spitz_fs_helpers
+cfr = spitz_fs_helpers.CoordFileReader()
 
 ##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
@@ -204,7 +205,7 @@ if __name__ == '__main__':
     parser = MyParser(prog=prog_name, description=descr_txt,
                           formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
-    parser.set_defaults(ignore_short=True)
+    parser.set_defaults(ignore_short=True, gather_headers=False)
     # ------------------------------------------------------------------
     #parser.add_argument('firstpos', help='first positional argument')
     #parser.add_argument('-w', '--whatever', required=False, default=5.0,
@@ -215,14 +216,19 @@ if __name__ == '__main__':
     iogroup = parser.add_argument_group('File I/O')
     iogroup.add_argument('-I', '--image_folder', default=None, required=True,
             help='where to find CBCD images', type=str)
+    iogroup.add_argument('-t', '--target_list', required=False, default=None,
+            help='provide a list of targets of interest', type=str)
     iogroup.add_argument('-W', '--walk', default=False, action='store_true',
             help='recursively walk subfolders to find CBCD images')
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
     jobgroup = parser.add_argument_group('Processing Options')
-    jobgroup.add_argument('-r', '--random', default=False, action='store_true',
+    jobgroup.add_argument('--ignore_off_target', default=False,
+            help='skip images that do not cover a target position',
+            action='store_true', required=False)
+    jobgroup.add_argument('-r', '--random', default=False,
             help='randomize image processing order\n(for parallel processing)',
-            required=False)
+            action='store_true', required=False)
     #iogroup.add_argument('-R', '--ref_image', default=None, required=True,
     #        help='KELT image with WCS')
     # ------------------------------------------------------------------
@@ -241,6 +247,10 @@ if __name__ == '__main__':
     context.vlevel = 99 if context.debug else (context.verbose-context.quiet)
     context.prog_name = prog_name
 
+    # header examination only needed for certain options:
+    if context.ignore_off_target or context.ignore_short:
+        context.gather_headers = True
+
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
@@ -257,6 +267,33 @@ if context.walk:
 else:
     cbcd_files = sfh.get_files_single(context.image_folder, flavor='cbcd')
 
+## Retrieve FITS headers if needed:
+cbcd_headers = {}
+if context.gather_headers:
+    sys.stderr.write("Loading FITS headers for all files ... ")
+    #for ipath in cbcd_files:
+    #    cbcd_headers[ipath] = pf.getheader(ipath)
+    cbcd_headers = {x:pf.getheader(x) for x in cbcd_files}
+    sys.stderr.write("done.\n")
+
+##--------------------------------------------------------------------------##
+##------------------      Target Coordinates and Checks     ----------------##
+##--------------------------------------------------------------------------##
+
+## Load coordinates if provided:
+targets = []
+if context.target_list:
+    if not os.path.isfile(context.target_list):
+        sys.stderr.write("\nError: target list file not found:\n")
+        sys.stderr.write("--> %s\n\n" % context.target_list)
+        sys.exit(1)
+    targets += cfr.load_coords(context.target_list)
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
+
 ## Inspect headers and ignore short/medium frames:
 if context.ignore_short:
     tik = time.time()
@@ -265,7 +302,8 @@ if context.ignore_short:
     sys.stderr.write("Checking for short frames ... ")
     trouble = 'PTGCPD'
     for ipath in cbcd_files:
-        thdr = pf.getheader(ipath)
+        #thdr = pf.getheader(ipath)
+        thdr = cbcd_headers[ipath]
         if (trouble in thdr.keys()):
             drop_cbcd.append(ipath)
         else:
