@@ -74,6 +74,15 @@ except ImportError:
 sfh = spitz_fs_helpers
 cfr = spitz_fs_helpers.CoordFileReader()
 
+## Parallax pipeline coordinate helpers:
+try:
+    import coord_helpers
+    reload(coord_helpers)
+except ImportError:
+    logger.error("failed to import coord_helpers module!")
+    sys.exit(1)
+cfr = coord_helpers.CoordFileReader()
+
 ##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
 class Unbuffered(object):
