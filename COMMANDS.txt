@@ -82,6 +82,10 @@ done
 
 ./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/2m0415/r44717824
 
+# rerun all AOR extraction:
+./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/ --hcfix -W
+./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/ --clean -W
+
 # unweighted ...
 ./06_sextract_spitzer.sh --original -I ../ucd_sha_data -O ../ucd_scat_orig --START -r
 ./06_sextract_spitzer.sh --cosclean -I ../ucd_sha_data -O ../ucd_scat_ccln --START -r
