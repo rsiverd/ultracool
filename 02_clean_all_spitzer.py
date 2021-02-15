@@ -72,7 +72,6 @@ except ImportError:
     logger.error("failed to import spitz_fs_helpers module!")
     sys.exit(1)
 sfh = spitz_fs_helpers
-cfr = spitz_fs_helpers.CoordFileReader()
 
 ## Parallax pipeline coordinate helpers:
 try:
