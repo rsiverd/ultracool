@@ -81,6 +81,7 @@ except ImportError:
     logger.error("failed to import coord_helpers module!")
     sys.exit(1)
 cfr = coord_helpers.CoordFileReader()
+wcc = coord_helpers.WCSCoordChecker()
 
 ##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
@@ -271,9 +272,10 @@ if not os.path.isdir(context.image_folder):
 
 ## Get list of CBCD files:
 if context.walk:
-    cbcd_files = sfh.get_files_walk(context.image_folder, flavor='cbcd')
+    all_cbcd_files = sfh.get_files_walk(context.image_folder, flavor='cbcd')
 else:
-    cbcd_files = sfh.get_files_single(context.image_folder, flavor='cbcd')
+    all_cbcd_files = sfh.get_files_single(context.image_folder, flavor='cbcd')
+use_cbcd_files = [x for x in all_cbcd_files]
 
 ## Retrieve FITS headers if needed:
 cbcd_headers = {}
@@ -281,7 +283,7 @@ if context.gather_headers:
     sys.stderr.write("Loading FITS headers for all files ... ")
     #for ipath in cbcd_files:
     #    cbcd_headers[ipath] = pf.getheader(ipath)
-    cbcd_headers = {x:pf.getheader(x) for x in cbcd_files}
+    cbcd_headers = {x:pf.getheader(x) for x in all_cbcd_files}
     sys.stderr.write("done.\n")
 
 ##--------------------------------------------------------------------------##
@@ -297,6 +299,33 @@ if context.target_list:
         sys.exit(1)
     targets += cfr.load_coords(context.target_list)
 
+## Remove off-target frames (if requested):
+if context.ignore_off_target:
+
+    # halt if targets not provided:
+    if not targets:
+        logger.error("Required targets not provided.\n")
+        sys.exit(1)
+
+    tik = time.time()
+    keep_cbcd = []
+    drop_cbcd = []
+    sys.stderr.write("Checking for off-target frames ... ")
+
+    for ipath in use_cbcd_files:
+        thdr = cbcd_headers[ipath]
+        wcc.set_header(thdr)
+        if wcc.covers_any_positions(targets):
+            keep_cbcd.append(ipath)
+        else:
+            drop_cbcd.append(ipath)
+        pass
+    sys.stderr.write("done. Found %d on-target and %d off-target image(s).\n"
+            % (len(keep_cbcd), len(drop_cbcd)))
+    use_cbcd_files = [x for x in keep_cbcd]
+    tok = time.time()
+    sys.stderr.write("Off-target check took %.3f seconds.\n" % (tok-tik))
+
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
@@ -309,7 +338,7 @@ if context.ignore_short:
     drop_cbcd = []
     sys.stderr.write("Checking for short frames ... ")
     trouble = 'PTGCPD'
-    for ipath in cbcd_files:
+    for ipath in use_cbcd_files:
         #thdr = pf.getheader(ipath)
         thdr = cbcd_headers[ipath]
         if (trouble in thdr.keys()):
@@ -320,7 +349,7 @@ if context.ignore_short:
     sys.stderr.write("done. Found %d short and %d long image(s).\n"
             % (len(drop_cbcd), len(keep_cbcd)))
     sys.stderr.write("Dropped short frames!\n")
-    cbcd_files = [x for x in keep_cbcd]
+    use_cbcd_files = [x for x in keep_cbcd]
     tok = time.time()
     sys.stderr.write("Short-exposure check took %.3f seconds.\n" % (tok-tik))
     #with open('non_long.txt', 'w') as f:
@@ -328,10 +357,10 @@ if context.ignore_short:
 
 ## Randomize image order on request (for parallel processing):
 if context.random:
-    random.shuffle(cbcd_files)  # for parallel operation
+    random.shuffle(use_cbcd_files)  # for parallel operation
 
 ## Abort with warning if no files identified:
-if not cbcd_files:
+if not use_cbcd_files:
     sys.stderr.write("\nError: no cbcd files found in specified location:\n")
     sys.stderr.write("--> %s\n\n" % context.image_folder)
     sys.exit(1)
@@ -349,8 +378,8 @@ def fresh_cr_args():
 ## Clean up each image:
 ntodo = 0
 nproc = 0
-total = len(cbcd_files)
-for ii,img_ipath in enumerate(cbcd_files, 1):
+total = len(use_cbcd_files)
+for ii,img_ipath in enumerate(use_cbcd_files, 1):
     #sys.stderr.write("%s\n" % fulldiv)
     unc_ipath = img_ipath.replace('cbcd', 'cbunc')
     vst_ipath = img_ipath.replace('cbcd',  'vmed')
