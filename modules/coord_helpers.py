@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2021-02-12
-# Last modified: 2021-02-14
+# Last modified: 2021-02-15
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 ## Modules:
 #import shutil
@@ -36,9 +36,20 @@ import numpy as np
 #from dateutil import parser as dtp
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
+## RJS personal angular routines:
+try:
+    import angle
+except ImportError:
+    logger.error("module 'angle' not found!  Install and retry.")
+    sys.stderr.write("\nError!  robust_stats module not found!\n"
+           "Please install and try again ...\n\n")
+    sys.exit(1)
+
+
 ## Various from astropy:
 try:
     from astropy import coordinates as coord
+    import astropy.wcs as awcs
 except ImportError:
     sys.stderr.write("\nError: astropy module not found!\n")
     sys.exit(1)
@@ -100,14 +111,70 @@ class CoordFileReader(object):
 class WCSCoordChecker(object):
 
     def __init__(self):
+        self.header = None
+        self.ishape = None
+        self.xlimit = None
+        self.ylimit = None
         return
 
+    def set_header(self, imhdr):
+        #sys.stderr.write("--------------------------------------\n")
+        self.header = imhdr.copy()
+        nx = self.header['NAXIS1']
+        ny = self.header['NAXIS2']
+        self.ishape = (nx, ny)
+        self.xlimit = (0.5, nx + 0.5)
+        self.ylimit = (0.5, ny + 0.5)
+        self.wcs = awcs.WCS(self.header)
+        #self._set_center_and_diagonal()
+        #self._ctr_sep_max = 0.5 * self._diag_deg
+        #sys.stderr.write("Adopted image center: %s\n" % str(self._ctr_radec))
+        #sys.stderr.write("Maximum sep (degrees): %.4f\n" % self._ctr_sep_max)
+        return
+
+    #def _set_center_and_diagonal(self):
+    #    corner_xx = np.array([1, self.ishape[0]])
+    #    corner_yy = np.array([1, self.ishape[1]])
+    #    corner_ra, corner_de = self.wcs.all_pix2world(corner_xx, corner_yy, 1,
+    #                                                    ra_dec_order=True)
+    #    self._diag_deg = angle.dAngSep(corner_ra[0], corner_de[0],
+    #                                    corner_ra[1], corner_de[1])
+
+    #    # calculate mid-image RA, DE:
+    #    center_xx = np.average(corner_xx)
+    #    center_yy = np.average(corner_yy)
+    #    self._ctr_radec = self.wcs.all_pix2world(center_xx, center_yy, 1)
+    #    return
+
+    def covers_single_position(self, coord):
+        #tra, tde = coord.ra.degree, coord.dec.degree
+        #sys.stderr.write("Target RA: %8.4f\n" % tra)
+        #sys.stderr.write("Target DE: %8.4f\n" % tde)
+        ## large angular separation rules out coverage:
+        #ctr_sep_deg = angle.dAngSep(*self._ctr_radec, 
+        #                    coord.ra.degree, coord.dec.degree)
+        #sys.stderr.write("ctr_sep_deg: %.4f\n" % ctr_sep_deg)
+        #sys.stderr.write("ctr_sep_max: %.4f\n" % self._ctr_sep_max)
+        return coord.contained_by(self.wcs)
+
+    def covers_multiple_positions(self, coord_list):
+        return [self.covers_single_position(tt) for tt in coord_list]
+        #return [tt.contained_by(self.wcs) for tt in coord_list]
+
+    def covers_any_positions(self, coord_list):
+        return any(self.covers_multiple_positions(coord_list))
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
 
+# should be contained:
+# SPITZER_I1_57909248_0025_0000_1_cbcd.fits
+
+# tt = targets[0]
+# tra = tt.ra.degree
+# tde = tt.dec.degree
 
 
 ######################################################################
