@@ -314,7 +314,7 @@ if context.ignore_off_target:
     tik = time.time()
     keep_cbcd = []
     drop_cbcd = []
-    sys.stderr.write("Checking for off-target frames ... ")
+    sys.stderr.write("Checking for off-target frames.\n")
     ntotal = len(use_cbcd_files)
 
     for ii,ipath in enumerate(use_cbcd_files, 1):
