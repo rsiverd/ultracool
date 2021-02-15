@@ -38,6 +38,10 @@ done
 ./02_clean_all_spitzer.py -I /home/rsiverd/ucd_project/ucd_targets/2m0415/r57909248 \
       -t targets/2m0415.txt --ignore_off_target
 
+# cleaning command to reprocess everything:
+./02_clean_all_spitzer.py -I /home/rsiverd/ucd_project/ucd_targets/ \
+      -t targets.txt --ignore_off_target -W
+
 # ----------------------------------------------------------------------- 
 
 # extraction test:
