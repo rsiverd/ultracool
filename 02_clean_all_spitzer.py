@@ -271,11 +271,14 @@ if not os.path.isdir(context.image_folder):
     sys.exit(1)
 
 ## Get list of CBCD files:
+iflav = 'cbcd'
 if context.walk:
-    all_cbcd_files = sfh.get_files_walk(context.image_folder, flavor='cbcd')
+    all_cbcd_files = sfh.get_files_walk(context.image_folder, flavor=iflav)
 else:
-    all_cbcd_files = sfh.get_files_single(context.image_folder, flavor='cbcd')
+    all_cbcd_files = sfh.get_files_single(context.image_folder, flavor=iflav)
 use_cbcd_files = [x for x in all_cbcd_files]
+sys.stderr.write("Identified %d '%s' FITS images.\n"
+        % (len(all_cbcd_files), iflav))
 
 ## Retrieve FITS headers if needed:
 cbcd_headers = {}
@@ -307,12 +310,15 @@ if context.ignore_off_target:
         logger.error("Required targets not provided.\n")
         sys.exit(1)
 
+    sys.stderr.write("%s\n" % fulldiv)
     tik = time.time()
     keep_cbcd = []
     drop_cbcd = []
     sys.stderr.write("Checking for off-target frames ... ")
+    ntotal = len(use_cbcd_files)
 
-    for ipath in use_cbcd_files:
+    for ii,ipath in enumerate(use_cbcd_files, 1):
+        sys.stderr.write("\rChecking image %d of %d ... " % (ii, ntotal))
         thdr = cbcd_headers[ipath]
         wcc.set_header(thdr)
         if wcc.covers_any_positions(targets):
@@ -320,7 +326,8 @@ if context.ignore_off_target:
         else:
             drop_cbcd.append(ipath)
         pass
-    sys.stderr.write("done. Found %d on-target and %d off-target image(s).\n"
+    sys.stderr.write("done.\n")
+    sys.stderr.write("Found %d on-target and %d off-target image(s).\n"
             % (len(keep_cbcd), len(drop_cbcd)))
     use_cbcd_files = [x for x in keep_cbcd]
     tok = time.time()
@@ -333,6 +340,7 @@ if context.ignore_off_target:
 
 ## Inspect headers and ignore short/medium frames:
 if context.ignore_short:
+    sys.stderr.write("%s\n" % fulldiv)
     tik = time.time()
     keep_cbcd = []
     drop_cbcd = []
@@ -376,6 +384,8 @@ def fresh_cr_args():
             'neighbor_threshold':4.0,}
 
 ## Clean up each image:
+sys.stderr.write("%s\n" % fulldiv)
+sys.stderr.write("Processing listed images.\n")
 ntodo = 0
 nproc = 0
 total = len(use_cbcd_files)
