@@ -1,0 +1,10 @@
+# How to remove processed images to facilitate starting over:
+
+find ~/ucd_project/ucd_targets/ -type f -name "SPITZ*fits*" | sort \
+   | grep -v '_bcd.fits$' \
+   | grep -v '_cbcd.fits$' \
+   | grep -v '_cbunc.fits$' \
+   | tee remove_these.txt
+
+rm `cat remove_these.txt`
+
