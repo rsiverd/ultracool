@@ -199,6 +199,7 @@ if __name__ == '__main__':
 ##------------------         Make Input Image List          ----------------##
 ##--------------------------------------------------------------------------##
 
+tstart = time.time()
 sys.stderr.write("Listing %s frames ... " % context.imtype) 
 #im_wildpath = 'SPITZ*%s.fits' % context.imtype
 #im_wildcard = os.path.join(context.input_folder, 'SPIT*'
@@ -222,6 +223,8 @@ if not img_files:
     sys.stderr.write("--> %s\n\n" % context.input_folder)
     sys.exit(1)
 
+n_images = len(img_files)
+
 ## List of uncertainty frames (warn if any missing):
 #unc_files = [x.replace(context.imtype, 'cbunc') for x in img_files]
 #sys.stderr.write("Checking error-images ... ") 
@@ -234,7 +237,6 @@ if not img_files:
 ##--------------------------------------------------------------------------##
 ##------------------       Unique AOR/Channel Combos        ----------------##
 ##--------------------------------------------------------------------------##
-
 
 unique_tags = list(set([sfh.get_irac_aor_tag(x) for x in img_files]))
 images_by_tag = {x:[] for x in unique_tags}
@@ -258,12 +260,12 @@ def regify_excat_pix(data, rpath, win=False, rr=2.0):
 ##------------------         Stack/Image Comparison         ----------------##
 ##--------------------------------------------------------------------------##
 
-def xcheck(idata, sdata):
-    nstack = len(sdata)
-    nimage = len(idata)
-    sys.stderr.write("nstack: %d\n" % nstack)
-    sys.stderr.write("nimage: %d\n" % nimage)
-    return
+#def xcheck(idata, sdata):
+#    nstack = len(sdata)
+#    nimage = len(idata)
+#    sys.stderr.write("nstack: %d\n" % nstack)
+#    sys.stderr.write("nimage: %d\n" % nimage)
+#    return
 
 ##--------------------------------------------------------------------------##
 ##------------------           Process All Images           ----------------##
@@ -341,6 +343,11 @@ for aor_tag,tag_files in images_by_tag.items():
         if (ntodo > 0) and (nproc >= ntodo):
             break
         break
+
+tstop = time.time()
+ttook = tstop - tstart
+sys.stderr.write("Extraction completed in %.3f seconds.\n" % ttook)
+
 
 #import astropy.io.fits as pf
 #
