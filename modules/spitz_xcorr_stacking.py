@@ -239,6 +239,12 @@ class SpitzerXCorr(object):
 
         return result
 
+    def dump_registered_images(self, save_dir):
+        for ii,frame in enumerate(self._reg_data, 0):
+            ipath = os.path.join(save_dir, 'rframe_%03d.fits' % ii)
+            qsave(ipath, frame)
+        return
+
     def save_istack(self, filename):
         if isinstance(self._imstack, np.ndarray):
             return qsave(filename, self._imstack, 

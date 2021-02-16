@@ -8,7 +8,7 @@
 #
 # Rob Siverd
 # Created:       2021-02-02
-# Last modified: 2021-02-03
+# Last modified: 2021-02-16
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.2.0"
+__version__ = "0.2.5"
 
 ## Python version-agnostic module reloading:
 try:
@@ -72,6 +72,15 @@ except ImportError:
     logger.error("failed to import spitz_xcor_stacking module!")
     sys.exit(1)
 sxc = spitz_xcorr_stacking.SpitzerXCorr()
+
+## Catalog pruning helpers:
+try:
+    import catalog_tools
+    reload(catalog_tools)
+except ImportError:
+    logger.error("failed to import catalog_tools module!")
+    sys.exit(1)
+xcp = catalog_tools.XCorrPruner()
 
 ## Spitzer star detection routine:
 try:
@@ -238,7 +247,7 @@ n_images = len(img_files)
 ##------------------       Unique AOR/Channel Combos        ----------------##
 ##--------------------------------------------------------------------------##
 
-unique_tags = list(set([sfh.get_irac_aor_tag(x) for x in img_files]))
+unique_tags = sorted(list(set([sfh.get_irac_aor_tag(x) for x in img_files])))
 images_by_tag = {x:[] for x in unique_tags}
 for ii in img_files:
     images_by_tag[sfh.get_irac_aor_tag(ii)].append(ii)
@@ -274,9 +283,11 @@ def regify_excat_pix(data, rpath, win=False, rr=2.0):
 ntodo = 0
 nproc = 0
 ntotal = len(img_files)
+min_sobj = 10       # bark if fewer than this many found in stack
 
-skip_stuff = True
+skip_stuff = False
 
+#for aor_tag,tag_files in images_by_tag.items():
 for aor_tag,tag_files in images_by_tag.items():
     sys.stderr.write("\n\nProcessing images from %s ...\n" % aor_tag)
 
@@ -297,15 +308,19 @@ for aor_tag,tag_files in images_by_tag.items():
     #istack = sxc.get_stacked()
     #qsave(stack_ipath, istack)
 
-    # Extract shifts for each image:
-    xshifts, yshifts = sxc.get_stackcat_offsets()
-
     # Extract stars from stacked image:
     spf.use_images(ipath=stack_ipath)
     stack_cat = spf.find_stars(context.sigthresh)
     stack_cat.save_as_fits(stack_cpath, overwrite=True)
     sdata = stack_cat.get_catalog()
- 
+    nsobj = len(sdata)
+
+    if (nsobj < min_sobj):
+        sys.stderr.write("Fewer than %d objects found in stack ... \n" % min_sobj)
+        sys.stderr.write("Found %d objects.\n\n" % nsobj)
+        sys.stderr.write("--> %s\n\n" % stack_ipath)
+        sys.exit(1)
+    
     # region file for diagnostics:
     stack_rfile = stack_ipath + '.reg'
     regify_excat_pix(sdata, stack_rfile)
@@ -314,9 +329,14 @@ for aor_tag,tag_files in images_by_tag.items():
     sxc.make_mstack()
     sxc.save_mstack(medze_ipath)
 
-    # Stop here for now ...
-    if skip_stuff:
-        continue
+    # Set up pruning system:
+    xshifts, yshifts = sxc.get_stackcat_offsets()
+    xcp.set_master_catalog(sdata)
+    xcp.set_image_offsets(xshifts, yshifts)
+ 
+    ## Stop here for now ...
+    #if skip_stuff:
+    #    continue
 
     # process individual files with cross-correlation help:
     for ii,img_ipath in enumerate(tag_files, 1):
@@ -326,22 +346,47 @@ for aor_tag,tag_files in images_by_tag.items():
             sys.stderr.write("WARNING: file not found:\n--> %s\n" % unc_ipath)
             continue
         img_ibase = os.path.basename(img_ipath)
-        cat_ibase = img_ibase.replace(context.imtype, 'fcat')
+        #cat_ibase = img_ibase.replace(context.imtype, 'fcat')
+        cat_fbase = img_ibase + '.fcat'
+        cat_pbase = img_ibase + '.pcat'
+        cat_mbase = img_ibase + '.mcat'
+
         ### FIXME ###
         ### context.output_folder is not appropriate for walk mode ...
-        cat_ipath = os.path.join(context.output_folder, cat_ibase)
+        save_dir = context.output_folder    # NOT FOR WALK MODE
+        save_dir = os.path.dirname(img_ipath)
+        cat_fpath = os.path.join(save_dir, cat_fbase)
+        cat_ppath = os.path.join(save_dir, cat_pbase)
+        cat_mpath = os.path.join(save_dir, cat_mbase)
         ### FIXME ###
-        sys.stderr.write("Catalog %s ... " % cat_ipath)
-        if os.path.isfile(cat_ipath):
+
+        sys.stderr.write("Catalog %s ... " % cat_fpath)
+        if os.path.isfile(cat_ppath):
             sys.stderr.write("exists!  Skipping ... \n")
             continue
         nproc += 1
         sys.stderr.write("not found ... creating ...\n")
         spf.use_images(ipath=img_ipath, upath=unc_ipath)
         result = spf.find_stars(context.sigthresh)
-        result.save_as_fits(cat_ipath, overwrite=True)
+        result.save_as_fits(cat_fpath, overwrite=True)
+        nfound = len(result.get_catalog())
+
+        # prune sources not detected in stacked frame:
+        pruned = xcp.prune_spurious(result.get_catalog(), img_ipath)
+        npruned = len(pruned)
+        sys.stderr.write("nfound: %d, npruned: %d\n" % (nfound, npruned))
+        if (len(pruned) < 5):
+            sys.stderr.write("BARKBARKBARK\n")
+            sys.exit(1)
+        result.set_catalog(pruned)
+        result.save_as_fits(cat_ppath, overwrite=True)
+
+        # stop early if requested:
         if (ntodo > 0) and (nproc >= ntodo):
             break
+        #break
+
+    if (ntodo > 0) and (nproc >= ntodo):
         break
 
 tstop = time.time()

@@ -122,13 +122,49 @@ _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 class XCorrPruner(object):
 
     def __init__(self):
-        self._master = None
+        self._mcatalog = None
+        self._xshifts  = None
+        self._yshifts  = None
+        self._prev_msep = None
         return
 
     def set_master_catalog(self, data):
-        self._master = data.copy()
+        self._mcatalog = data.copy()
         return
 
+    def set_image_offsets(self, xshifts, yshifts):
+        self._xshifts = {k:v for k,v in xshifts.items()}
+        self._yshifts = {k:v for k,v in yshifts.items()}
+        return
+
+    def prune_spurious(self, cdata, ipath, rcut=2.0):
+        xcol, ycol = 'x', 'y'
+        xcol, ycol = 'wx', 'wy'
+        #this_xnudge = self._xshifts[ipath]
+        #this_ynudge = self._yshifts[ipath]
+        tcat = cdata.copy()     # working copy of individual frame catalog
+        tcat[xcol] -= self._xshifts[ipath]
+        tcat[ycol] -= self._yshifts[ipath]
+        mx, my = self._mcatalog[xcol], self._mcatalog[ycol]
+        #sx, sy = shifted_cat[xcol], shifted_cat[
+
+        keep = []
+        mseps = []
+        for ii,(sx,sy) in enumerate(zip(tcat[xcol], tcat[ycol]), 1):
+            dx = sx - mx
+            dy = sy - my
+            ds = np.hypot(sx - mx, sy - my)
+            minsep = ds.min()
+            keep.append(minsep < rcut)
+            mseps.append(minsep)
+            pass
+        self._prev_msep = np.array(mseps)
+        return cdata.copy()[keep]
+
+    #def initialize_from_xcorr(self, xcobj):
+    #    self._mcatalog = xcobj.get_catalog().copy()
+    #    self._xshifts, self._yshifts = xcobj.get_stackcat_offsets()
+    #    return
 
 ##--------------------------------------------------------------------------##
 
