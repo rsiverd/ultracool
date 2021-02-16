@@ -245,6 +245,12 @@ class SpitzerXCorr(object):
             qsave(ipath, frame)
         return
 
+    def dump_bright_pixel_masks(self, save_dir):
+        for ii,frame in enumerate(self._bp_masks, 0):
+            ipath = os.path.join(save_dir, 'bpmask_%03d.fits' % ii)
+            qsave(ipath, frame.astype('uint16'))
+        return
+
     def save_istack(self, filename):
         if isinstance(self._imstack, np.ndarray):
             return qsave(filename, self._imstack, 
