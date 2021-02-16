@@ -35,7 +35,7 @@ except NameError:
 
 ## Modules:
 import argparse
-#import shutil
+import shutil
 #import resource
 #import signal
 import glob
@@ -287,9 +287,12 @@ min_sobj = 10       # bark if fewer than this many found in stack
 
 skip_stuff = False
 
+context.save_registered = True
+
 #for aor_tag,tag_files in images_by_tag.items():
-for aor_tag,tag_files in images_by_tag.items():
+for aor_tag in unique_tags:
     sys.stderr.write("\n\nProcessing images from %s ...\n" % aor_tag)
+    tag_files = images_by_tag[aor_tag]
 
     # File/folder paths:
     aor_dir = os.path.dirname(tag_files[0])
@@ -307,6 +310,16 @@ for aor_tag,tag_files in images_by_tag.items():
     sxc.save_istack(stack_ipath)
     #istack = sxc.get_stacked()
     #qsave(stack_ipath, istack)
+
+    # Dump registered data to disk:
+    if context.save_registered:
+        sys.stderr.write("Saving registered frames for inspection ...\n")
+        reg_dir = os.path.join(aor_dir, 'zreg')
+        if os.path.isdir(reg_dir):
+            shutil.rmtree(reg_dir)
+        os.mkdir(reg_dir)
+        sxc.dump_registered_images(reg_dir)
+        sys.stderr.write("\n")
 
     # Extract stars from stacked image:
     spf.use_images(ipath=stack_ipath)
