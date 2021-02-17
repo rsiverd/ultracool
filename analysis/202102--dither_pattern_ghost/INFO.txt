@@ -1,0 +1,19 @@
+
+A significant 'constellation' of fairly bright residual spots is observed in
+the ch1 data from AOR 17577216. See this folder:
+/net/hbfhpc1/bigraid/rsiverd/ucd_targets/2m0415/r17577216
+
+The residual data visibly fades with time. Unfortunately, it also apparently
+causes a strong false positive in the cross-correlation routine used for
+stacking data for at least one image. In this analysis, I'm looking into the
+origin of the 'ghost' and whether or not it is feasible to correct. 
+
+Because the data are dithered, the approximate residual can be semi-cleanly
+separated by simple median combination of raw data. However, this pattern
+would need to be scaled for each frame to account for the visible weakening
+of the pattern as time passes.
+
+I suspect the issue is caused by a very bright star off-frame. If true, the
+dither pattern of individual images should mimic the residual seen on the
+individual images.
+
