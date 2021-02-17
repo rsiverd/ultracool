@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2019-10-15
-# Last modified: 2021-02-03
+# Last modified: 2021-02-16
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.2.1"
+__version__ = "0.2.5"
 
 ## Python version-agnostic module reloading:
 try:
@@ -116,21 +116,40 @@ class SpitzFind(object):
         self._pse = easy_sep.EasySEP()
         self._pse.set_options_test(**_spitz_defaults)
         # science image:
-        self._ipath = None
-        self._idata = None
-        #self._imask = None
-        self._ihdrs = None
-        self._imwcs = None
+        self._reset_iparams()
         # cosmic ray cleaning:
         self._cdata = None
         self._cmask = None
         # uncertainty image:
+        self._reset_uparams()
+        # miscellany:
+        self._confirmed = False
+        return
+
+    # Re-initialize image values:
+    def _reset_iparams(self):
+        self._ipath = None
+        self._idata = None
+        self._ihdrs = None
+        self._imwcs = None
+        self._imask = None
+        return
+
+    # Re-initialize error-image values:
+    def _reset_uparams(self):
         self._upath = None
         self._udata = None
         self._uhdrs = None
-        self._confirmed = False
         self._have_err_image = False
         return
+
+    # Reset everything:
+    def _reset_everything(self):
+        self._reset_iparams()
+        self._reset_uparams()
+        return
+ 
+    # ----------------------------------------
 
     def set_pse_options(self, **kwargs):
         return self._pse.set_options_test(**kwargs)
@@ -144,6 +163,7 @@ class SpitzFind(object):
         upath   --  path to uncertainty image
         """
         #self._confirmed = False
+        self._reset_everything()
 
         # data image:
         if ipath:
@@ -158,7 +178,8 @@ class SpitzFind(object):
                 self._pse.set_imwcs(self._imwcs.all_pix2world)
             except:
                 logger.error("Failed to load file: %s" % ipath)
-                self._ipath, self._idata, self._ihdrs = None, None, None
+                #self._ipath, self._idata, self._ihdrs = None, None, None
+                self._reset_iparams()
 
         # error image:
         if upath:
@@ -170,8 +191,9 @@ class SpitzFind(object):
                 self._pse.set_errs(self._udata, _docopy=False)
             except:
                 logger.error("Failed to load file: %s" % ipath)
-                self._upath, self._udata, self._uhdrs = None, None, None
-                self._have_err_image = False
+                #self._upath, self._udata, self._uhdrs = None, None, None
+                #self._have_err_image = False
+                self._reset_uparams()
         return
 
     # remove cosmic rays:
