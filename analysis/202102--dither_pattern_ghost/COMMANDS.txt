@@ -11,3 +11,7 @@ medianize r17577216/SPITZER_I2_*_hcfix.fits -c4 -o \!zmed_i2_clip40.fits
 rm clipped_pixels.log image_scaling.log
 
 
+medianize r17577216/SPITZER_I1_*_clean.fits     -o \!zmed_i1_noclip.fits
+medianize r17577216/SPITZER_I1_*_clean.fits -c3 -o \!zmed_i1_clip30.fits
+medianize r17577216/SPITZER_I1_*_clean.fits -c4 -o \!zmed_i1_clip40.fits
+
