@@ -272,6 +272,19 @@ class SpitzerXCorr(object):
         nstacked = len(self._reg_data)
         hkw_list.append({'name':'NUMSTACK', 'value':nstacked,
                 'comment':'total images stacked'})
+        for ii,(ipath, dx, dy) in enumerate(zip(self._im_paths,
+                                    self._x_shifts, self._y_shifts), 1):
+            ibase = os.path.basename(ipath)
+            #imkey = 'IMAGE%03d' % ii
+            #dxkey = 'XDIFF%03d' % ii
+            #dykey = 'YDIFF%03d' % ii
+            hkw_list.append({'name':'IMAGE%03d'%ii, 'value':ibase,
+                'comment':'basename of image %03d'%ii})
+            hkw_list.append({'name':'XDIFF%03d'%ii, 'value':dx,
+                'comment':'X offset of image %03d'%ii})
+            hkw_list.append({'name':'YDIFF%03d'%ii, 'value':dy,
+                'comment':'Y offset of image %03d'%ii})
+            pass
         return hkw_list
 
     # --------------------------------------------------------- #
