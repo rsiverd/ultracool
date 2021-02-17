@@ -138,7 +138,7 @@ class XCorrPruner(object):
         return
 
     def prune_spurious(self, cdata, ipath, rcut=2.0):
-        xcol, ycol = 'x', 'y'
+        #xcol, ycol = 'x', 'y'
         xcol, ycol = 'wx', 'wy'
         #this_xnudge = self._xshifts[ipath]
         #this_ynudge = self._yshifts[ipath]
