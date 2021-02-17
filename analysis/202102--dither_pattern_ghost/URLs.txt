@@ -1,0 +1,7 @@
+# Spitzer URLs relevant to persistence:
+https://irsa.ipac.caltech.edu/data/SPITZER/docs/irac/iracinstrumenthandbook/28/#_Toc59022409
+https://irsa.ipac.caltech.edu/data/SPITZER/docs/irac/iracinstrumenthandbook/38/#_Toc59022438
+https://irsa.ipac.caltech.edu/data/SPITZER/docs/irac/iracinstrumenthandbook/38/
+
+
+
