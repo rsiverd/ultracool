@@ -17,3 +17,22 @@ I suspect the issue is caused by a very bright star off-frame. If true, the
 dither pattern of individual images should mimic the residual seen on the
 individual images.
 
+
+RESULT:
+
+The cause of the ghost/residual appears to indeed be a bright star on the
+not-in-use sensor during the first half of the AOR. Considerations:
+* The affected images were taken in ch1
+* Data in ch2 were obtained first, ch1 immediately after.
+* ch1 data simultaneous with the ch2 data were not obtained (sadly)
+* the ghost pattern seen in the ch1 data exactly matches the ch2 (and ch1)
+      dither pattern.
+* Data from the previous AOR were obtained but appeared irrelevant.
+* Further supporting this belief is the visible diminution of the brightest
+      (and latest) portion of the ghost frame relative to the other points
+      across the first few ch1 frames.
+* To be clear, the individual residual 'stars' have a fixed positional
+      pattern but the relative brightness of the individual points varies
+      with time. This would be expected for a non-linear diminution of
+      residual brightness with time.
+
