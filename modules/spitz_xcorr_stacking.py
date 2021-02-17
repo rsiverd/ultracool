@@ -206,8 +206,8 @@ class SpitzerXCorr(object):
         """Returns the X- and Y- offsets expected between positions
         in the stacked frame and positions in the individual frames.
         Data are provided in a dictionary indexed by image path."""
-        cx_shifts = [x-self._padpix for x in self._x_shifts]
-        cy_shifts = [y-self._padpix for y in self._y_shifts]
+        cx_shifts = [-(x+self._padpix) for x in self._x_shifts]
+        cy_shifts = [-(y+self._padpix) for y in self._y_shifts]
         #return cx_shifts, cy_shifts
         cx_lookup = dict(zip(self._im_paths, cx_shifts))
         cy_lookup = dict(zip(self._im_paths, cy_shifts))
