@@ -140,17 +140,20 @@ class XCorrPruner(object):
     def prune_spurious(self, cdata, ipath, rcut=2.0):
         #xcol, ycol = 'x', 'y'
         xcol, ycol = 'wx', 'wy'
-        #this_xnudge = self._xshifts[ipath]
-        #this_ynudge = self._yshifts[ipath]
-        tcat = cdata.copy()     # working copy of individual frame catalog
-        tcat[xcol] -= self._xshifts[ipath]
-        tcat[ycol] -= self._yshifts[ipath]
+ 
+        #tcat = cdata.copy()     # working copy of individual frame catalog
+        #tcat[xcol] -= self._xshifts[ipath]
+        #tcat[ycol] -= self._yshifts[ipath]
+
+        tx = cdata[xcol] - self._xshifts[ipath]
+        ty = cdata[ycol] - self._yshifts[ipath]
         mx, my = self._mcatalog[xcol], self._mcatalog[ycol]
         #sx, sy = shifted_cat[xcol], shifted_cat[
 
         keep = []
         mseps = []
-        for ii,(sx,sy) in enumerate(zip(tcat[xcol], tcat[ycol]), 1):
+        #for ii,(sx,sy) in enumerate(zip(tcat[xcol], tcat[ycol]), 1):
+        for ii,(sx,sy) in enumerate(zip(tx, ty), 1):
             dx = sx - mx
             dy = sy - my
             ds = np.hypot(sx - mx, sy - my)
