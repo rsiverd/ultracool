@@ -157,6 +157,9 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------
     parser.set_defaults(imtype=None) #'cbcd') #'clean')
     parser.set_defaults(sigthresh=3.0)
+    #parser.set_defaults(sigthresh=2.0)
+    parser.set_defaults(skip_existing=True)
+    parser.set_defaults(save_registered=False)
     # ------------------------------------------------------------------
     #parser.add_argument('firstpos', help='first positional argument')
     #parser.add_argument('-w', '--whatever', required=False, default=5.0,
@@ -287,7 +290,12 @@ min_sobj = 10       # bark if fewer than this many found in stack
 
 skip_stuff = False
 
-context.save_registered = True
+#context.save_registered = False
+#context.skip_existing = False
+
+## Reduce bright pixel threshold:
+sxc.set_bp_thresh(10.0)
+#sxc.set_bp_thresh(5.0)
 
 #for aor_tag,tag_files in images_by_tag.items():
 for aor_tag in unique_tags:
@@ -314,29 +322,30 @@ for aor_tag in unique_tags:
     # Dump registered data to disk:
     if context.save_registered:
         sys.stderr.write("Saving registered frames for inspection ...\n")
-        reg_dir = os.path.join(aor_dir, 'zreg')
+        reg_dir = os.path.join(aor_dir, 'zzz')
         if os.path.isdir(reg_dir):
             shutil.rmtree(reg_dir)
         os.mkdir(reg_dir)
         sxc.dump_registered_images(reg_dir)
+        sxc.dump_bright_pixel_masks(reg_dir)
         sys.stderr.write("\n")
 
     # Extract stars from stacked image:
     spf.use_images(ipath=stack_ipath)
     stack_cat = spf.find_stars(context.sigthresh)
-    stack_cat.save_as_fits(stack_cpath, overwrite=True)
     sdata = stack_cat.get_catalog()
     nsobj = len(sdata)
-
+    sys.stderr.write(" \nFound %d sources in stacked image.\n\n" % nsobj)
     if (nsobj < min_sobj):
         sys.stderr.write("Fewer than %d objects found in stack ... \n" % min_sobj)
         sys.stderr.write("Found %d objects.\n\n" % nsobj)
         sys.stderr.write("--> %s\n\n" % stack_ipath)
         sys.exit(1)
-    
+    stack_cat.save_as_fits(stack_cpath, overwrite=True)
+
     # region file for diagnostics:
     stack_rfile = stack_ipath + '.reg'
-    regify_excat_pix(sdata, stack_rfile)
+    regify_excat_pix(sdata, stack_rfile, win=True)
 
     # Make/save 'medianize' stack for comparison:
     sxc.make_mstack()
@@ -374,18 +383,21 @@ for aor_tag in unique_tags:
         ### FIXME ###
 
         sys.stderr.write("Catalog %s ... " % cat_fpath)
-        if os.path.isfile(cat_ppath):
-            sys.stderr.write("exists!  Skipping ... \n")
-            continue
+        if context.skip_existing:
+            if os.path.isfile(cat_ppath):
+                sys.stderr.write("exists!  Skipping ... \n")
+                continue
         nproc += 1
         sys.stderr.write("not found ... creating ...\n")
         spf.use_images(ipath=img_ipath, upath=unc_ipath)
         result = spf.find_stars(context.sigthresh)
         result.save_as_fits(cat_fpath, overwrite=True)
         nfound = len(result.get_catalog())
+        frame_rfile = img_ipath + '.reg'
+        regify_excat_pix(result.get_catalog(), frame_rfile, win=True)
 
         # prune sources not detected in stacked frame:
-        pruned = xcp.prune_spurious(result.get_catalog(), img_ipath)
+        pruned = xcp.prune_spurious(result.get_catalog(), img_ipath) #, rcut=5.0)
         npruned = len(pruned)
         sys.stderr.write("nfound: %d, npruned: %d\n" % (nfound, npruned))
         if (len(pruned) < 5):
@@ -398,6 +410,7 @@ for aor_tag in unique_tags:
         if (ntodo > 0) and (nproc >= ntodo):
             break
         #break
+        #sys.exit(0)
 
     if (ntodo > 0) and (nproc >= ntodo):
         break
