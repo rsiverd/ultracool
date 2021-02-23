@@ -1,0 +1,8 @@
+
+mkdir originals
+cp r17577216/SPITZER_I2_17577216_*clean.fits originals/.
+tardir -g originals
+
+
+tardir -g fix_test
+
