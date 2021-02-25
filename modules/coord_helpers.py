@@ -126,25 +126,25 @@ class WCSCoordChecker(object):
         self.xlimit = (0.5, nx + 0.5)
         self.ylimit = (0.5, ny + 0.5)
         self.wcs = awcs.WCS(self.header)
-        #self._set_center_and_diagonal()
+        self._set_center_and_diagonal()
         #self._ctr_sep_max = 0.5 * self._diag_deg
         #sys.stderr.write("Adopted image center: %s\n" % str(self._ctr_radec))
         #sys.stderr.write("Maximum sep (degrees): %.4f\n" % self._ctr_sep_max)
         return
 
-    #def _set_center_and_diagonal(self):
-    #    corner_xx = np.array([1, self.ishape[0]])
-    #    corner_yy = np.array([1, self.ishape[1]])
-    #    corner_ra, corner_de = self.wcs.all_pix2world(corner_xx, corner_yy, 1,
-    #                                                    ra_dec_order=True)
-    #    self._diag_deg = angle.dAngSep(corner_ra[0], corner_de[0],
-    #                                    corner_ra[1], corner_de[1])
+    def _set_center_and_diagonal(self):
+        corner_xx = np.array([1, self.ishape[0]])
+        corner_yy = np.array([1, self.ishape[1]])
+        corner_ra, corner_de = self.wcs.all_pix2world(corner_xx, corner_yy, 1,
+                                                        ra_dec_order=True)
+        self._diag_deg = angle.dAngSep(corner_ra[0], corner_de[0],
+                                        corner_ra[1], corner_de[1])
 
-    #    # calculate mid-image RA, DE:
-    #    center_xx = np.average(corner_xx)
-    #    center_yy = np.average(corner_yy)
-    #    self._ctr_radec = self.wcs.all_pix2world(center_xx, center_yy, 1)
-    #    return
+        # calculate mid-image RA, DE:
+        center_xx = np.average(corner_xx)
+        center_yy = np.average(corner_yy)
+        self._ctr_radec = self.wcs.all_pix2world(center_xx, center_yy, 1)
+        return
 
     def covers_single_position(self, coord):
         #tra, tde = coord.ra.degree, coord.dec.degree
