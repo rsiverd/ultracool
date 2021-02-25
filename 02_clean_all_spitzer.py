@@ -15,7 +15,7 @@
 #
 # Rob Siverd
 # Created:       2019-10-30
-# Last modified: 2021-02-02
+# Last modified: 2021-02-25
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -322,7 +322,8 @@ if context.ignore_off_target:
         sys.stderr.write("\rChecking image %d of %d ... " % (ii, ntotal))
         thdr = cbcd_headers[ipath]
         wcc.set_header(thdr)
-        if wcc.image_covers_position_any(targets):
+        #if wcc.image_covers_position_any(targets):
+        if wcc.fdiag_covers_position_any(targets, dfrac=context.diag_frac):
             keep_cbcd.append(ipath)
         else:
             drop_cbcd.append(ipath)
