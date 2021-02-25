@@ -495,6 +495,9 @@ n_useful = len(use_gaia)
 sys.stderr.write("Found possible matches to %d of %d Gaia sources.\n"
         % (n_useful, len(gm._srcdata)))
 gc.collect()
+if n_useful < 5:
+    sys.stderr.write("Gaia match error: found %d useful objects\n" % n_useful)
+    sys.exit(1)
 
 ## Total Gaia-detected PM in surviving object set:
 use_gaia = use_gaia.assign(pmtot=np.hypot(use_gaia.pmra, use_gaia.pmdec))
@@ -547,6 +550,11 @@ for ci,extcat in enumerate(cdata, 1):
 tok = time.time()
 sys.stderr.write("done. (%.3f s)\n" % (tok-tik))
 gc.collect()
+
+## Stop here if no Gaia matches:
+if not gmatches:
+    sys.stderr.write("No matches to Gaia detected! Something is wrong ...\n")
+    sys.exit(1)
 
 #first = [x for x in gmatches.keys()][44]
 ##derp = np.vstack([x['cat'].array for x in gmatches[first]]) # for FITSRecord
@@ -615,6 +623,11 @@ for ci,extcat in enumerate(cdata, 1):
 tok = time.time()
 sys.stderr.write("done. (%.3f s)\n" % (tok-tik))
 gc.collect()
+
+## Stop here in case of matching failure(s):
+if not tgt_data:
+    sys.stderr.write("No matches for target data??  Please investigate ...\n")
+    sys.exit(1)
 
 ##--------------------------------------------------------------------------##
 ## How to repackage matched data points:
