@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2021-02-12
-# Last modified: 2021-02-15
+# Last modified: 2021-02-25
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 ## Modules:
 #import shutil
@@ -139,6 +139,7 @@ class WCSCoordChecker(object):
                                                         ra_dec_order=True)
         self._diag_deg = angle.dAngSep(corner_ra[0], corner_de[0],
                                         corner_ra[1], corner_de[1])
+        self._half_diag_deg = 0.5 * self._diag_deg
 
         # calculate mid-image RA, DE:
         center_xx = np.average(corner_xx)
@@ -146,7 +147,27 @@ class WCSCoordChecker(object):
         self._ctr_radec = self.wcs.all_pix2world(center_xx, center_yy, 1)
         return
 
-    def covers_single_position(self, coord):
+    def hdiag_covers_single_position(self, coord):
+        tra, tde = coord.ra.degree, coord.dec.degree
+        sys.stderr.write("Target RA: %8.4f\n" % tra)
+        sys.stderr.write("Target DE: %8.4f\n" % tde)
+        ## large angular separation rules out coverage:
+        ctr_sep_deg = angle.dAngSep(*self._ctr_radec, 
+                            coord.ra.degree, coord.dec.degree)
+        sys.stderr.write("ctr_sep_deg: %.4f\n" % ctr_sep_deg)
+        sys.stderr.write("hh_diag_deg: %.4f\n" % self._half_diag_deg)
+        return (ctr_sep_deg < self._half_diag_deg)
+
+    def hdiag_covers_multiple_positions(self, coord_list):
+        return [self.hdiag_covers_single(tt) for tt in coord_list]
+
+    def hdiag_covers_any_positions(self, coord_list):
+        return any(self.hdiag_covers_multiple(coord_list))
+
+    # ---------------------------------------------
+    # Full-frame position containment checks:
+
+    def image_covers_single_position(self, coord):
         #tra, tde = coord.ra.degree, coord.dec.degree
         #sys.stderr.write("Target RA: %8.4f\n" % tra)
         #sys.stderr.write("Target DE: %8.4f\n" % tde)
@@ -157,12 +178,14 @@ class WCSCoordChecker(object):
         #sys.stderr.write("ctr_sep_max: %.4f\n" % self._ctr_sep_max)
         return coord.contained_by(self.wcs)
 
-    def covers_multiple_positions(self, coord_list):
+    def image_covers_multiple_positions(self, coord_list):
         return [self.covers_single_position(tt) for tt in coord_list]
         #return [tt.contained_by(self.wcs) for tt in coord_list]
 
-    def covers_any_positions(self, coord_list):
+    def image_covers_any_positions(self, coord_list):
         return any(self.covers_multiple_positions(coord_list))
+
+
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
