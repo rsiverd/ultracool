@@ -8,7 +8,7 @@
 #
 # Rob Siverd
 # Created:       2021-02-02
-# Last modified: 2021-02-16
+# Last modified: 2021-02-25
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.2.5"
+__version__ = "0.2.6"
 
 ## Python version-agnostic module reloading:
 try:
@@ -301,6 +301,12 @@ sxc.set_bp_thresh(10.0)
 for aor_tag in unique_tags:
     sys.stderr.write("\n\nProcessing images from %s ...\n" % aor_tag)
     tag_files = images_by_tag[aor_tag]
+    n_tagged  = len(tag_files)
+    if n_tagged < 2:
+        sys.stderr.write("WARNING: only %d images with tag %s\n"
+                % (n_tagged, aor_tag))
+        sys.stderr.write("This case is not currently handled ...\n")
+        sys.exit(1)
 
     # File/folder paths:
     aor_dir = os.path.dirname(tag_files[0])
