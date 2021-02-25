@@ -139,15 +139,20 @@ class WCSCoordChecker(object):
                                                         ra_dec_order=True)
         self._diag_deg = angle.dAngSep(corner_ra[0], corner_de[0],
                                         corner_ra[1], corner_de[1])
-        self._half_diag_deg = 0.5 * self._diag_deg
+        #self._half_diag_deg = 0.5 * self._diag_deg
 
         # calculate mid-image RA, DE:
         center_xx = np.average(corner_xx)
         center_yy = np.average(corner_yy)
         self._ctr_radec = self.wcs.all_pix2world(center_xx, center_yy, 1)
         return
+    
+    # ---------------------------------------------
+    # Full-frame position containment checks:
 
-    def hdiag_covers_single_position(self, coord):
+    def fdiag_covers_position_single(self, coord, dfrac=0.5):
+        """Check whether coord is less than dfrac*diagonal degrees
+        from the image center."""
         tra, tde = coord.ra.degree, coord.dec.degree
         sys.stderr.write("Target RA: %8.4f\n" % tra)
         sys.stderr.write("Target DE: %8.4f\n" % tde)
@@ -156,34 +161,26 @@ class WCSCoordChecker(object):
                             coord.ra.degree, coord.dec.degree)
         sys.stderr.write("ctr_sep_deg: %.4f\n" % ctr_sep_deg)
         sys.stderr.write("hh_diag_deg: %.4f\n" % self._half_diag_deg)
-        return (ctr_sep_deg < self._half_diag_deg)
+        return (ctr_sep_deg < dfrac * self._diag_deg)
 
-    def hdiag_covers_multiple_positions(self, coord_list):
-        return [self.hdiag_covers_single(tt) for tt in coord_list]
+    def fdiag_covers_position_multi(self, coord_list, dfrac=0.5):
+        return [self.fdiag_covers_position_single(tt, dfrac=dfrac) \
+                            for tt in coord_list]
 
-    def hdiag_covers_any_positions(self, coord_list):
-        return any(self.hdiag_covers_multiple(coord_list))
+    def fdiag_covers_position_any(self, coord_list, dfrac=0.5):
+        return any(self.fdiag_covers_position_multi(coord_list, dfrac=dfrac))
 
     # ---------------------------------------------
     # Full-frame position containment checks:
 
-    def image_covers_single_position(self, coord):
-        #tra, tde = coord.ra.degree, coord.dec.degree
-        #sys.stderr.write("Target RA: %8.4f\n" % tra)
-        #sys.stderr.write("Target DE: %8.4f\n" % tde)
-        ## large angular separation rules out coverage:
-        #ctr_sep_deg = angle.dAngSep(*self._ctr_radec, 
-        #                    coord.ra.degree, coord.dec.degree)
-        #sys.stderr.write("ctr_sep_deg: %.4f\n" % ctr_sep_deg)
-        #sys.stderr.write("ctr_sep_max: %.4f\n" % self._ctr_sep_max)
+    def image_covers_position_single(self, coord):
         return coord.contained_by(self.wcs)
 
-    def image_covers_multiple_positions(self, coord_list):
-        return [self.covers_single_position(tt) for tt in coord_list]
-        #return [tt.contained_by(self.wcs) for tt in coord_list]
+    def image_covers_position_multi(self, coord_list):
+        return [self.image_covers_position_single(tt) for tt in coord_list]
 
-    def image_covers_any_positions(self, coord_list):
-        return any(self.covers_multiple_positions(coord_list))
+    def image_covers_position_any(self, coord_list):
+        return any(self.image_covers_position_multi(coord_list))
 
 
 
