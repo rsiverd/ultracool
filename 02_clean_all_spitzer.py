@@ -215,6 +215,7 @@ if __name__ == '__main__':
                           formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
     parser.set_defaults(ignore_short=True, gather_headers=False)
+    parser.set_defaults(diag_frac=0.5)
     # ------------------------------------------------------------------
     #parser.add_argument('firstpos', help='first positional argument')
     #parser.add_argument('-w', '--whatever', required=False, default=5.0,
@@ -321,7 +322,7 @@ if context.ignore_off_target:
         sys.stderr.write("\rChecking image %d of %d ... " % (ii, ntotal))
         thdr = cbcd_headers[ipath]
         wcc.set_header(thdr)
-        if wcc.covers_any_positions(targets):
+        if wcc.image_covers_position_any(targets):
             keep_cbcd.append(ipath)
         else:
             drop_cbcd.append(ipath)
