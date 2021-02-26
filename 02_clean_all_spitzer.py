@@ -377,6 +377,24 @@ if not use_cbcd_files:
 
 
 ##--------------------------------------------------------------------------##
+##------------------         Image Path Variants            ----------------##
+##--------------------------------------------------------------------------##
+
+def io_paths_from_cbcd(cbcd_ipath):
+    # input paths:
+    ipaths = {}
+    ipaths[ 'cbcd'] = cbcd_ipath
+    ipaths['cbunc'] = cbcd_ipath.replace('cbcd', 'cbunc')
+    # output paths:
+    opaths = {}
+    opaths[ 'vmed'] = cbcd_ipath.replace('cbcd',  'vmed')
+    opaths['hcfix'] = cbcd_ipath.replace('cbcd', 'hcfix')
+    opaths['clean'] = cbcd_ipath.replace('cbcd', 'clean')
+    opaths['crmsk'] = cbcd_ipath.replace('cbcd', 'crmsk')
+    return ipaths, opaths
+
+
+##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
 ## LA Cosmic config:
@@ -391,15 +409,21 @@ sys.stderr.write("Processing listed images.\n")
 ntodo = 0
 nproc = 0
 total = len(use_cbcd_files)
-for ii,img_ipath in enumerate(use_cbcd_files, 1):
+for ii,cbcd_path in enumerate(use_cbcd_files, 1):
     #sys.stderr.write("%s\n" % fulldiv)
-    unc_ipath = img_ipath.replace('cbcd', 'cbunc')
-    vst_ipath = img_ipath.replace('cbcd',  'vmed')
-    hcf_ipath = img_ipath.replace('cbcd', 'hcfix')
-    cln_ipath = img_ipath.replace('cbcd', 'clean')
-    msk_ipath = img_ipath.replace('cbcd', 'crmsk')
-    sys.stderr.write("\rFile %s (%d of %d) ... " % (cln_ipath, ii, total))
-    done_list = [vst_ipath, cln_ipath, msk_ipath]
+    #unc_ipath = img_ipath.replace('cbcd', 'cbunc')
+    #vst_ipath = img_ipath.replace('cbcd',  'vmed')
+    #hcf_ipath = img_ipath.replace('cbcd', 'hcfix')
+    #cln_ipath = img_ipath.replace('cbcd', 'clean')
+    #msk_ipath = img_ipath.replace('cbcd', 'crmsk')
+    ipaths, opaths = io_paths_from_cbcd(cbcd_path)
+    #img_opaths = ipaths_from_cbcd(img_ipath)
+    sys.stderr.write("\rFile %s (%d of %d) ... " 
+            % (opaths['clean'], ii, total))
+    #done_list = [vst_ipath, cln_ipath, msk_ipath]
+    #done_list = [img_paths['vmed'], img_paths['clean'], img_paths['crmsk']]
+    #done_list = [img_paths[x] for x in ('vmed', 'clean', 'crmsk')]
+    done_list = list(opaths.values())
     if all([os.path.isfile(x) for x in done_list]):
         sys.stderr.write("already done!   ")
         continue
@@ -407,8 +431,8 @@ for ii,img_ipath in enumerate(use_cbcd_files, 1):
     nproc += 1
 
     # load data:
-    idata, ihdrs = pf.getdata(img_ipath, header=True)
-    udata, uhdrs = pf.getdata(unc_ipath, header=True)
+    idata, ihdrs = pf.getdata(ipaths[ 'cbcd'], header=True)
+    udata, uhdrs = pf.getdata(ipaths['cbunc'], header=True)
     #fdata, fhdrs = fitsio.read(img_ipath, header=True)
 
     # get median image value:
@@ -419,9 +443,11 @@ for ii,img_ipath in enumerate(use_cbcd_files, 1):
     itemp  = idata.copy()
     itemp[ignore] = medval
     vstack = np.median(itemp, axis=0)
-    qsave(vst_ipath, vstack)
+    #qsave(vst_ipath, vstack)
+    qsave(opaths['vmed'], vstack)
     idata -= vstack[np.newaxis, :]
-    qsave(hcf_ipath, idata, header=ihdrs)
+    #qsave(hcf_ipath, idata, header=ihdrs)
+    qsave(opaths['hcfix'], idata, header=ihdrs)
 
     # CR removal:
     lakw = fresh_cr_args()
@@ -434,8 +460,10 @@ for ii,img_ipath in enumerate(use_cbcd_files, 1):
     sys.stderr.write("done. (%.3f s)\n" % (tok-tik))
     
     # save results:
-    qsave(cln_ipath, cleaned, header=ihdrs)
-    qsave(msk_ipath, cr_mask.astype('uint8'), header=ihdrs)
+    #qsave(cln_ipath, cleaned, header=ihdrs)
+    #qsave(msk_ipath, cr_mask.astype('uint8'), header=ihdrs)
+    qsave(opaths['clean'], cleaned, header=ihdrs)
+    qsave(opaths['crmsk'], cr_mask.astype('uint8'), header=ihdrs)
     #fitsio.write(msk_ipath, cr_mask.astype('uint8'), header=fhdrs, 
     #        clobber=True, compress='RICE')
     sys.stderr.write("%s\n" % fulldiv)
