@@ -347,8 +347,14 @@ class SpitzerXCorr(object):
 
         # Cross-correlate to find pixel shifts:
         which   = self._ref_idx
+        self._tmpscore = []
         xnudges = [self.qcorr(ysmashed[which], rr) for rr in ysmashed]
+        self._correl_x = [np.abs(x) for x in self._tmpscore]
+        
+        self._tmpscore = []
         ynudges = [self.qcorr(xsmashed[which], cc) for cc in xsmashed]
+        self._correl_y = [np.abs(y) for y in self._tmpscore]
+
         self._x_shifts, self._y_shifts = xnudges, ynudges
         return
 
@@ -356,6 +362,7 @@ class SpitzerXCorr(object):
     def qcorr(self, rowcol1, rowcol2):
         npix = rowcol1.size
         corr = self._ccalc(rowcol1, rowcol2)
+        self._tmpscore.append(corr)
         nshift = corr.argmax()
         if self._vlevel >= 1:
             self._qc_report(npix, corr, nshift)
