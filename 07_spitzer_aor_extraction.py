@@ -159,7 +159,9 @@ if __name__ == '__main__':
     parser.set_defaults(sigthresh=3.0)
     #parser.set_defaults(sigthresh=2.0)
     parser.set_defaults(skip_existing=True)
-    parser.set_defaults(save_registered=False)
+    parser.set_defaults(save_registered=True)
+    parser.set_defaults(save_reg_subdir=None)
+    #parser.set_defaults(save_reg_subdir='registered')
     # ------------------------------------------------------------------
     #parser.add_argument('firstpos', help='first positional argument')
     #parser.add_argument('-w', '--whatever', required=False, default=5.0,
@@ -206,6 +208,11 @@ if __name__ == '__main__':
     if not context.imtype:
         sys.stderr.write("\nNo image type selected!\n\n")
         sys.exit(1)
+
+    # Use imtype-specific folder for registered file output:
+    if not context.save_reg_subdir:
+        context.save_reg_subdir = 'aligned_%s' % context.imtype
+
 
 ##--------------------------------------------------------------------------##
 ##------------------         Make Input Image List          ----------------##
@@ -328,7 +335,7 @@ for aor_tag in unique_tags:
     # Dump registered data to disk:
     if context.save_registered:
         sys.stderr.write("Saving registered frames for inspection ...\n")
-        reg_dir = os.path.join(aor_dir, 'zzz')
+        reg_dir = os.path.join(aor_dir, context.save_reg_subdir)
         if os.path.isdir(reg_dir):
             shutil.rmtree(reg_dir)
         os.mkdir(reg_dir)
