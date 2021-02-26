@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -215,6 +215,8 @@ if __name__ == '__main__':
                           formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
     parser.set_defaults(ignore_short=True, gather_headers=False)
+    parser.set_defaults(delete_ignored=True)
+    #parser.set_defaults(diag_frac=0.25)
     parser.set_defaults(diag_frac=0.25)
     # ------------------------------------------------------------------
     #parser.add_argument('firstpos', help='first positional argument')
@@ -393,6 +395,36 @@ def io_paths_from_cbcd(cbcd_ipath):
     opaths['crmsk'] = cbcd_ipath.replace('cbcd', 'crmsk')
     return ipaths, opaths
 
+##--------------------------------------------------------------------------##
+##------------------         Ignored Image Removal          ----------------##
+##--------------------------------------------------------------------------##
+
+## Reconstruct list of ignored images:
+ignored_cbcd_files = sorted(list(set(all_cbcd_files) - set(use_cbcd_files)))
+if context.delete_ignored:
+    sys.stderr.write("%s\n" % fulldiv)
+    sys.stderr.write("Removing and extant outputs from 'ignore' list ...\n")
+    total = len(ignored_cbcd_files)
+    for ii,cbcd_path in enumerate(ignored_cbcd_files, 1):
+        ipaths, opaths = io_paths_from_cbcd(cbcd_path)
+        sys.stderr.write("\rChecking %s (%d of %d) ... " 
+                % (opaths['clean'], ii, total))
+        removed_last = False
+        existing = [os.path.isfile(x) for x in opaths.values()]
+        if any(existing):
+            sys.stderr.write("OUTPUT FILES FOUND!\n")
+            removed_last = True
+            removals = [pp for ee,pp in zip(existing, opaths.values())]
+            for thing in removals:
+                sys.stderr.write("--> removing %s\n" % thing)
+                os.remove(thing)
+            sys.stderr.write("\n")
+            pass
+        pass
+    if not removed_last:
+        sys.stderr.write("done.\n")
+    sys.stderr.write("Existing 'ignore' files have been removed.\n")
+
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
@@ -411,18 +443,9 @@ nproc = 0
 total = len(use_cbcd_files)
 for ii,cbcd_path in enumerate(use_cbcd_files, 1):
     #sys.stderr.write("%s\n" % fulldiv)
-    #unc_ipath = img_ipath.replace('cbcd', 'cbunc')
-    #vst_ipath = img_ipath.replace('cbcd',  'vmed')
-    #hcf_ipath = img_ipath.replace('cbcd', 'hcfix')
-    #cln_ipath = img_ipath.replace('cbcd', 'clean')
-    #msk_ipath = img_ipath.replace('cbcd', 'crmsk')
     ipaths, opaths = io_paths_from_cbcd(cbcd_path)
-    #img_opaths = ipaths_from_cbcd(img_ipath)
     sys.stderr.write("\rFile %s (%d of %d) ... " 
             % (opaths['clean'], ii, total))
-    #done_list = [vst_ipath, cln_ipath, msk_ipath]
-    #done_list = [img_paths['vmed'], img_paths['clean'], img_paths['crmsk']]
-    #done_list = [img_paths[x] for x in ('vmed', 'clean', 'crmsk')]
     done_list = list(opaths.values())
     if all([os.path.isfile(x) for x in done_list]):
         sys.stderr.write("already done!   ")
