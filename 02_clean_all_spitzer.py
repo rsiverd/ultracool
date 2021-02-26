@@ -215,7 +215,7 @@ if __name__ == '__main__':
                           formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
     parser.set_defaults(ignore_short=True, gather_headers=False)
-    parser.set_defaults(diag_frac=0.5)
+    parser.set_defaults(diag_frac=0.25)
     # ------------------------------------------------------------------
     #parser.add_argument('firstpos', help='first positional argument')
     #parser.add_argument('-w', '--whatever', required=False, default=5.0,
