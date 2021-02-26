@@ -149,25 +149,27 @@ class WCSCoordChecker(object):
     
     # ---------------------------------------------
     # Full-frame position containment checks:
+    # 
+    # dfrac NOTE: center-edge distance is 0.5 / sqrt(2) =~ 0.35
+    # Using dfrac >~ 0.35 allows the target to be off-image.
 
-    def fdiag_covers_position_single(self, coord, dfrac=0.5):
+    def fdiag_covers_position_single(self, coord, dfrac=0.3):
         """Check whether coord is less than dfrac*diagonal degrees
         from the image center."""
         tra, tde = coord.ra.degree, coord.dec.degree
-        sys.stderr.write("Target RA: %8.4f\n" % tra)
-        sys.stderr.write("Target DE: %8.4f\n" % tde)
+        #sys.stderr.write("Target RA: %8.4f\n" % tra)
+        #sys.stderr.write("Target DE: %8.4f\n" % tde)
         ## large angular separation rules out coverage:
         ctr_sep_deg = angle.dAngSep(*self._ctr_radec, 
                             coord.ra.degree, coord.dec.degree)
-        sys.stderr.write("ctr_sep_deg: %.4f\n" % ctr_sep_deg)
-        sys.stderr.write("hh_diag_deg: %.4f\n" % self._half_diag_deg)
+        #sys.stderr.write("ctr_sep_deg: %.4f\n" % ctr_sep_deg)
         return (ctr_sep_deg < dfrac * self._diag_deg)
 
-    def fdiag_covers_position_multi(self, coord_list, dfrac=0.5):
+    def fdiag_covers_position_multi(self, coord_list, dfrac=0.3):
         return [self.fdiag_covers_position_single(tt, dfrac=dfrac) \
                             for tt in coord_list]
 
-    def fdiag_covers_position_any(self, coord_list, dfrac=0.5):
+    def fdiag_covers_position_any(self, coord_list, dfrac=0.3):
         return any(self.fdiag_covers_position_multi(coord_list, dfrac=dfrac))
 
     # ---------------------------------------------
