@@ -302,8 +302,10 @@ skip_stuff = False
 ## Reduce bright pixel threshold:
 #sxc.set_bp_thresh(10.0)
 #sxc.set_bp_thresh(5.0)
-sxc.set_bp_thresh(5.0)
-sxc.set_vlevel(10)
+sxc.set_bp_thresh(10.0)
+#sxc.set_vlevel(10)
+sxc.set_roi_rfrac(0.90)
+#sys.exit(0)
 
 #for aor_tag,tag_files in images_by_tag.items():
 for aor_tag in unique_tags:
@@ -326,10 +328,14 @@ for aor_tag in unique_tags:
     medze_ipath = os.path.join(aor_dir, medze_ibase)
     #sys.stderr.write("stack_ibase: %s\n" % stack_ibase)
 
+    #sys.stderr.write("As of this point ...\n")
+    #sys.stderr.write("sxc._roi_rfrac: %.5f\n" % sxc._roi_rfrac)
+
     sys.stderr.write("Cross-correlating and stacking ... ")
     result = sxc.shift_and_stack(tag_files)
     sys.stderr.write("done.\n")
     sxc.save_istack(stack_ipath)
+    #sys.exit(0)
     #istack = sxc.get_stacked()
     #qsave(stack_ipath, istack)
 
