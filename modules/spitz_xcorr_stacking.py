@@ -8,7 +8,7 @@
 #
 # Rob Siverd
 # Created:       2021-02-02
-# Last modified: 2021-02-04
+# Last modified: 2021-02-25
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -149,25 +149,27 @@ class SpitzerXCorr(object):
     def __init__(self, vlevel=0):
         self._vlevel = vlevel
         self._bp_thresh = 20.0
+        self._roi_rfrac =  1.0
         self._reset()
         return
 
     def _reset(self):
-        self._ishape   = (None, None)
-        self._padpix   = 0
-        self._medoid   = None
-        self._ref_idx  = 0
-        self._imstack  = None
-        self._mzstack  = None
-        self._im_paths = []
-        self._im_hdrs  = [] # image header content
-        self._im_data  = [] # image pixel data
-        self._bp_masks = []
-        self._row_sums = [] # formerly xsmashed
-        self._col_sums = [] # formerly ysmashed
-        self._x_shifts = []
-        self._y_shifts = []
-        self._reg_data = [] # registered images
+        self._ishape    = (None, None)
+        self._padpix    = 0
+        self._medoid    = None
+        self._ref_idx   = 0
+        self._imstack   = None
+        self._mzstack   = None
+        self._im_paths  = []
+        self._im_hdrs   = [] # image header content
+        self._im_data   = [] # image pixel data
+        self._bp_masks  = []
+        self._row_sums  = [] # formerly xsmashed
+        self._col_sums  = [] # formerly ysmashed
+        self._x_shifts  = []
+        self._y_shifts  = []
+        self._reg_data  = [] # registered images
+        self._roi_imask = None
         return
 
     # --------------------------------------------------------- #
@@ -180,6 +182,21 @@ class SpitzerXCorr(object):
 
     def set_vlevel(self, vlevel):
         self._vlevel = vlevel
+        return
+
+    def set_roi_rfrac(self, rfrac):
+        """
+        This routine generates a circular ROI that includes pixels
+        within a given distance of the image center. rfrac specifies
+        the ROI radius in units of the image half-diagonal:
+        * rfrac >= 1 uses the full image
+        * rfrac <= 0 is empty (don't use)
+        """
+        if (rfrac <= 0.0):
+            sys.stderr.write("Invalid rfrac: %f\n" % rfrac)
+            sys.stderr.write("rfrac > 0 is required.\n")
+            return
+        self._roi_rfrac = rfrac
         return
 
     # --------------------------------------------------------- #
@@ -217,11 +234,25 @@ class SpitzerXCorr(object):
     #                  High-Level Routines:                     #
     # --------------------------------------------------------- #
 
+    def _update_roi_mask(self, kind):
+        first = self._im_data[0]
+        rfrac = self._roi_rfrac
+        #sys.stderr.write("UPDATING THE MASK!\n")
+        #sys.stderr.write("Have image dimensions: %s\n" % str(first.shape))
+        #sys.stderr.write("Have ROI rfrac: %.5f\n" % rfrac)
+        if (kind == 'rect'):
+            self._roi_imask = self._make_rect_roi_like(first, rfrac)
+        if (kind == 'circ'):
+            self._roi_imask = self._make_circ_roi_like(first, rfrac)
+        return
+
     def shift_and_stack(self, img_list):
         result = {'error':None}
 
         # load images, patch NaNs, set dimen/padding:
         self._load_frames(img_list)
+        self._update_roi_mask('rect')
+        #self._roi_imask = self._make_rect_roi_like(
 
         # generate bright pixel masks:
         self._make_bp_masks(thresh=self._bp_thresh)
@@ -333,7 +364,8 @@ class SpitzerXCorr(object):
         for frame in self._im_data:
             pix_med, pix_iqrn = rs.calc_ls_med_IQR(frame)
             bright = (frame - pix_med >= thresh * pix_iqrn)
-            self._bp_masks.append(bright)
+            #self._bp_masks.append(bright)
+            self._bp_masks.append(bright & self._roi_imask)
         return
 
     # Cross-correlation of reduced bright pixel masks:
@@ -426,6 +458,32 @@ class SpitzerXCorr(object):
             which = np.isnan(im) | np.isinf(im)
             tstack[which] = np.nan
         return tstack
+
+    # --------------------------------------------------------- #
+    #                 Circular ROI Helpers:                     #
+    # --------------------------------------------------------- #
+
+    @staticmethod
+    def _make_circ_roi_like(image, rfrac):
+        ny, nx = image.shape
+        half_diag = 0.5 * np.hypot(nx, ny)   # half of image diagonal
+        xmid = 0.5 * (nx + 1.0)              # X-pixel of image center
+        ymid = 0.5 * (ny + 1.0)              # Y-pixel of image center
+        roi_radius = half_diag * rfrac       # ROI inclusion radius
+        # make pixel grid:
+        yy, xx = np.mgrid[1:ny+1, 1:nx+1]
+        rr = np.hypot(xx - xmid, yy - ymid)
+        return (rr < roi_radius)
+
+    @staticmethod
+    def _make_rect_roi_like(image, rfrac):
+        ny, nx = image.shape
+        x_list = (0.5 + np.arange(nx)) / float(nx) - 0.5
+        y_list = (0.5 + np.arange(ny)) / float(ny) - 0.5
+        cx, cy = np.meshgrid(x_list, y_list)
+        x_keep = np.abs(2.0 * cx) <= rfrac
+        y_keep = np.abs(2.0 * cy) <= rfrac
+        return x_keep & y_keep
 
 ##--------------------------------------------------------------------------##
 
