@@ -1,0 +1,7 @@
+
+data_dir="/net/hbfhpc1/bigraid/rsiverd/ucd_targets/2m0415/r57909248"
+imgs_list="images_involved.txt"
+hdrs_list="header_wcs_posn.txt"
+cmde "ls $data_dir/SPITZER_I1*clean.fits > $imgs_list"
+cmde "imhget --npyhdr crval1 crval2 -l $imgs_list -o $hdrs_list"
+

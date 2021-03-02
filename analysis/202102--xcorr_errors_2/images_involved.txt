@@ -1,0 +1,4 @@
+/net/hbfhpc1/bigraid/rsiverd/ucd_targets/2m0415/r57909248/SPITZER_I1_57909248_0025_0000_1_clean.fits
+/net/hbfhpc1/bigraid/rsiverd/ucd_targets/2m0415/r57909248/SPITZER_I1_57909248_0027_0000_1_clean.fits
+/net/hbfhpc1/bigraid/rsiverd/ucd_targets/2m0415/r57909248/SPITZER_I1_57909248_0045_0000_1_clean.fits
+/net/hbfhpc1/bigraid/rsiverd/ucd_targets/2m0415/r57909248/SPITZER_I1_57909248_0047_0000_1_clean.fits

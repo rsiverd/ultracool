@@ -1,0 +1,19 @@
+
+# After a failure in 07_spitzer_aor_extraction.py, inspect the cross-
+# correlation structure as follows:
+
+plt.clf()
+[plot(x) for x in sxc._correl_x]
+plt.xlabel('X shift')
+plt.ylabel('score')
+plt.grid(True)
+plt.savefig('correl_x.png')
+
+plt.clf()
+[plot(x) for x in sxc._correl_y]
+plt.xlabel('Y shift')
+plt.ylabel('score')
+plt.grid(True)
+plt.savefig('correl_y.png')
+
+
