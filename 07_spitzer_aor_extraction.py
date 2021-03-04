@@ -168,6 +168,8 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
     iogroup = parser.add_argument_group('File I/O')
+    iogroup.add_argument('--overwrite', required=False, dest='skip_existing',
+            action='store_false', help='overwrite existing catalogs')
     iogroup.add_argument('-I', '--input_folder', default=None, required=True,
             help='where to find input images', type=str)
     iogroup.add_argument('-O', '--output_folder', default=None, required=False,
