@@ -305,6 +305,7 @@ skip_stuff = False
 sxc.set_bp_thresh(10.0)
 #sxc.set_vlevel(10)
 sxc.set_roi_rfrac(0.90)
+sxc.set_roi_rfrac(2.00)
 #sys.exit(0)
 
 #for aor_tag,tag_files in images_by_tag.items():
