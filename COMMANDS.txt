@@ -64,9 +64,12 @@ done
 
 # fit/analyze testing:
 %run ./slice_and_dice.py -C separate/cat_2m0415.txt -g csv/gaia_2mass0415.csv
-%run ./slice_and_dice.py -C collections/wise1828_clean.txt -g csv/gaia_wise1828.csv
 
 %run ./slice_and_dice.py -C separate/cat_wi1828.txt -g csv/gaia_wise1828.csv
+
+# fit/analysis comparison:
+%run ./slice_and_dice.py -C collections/wise1828_clean_fcat.txt -g csv/gaia_wise1828.csv
+%run ./slice_and_dice.py -C collections/wise1828_clean_pcat.txt -g csv/gaia_wise1828.csv
 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
