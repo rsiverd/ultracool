@@ -170,6 +170,8 @@ class SpitzerXCorr(object):
         self._y_shifts  = []
         self._reg_data  = [] # registered images
         self._roi_imask = None
+        self._correl_x  = []
+        self._correl_y  = []
         return
 
     # --------------------------------------------------------- #
@@ -263,7 +265,12 @@ class SpitzerXCorr(object):
         # UNPADDED cross-correlation to find pixel shifts.
         # Sum across rows to produce average column along columns
         # for average row:
-        self._run_xy_xcorr(self._bp_masks)
+        #self._run_xy_xcorr(self._bp_masks)
+
+        # UNPADDED 2-D cross-correlation. This is slower than
+        # independent 1-D calculations but should encounter
+        # many fewer false positives.
+        self._run_2d_xcorr(self._bp_masks)
 
         # Pad and shift input frames, stack result:
         self._run_shift_and_stack()
@@ -421,6 +428,32 @@ class SpitzerXCorr(object):
             sys.stderr.write("corr[%d]: %10.5f\n" % (nshift+1, corr[nshift+1]))
         sys.stderr.write("--------------------------------\n")
         return
+
+    # 2-D cross-correlation:
+    def _run_2d_xcorr(self, frames):
+        which = self._ref_idx
+        ref_fti = np.fft.fft2(frames[which])
+        corrims = [self._calc_2dxc(x, ref_fti) for x in frames]
+        xnudges, ynudges = zip(*[self._get_2d_shifts(x) for x in corrims])
+
+        self._x_shifts, self._y_shifts = xnudges, ynudges
+        return
+
+    @staticmethod
+    def _calc_2dxc(image, ref_ft):
+        img_ft = np.fft.fft2(image)
+        img_ft.imag *= -1.0
+        return np.fft.ifft2(ref_ft * img_ft)
+
+    @staticmethod
+    def _get_2d_shifts(xcimg):
+        ny, nx = xcimg.shape
+        ypeak, xpeak = np.unravel_index(xcimg.argmax(), xcimg.shape)
+        if (xpeak > 0.5*nx):
+            xpeak -= nx
+        if (ypeak > 0.5*ny):
+            ypeak -= ny
+        return (xpeak, ypeak)
 
     # --------------------------------------------------------- #
     #                 Image Stacking Helpers:                   #
