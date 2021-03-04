@@ -156,8 +156,8 @@ if __name__ == '__main__':
                           #formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
     parser.set_defaults(imtype=None) #'cbcd') #'clean')
-    parser.set_defaults(sigthresh=3.0)
-    #parser.set_defaults(sigthresh=2.0)
+    #parser.set_defaults(sigthresh=3.0)
+    parser.set_defaults(sigthresh=2.0)
     parser.set_defaults(skip_existing=True)
     parser.set_defaults(save_registered=True)
     #parser.set_defaults(save_reg_subdir=None)
