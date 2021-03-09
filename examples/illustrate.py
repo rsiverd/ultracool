@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2020-02-09
-# Last modified: 2020-02-13
+# Last modified: 2021-03-08
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 ## Optional matplotlib control:
 #from matplotlib import use, rc, rcParams
