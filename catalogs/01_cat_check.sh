@@ -105,13 +105,13 @@ esac
 ##--------------------------------------------------------------------------##
 
 ## Get coordinates from catalog:
-cmde "tablist '${cat_file}${get_cols}' > $foo" || exit $?
+vcmde "tablist '${cat_file}${get_cols}' > $foo" || exit $?
 sed '1,2 d' $foo | awk '{print $2,$3}' > $bar
 mv -f $bar $foo
 #cmde "head $bar"
 
 ## Look for target(s):
-yecho "Angular separation check ...\n" >&2
+vyecho "Angular separation check ...\n" >&2
 awk -v targ_ra=$targ_ra -v targ_de=$targ_de -v pi=3.14159265358979323844 '
 function acos(x) { return atan2(sqrt(1.0 - x*x), x) }
 function  d2r(x) { return (pi * x / 180.0) }

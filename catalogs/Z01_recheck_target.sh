@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Run ccheck to determine closest object to target from every catalog.
+# Check for target in all catalogs found for specified target.
 #
 # Rob Siverd
 # Created:      2021-03-08
@@ -67,58 +67,69 @@ eval "$(FuncDef $fd_args)"  || exit $?
 ## Check for arguments:
 usage () { 
    #Recho "\nSyntax: $this_prog --START\n\n"
-   Recho "\nSyntax: $this_prog target catalog_list results_file\n\n"
+   Recho "\nSyntax: $this_prog target\n\n"
 }
 #if [ "$1" != "--START" ]; then
-if [ -z "$3" ]; then
+if [ -z "$1" ]; then
    usage >&2
    exit 1
 fi
 targname="$1"
-cat_list="$2"
-savefile="$3"
-[ -f $cat_list ] || PauseAbort "Can't find file: $cat_list"
-catalogs=( `cat $cat_list` ) || exit $?
-total=${#catalogs[*]}
 
 ##**************************************************************************##
 ##==========================================================================##
 ##--------------------------------------------------------------------------##
 
-checker="./01_cat_check.sh"
+## File/folder config:
+cat_dir="../collections"
+[ -d $cat_dir ] || PauseAbort "Can't find directory: $cat_dir"
+save_dir="results"
+checker="./91_check_listed_catalogs.sh"
 [ -f $checker ] || PauseAbort "Can't find file: $checker"
 
-ntodo=0
-count=0
+## Look for catalog lists containing named target:
+cat_lists=( `ls $cat_dir/${targname}_*.txt` ) || exit $?
+nclists=${#cat_lists[*]}
+if [ $nclists -eq 0 ]; then
+   Recho "No catalog lists found for target: '$targname'\n\n" >&2
+   exit 1
+fi
+echo "Found $nclists catalogs:"
+echo ${cat_lists[*]} | tr ' ' '\n' | awk '{ printf "--> %s\n", $1 }'
 
-rm $bar 2>/dev/null
-for cfile in ${catalogs[*]}; do
-   cbase="${cfile##*/}"
-   echo -ne "\rChecking $cbase ($(( ++count )) of $total) ... "
-   #echo "cfile: $cfile"
-   echo -n "$cfile " >> $bar
-   vcmde "$checker $targname $cfile >> $bar"
-   [ $ntodo -gt 0 ] && [ $count -ge $ntodo ] && break
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
+## Create output folder and process lists:
+Yecho "\nChecking listed catalogs ...\n"
+cmde "mkdir -p $save_dir" || exit $?
+
+## Investigate each catalog set:
+for clist in ${cat_lists[*]}; do
+   Mecho "\n`RowWrite 75 -`\n"
+   echo "clist: $clist"
+   cbase="${clist##*/}"
+   echo "cbase: $cbase"
+   save_file="${save_dir}/nearest_$cbase"
+   echo "save_file: $save_file"
+   cmde "$checker $targname $clist $save_file" || exit $?
 done
-echo "done."
 
-yecho "Saving result ...\n"
-cmde "mv $bar $savefile" || exit $?
 
 ##--------------------------------------------------------------------------##
 ## Clean up:
 #[ -d $tmp_dir ] && [ -O $tmp_dir ] && rm -rf $tmp_dir
 [ -f $foo ] && rm -f $foo
 [ -f $bar ] && rm -f $bar
-[ -f $baz ] && rm -f $baz
-[ -f $qux ] && rm -f $qux
+#[ -f $baz ] && rm -f $baz
+#[ -f $qux ] && rm -f $qux
 exit 0
 
 ######################################################################
-# CHANGELOG (91_check_all.sh):
+# CHANGELOG (Z01_recheck_target.sh):
 #---------------------------------------------------------------------
 #
 #  2021-03-08:
-#     -- Increased script_version to 0.10.
-#     -- First created 91_check_all.sh.
+#     -- Increased script_version to 0.01.
+#     -- First created Z01_recheck_target.sh.
 #
