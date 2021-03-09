@@ -356,7 +356,7 @@ cycle_ends_yr_tdb = (cycle_ends_jd_tdb - use_epoch.tdb.jd) / 365.25
 
 sys.stderr.write("Kludgey exposure time retrieval ... ")
 import astropy.io.fits as pf
-ffpath = '/home/rsiverd/ucd_project/ucd_sha_data'   # where files live
+ffpath = '/home/rsiverd/ucd_project/ucd_sha_data/legacy_symlinks' # all files
 ipaths = np.array([os.path.join(ffpath, x) for x in sneat['iname']])
 expsec = np.array([pf.getheader(x)['EXPTIME'] for x in ipaths])
 relSNR = np.sqrt(expsec)
