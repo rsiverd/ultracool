@@ -36,6 +36,7 @@ except NameError:
         from imp import reload          # Python 3.0 - 3.3
 
 ## Modules:
+import ast
 import argparse
 import pickle
 import gc
@@ -230,6 +231,7 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------
     #parser.set_defaults(thing1='value1', thing2='value2')
     parser.set_defaults(gaia_tol_arcsec=3.0)
+    parser.set_defaults(target_param_files=[])
     # ------------------------------------------------------------------
     #parser.add_argument('firstpos', help='first positional argument')
     #parser.add_argument('-w', '--whatever', required=False, default=5.0,
@@ -239,8 +241,12 @@ if __name__ == '__main__':
     iogroup = parser.add_argument_group('File I/O')
     iogroup.add_argument('-C', '--cat_list', default=None, required=True,
             help='ASCII file with list of catalog paths in column 1')
-    iogroup.add_argument('-g', '--gaia_csv', default=None, required=True,
+    iogroup.add_argument('-G', '--gaia_csv', default=None, required=True,
             help='CSV file with Gaia source list', type=str)
+    iogroup.add_argument('-T', '--targfile', required=False,
+            action='append', dest='target_param_files', type=str,
+            help='target of interest parameter guess')
+    # ------------------------------------------------------------------
     parser.add_argument('-o', '--output_file', default=None, required=True,
             help='pickled results output file', type=str)
     #parser.add_argument('-d', '--dayshift', required=False, default=0,
@@ -285,6 +291,28 @@ if __name__ == '__main__':
     context.vlevel = 99 if context.debug else (context.verbose-context.quiet)
     context.prog_name = prog_name
 
+## Abort if no targets given:
+if not context.target_param_files:
+    logger.error("No targets specified!")
+    sys.exit(1)
+
+##--------------------------------------------------------------------------##
+##------------------       load target 5-parameter guess    ----------------##
+##--------------------------------------------------------------------------##
+
+## Ensure files exist:
+for tpath in context.target_param_files:
+    if not os.path.isfile(tpath):
+        logger.error("File not found: %s" % tpath)
+        sys.exit(1)
+
+## Load parameter files:
+targ_pars = []
+for tpath in context.target_param_files:
+    with open(tpath, 'r') as tp:
+        targ_pars.append(ast.literal_eval(tp.read()))
+
+
 ##--------------------------------------------------------------------------##
 ##------------------          catalog config (FIXME)        ----------------##
 ##--------------------------------------------------------------------------##
@@ -295,8 +323,6 @@ centroid_colmap = {
         'window'    :   ('wdra', 'wdde'),
         'pp_fix'    :   ('ppdra', 'ppdde'),
         }
-
-sys.exit(0)
 
 ##--------------------------------------------------------------------------##
 ##------------------       load Gaia sources from CSV       ----------------##
