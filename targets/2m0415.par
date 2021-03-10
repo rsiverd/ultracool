@@ -1,4 +1,5 @@
 {
+     'name'      :  '2m0415',
      'ra_deg'    :  63.83469,
      'de_deg'    :  -9.58437,
    'pmra_masyr'  :   2.204,      # pmRA * cos(dec)
