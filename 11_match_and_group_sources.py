@@ -37,11 +37,8 @@ except NameError:
 
 ## Modules:
 import argparse
-#import shutil
-#import resource
-#import signal
-#import glob
-#import gc
+import pickle
+import gc
 import os
 import sys
 import time
@@ -56,14 +53,6 @@ import numpy as np
 #import scipy.optimize as opti
 #import scipy.interpolate as stp
 #import scipy.spatial.distance as ssd
-#import matplotlib.pyplot as plt
-#import matplotlib.cm as cm
-#import matplotlib.ticker as mt
-#import matplotlib._pylab_helpers as hlp
-#from matplotlib.colors import LogNorm
-#import matplotlib.colors as mplcolors
-#import matplotlib.collections as mcoll
-#import matplotlib.gridspec as gridspec
 #from functools import partial
 #from collections import OrderedDict
 #from collections.abc import Iterable
@@ -73,26 +62,10 @@ import numpy as np
 #import statsmodels.api as sm
 #import statsmodels.formula.api as smf
 #from statsmodels.regression.quantile_regression import QuantReg
-#import PIL.Image as pli
-#import seaborn as sns
-#import cmocean
 #import theil_sen as ts
-#import window_filter as wf
 #import itertools as itt
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
-## Disable buffering on stdout/stderr:
-class Unbuffered(object):
-   def __init__(self, stream):
-       self.stream = stream
-   def write(self, data):
-       self.stream.write(data)
-       self.stream.flush()
-   def __getattr__(self, attr):
-       return getattr(self.stream, attr)
-
-sys.stdout = Unbuffered(sys.stdout)
-sys.stderr = Unbuffered(sys.stderr)
 
 ## Because obviously:
 #import warnings
@@ -105,6 +78,14 @@ sys.stderr = Unbuffered(sys.stderr)
 #with warnings.catch_warnings():
 #    warnings.filterwarnings("ignore", category=DeprecationWarning)
 #    import problem_child1, problem_child2
+
+## Angular math tools:
+try:
+    import angle
+    reload(angle)
+except ImportError:
+    logger.error("failed to import extended_catalog module!")
+    sys.exit(1)
 
 ## Easy Gaia source matching:
 try:
@@ -125,15 +106,19 @@ except ImportError:
     sys.exit(1)
 
 ##--------------------------------------------------------------------------##
-## Projections with cartopy:
-#try:
-#    import cartopy.crs as ccrs
-#    from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
-#    from cartopy.feature.nightshade import Nightshade
-#    #from cartopy import config as cartoconfig
-#except ImportError:
-#    sys.stderr.write("Error: cartopy module not found!\n")
-#    sys.exit(1)
+
+## Disable buffering on stdout/stderr:
+class Unbuffered(object):
+   def __init__(self, stream):
+       self.stream = stream
+   def write(self, data):
+       self.stream.write(data)
+       self.stream.flush()
+   def __getattr__(self, attr):
+       return getattr(self.stream, attr)
+
+sys.stdout = Unbuffered(sys.stdout)
+sys.stderr = Unbuffered(sys.stderr)
 
 ##--------------------------------------------------------------------------##
 
@@ -148,17 +133,6 @@ except ImportError:
 #           "Please install and try again ...\n\n")
 #    sys.exit(1)
 
-## Home-brew KDE:
-#try:
-#    import my_kde
-#    reload(my_kde)
-#    mk = my_kde
-#except ImportError:
-#    logger.error("module my_kde not found!  Install and retry.")
-#    sys.stderr.write("\nError!  my_kde module not found!\n"
-#           "Please install and try again ...\n\n")
-#    sys.exit(1)
-
 ## Fast FITS I/O:
 #try:
 #    import fitsio
@@ -168,67 +142,20 @@ except ImportError:
 #    sys.exit(1)
 
 ## Various from astropy:
-#try:
+try:
 #    import astropy.io.ascii as aia
 #    import astropy.io.fits as pf
 #    import astropy.io.votable as av
 #    import astropy.table as apt
-#    import astropy.time as astt
+    import astropy.time as astt
 #    import astropy.wcs as awcs
 #    from astropy import constants as aconst
 #    from astropy import coordinates as coord
 #    from astropy import units as uu
-#except ImportError:
-#    logger.error("astropy module not found!  Install and retry.")
+except ImportError:
+    logger.error("astropy module not found!  Install and retry.")
 #    sys.stderr.write("\nError: astropy module not found!\n")
-#    sys.exit(1)
-
-## Star extraction:
-#try:
-#    import easy_sep
-#    reload(easy_sep)
-#except ImportError:
-#    logger.error("easy_sep module not found!  Install and retry.")
-#    sys.stderr.write("Error: easy_sep module not found!\n\n")
-#    sys.exit(1)
-#pse = easy_sep.EasySEP()
-
-##--------------------------------------------------------------------------##
-## Colors for fancy terminal output:
-NRED    = '\033[0;31m'   ;  BRED    = '\033[1;31m'
-NGREEN  = '\033[0;32m'   ;  BGREEN  = '\033[1;32m'
-NYELLOW = '\033[0;33m'   ;  BYELLOW = '\033[1;33m'
-NBLUE   = '\033[0;34m'   ;  BBLUE   = '\033[1;34m'
-NMAG    = '\033[0;35m'   ;  BMAG    = '\033[1;35m'
-NCYAN   = '\033[0;36m'   ;  BCYAN   = '\033[1;36m'
-NWHITE  = '\033[0;37m'   ;  BWHITE  = '\033[1;37m'
-ENDC    = '\033[0m'
-
-## Suppress colors in cron jobs:
-if (os.getenv('FUNCDEF') == '--nocolors'):
-    NRED    = ''   ;  BRED    = ''
-    NGREEN  = ''   ;  BGREEN  = ''
-    NYELLOW = ''   ;  BYELLOW = ''
-    NBLUE   = ''   ;  BBLUE   = ''
-    NMAG    = ''   ;  BMAG    = ''
-    NCYAN   = ''   ;  BCYAN   = ''
-    NWHITE  = ''   ;  BWHITE  = ''
-    ENDC    = ''
-
-## Fancy text:
-degree_sign = u'\N{DEGREE SIGN}'
-
-## Dividers:
-halfdiv = '-' * 40
-fulldiv = '-' * 80
-
-##--------------------------------------------------------------------------##
-## Catch interruption cleanly:
-def signal_handler(signum, frame):
-    sys.stderr.write("\nInterrupted!\n\n")
     sys.exit(1)
-
-signal.signal(signal.SIGINT, signal_handler)
 
 ##--------------------------------------------------------------------------##
 ## Save FITS image with clobber (astropy / pyfits):
@@ -262,8 +189,14 @@ def ldmap(things):
 def argnear(vec, val):
     return (np.abs(vec - val)).argmin()
 
-
-
+## Read ASCII file to list:
+def read_column(filename, column=0, delim=' ', strip=True):
+    with open(filename, 'r') as f:
+        content = f.readlines()
+    content = [x.split(delim)[column] for x in content]
+    if strip:
+        content = [x.strip() for x in content]
+    return content
 
 ##--------------------------------------------------------------------------##
 ##------------------         Parse Command Line             ----------------##
@@ -296,6 +229,7 @@ if __name__ == '__main__':
                           formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
     #parser.set_defaults(thing1='value1', thing2='value2')
+    parser.set_defaults(gaia_tol_arcsec=3.0)
     # ------------------------------------------------------------------
     #parser.add_argument('firstpos', help='first positional argument')
     #parser.add_argument('-w', '--whatever', required=False, default=5.0,
@@ -308,7 +242,7 @@ if __name__ == '__main__':
     iogroup.add_argument('-g', '--gaia_csv', default=None, required=True,
             help='CSV file with Gaia source list', type=str)
     parser.add_argument('-o', '--output_file', default=None, required=True,
-            default='observations.csv', help='pickled results output file')
+            help='pickled results output file', type=str)
     #parser.add_argument('-d', '--dayshift', required=False, default=0,
     #        help='Switch between days (1=tom, 0=today, -1=yest', type=int)
     #parser.add_argument('-e', '--encl', nargs=1, required=False,
@@ -352,6 +286,19 @@ if __name__ == '__main__':
     context.prog_name = prog_name
 
 ##--------------------------------------------------------------------------##
+##------------------          catalog config (FIXME)        ----------------##
+##--------------------------------------------------------------------------##
+
+## RA/DE coordinate keys for various methods:
+centroid_colmap = {
+        'simple'    :   ('dra', 'dde'),
+        'window'    :   ('wdra', 'wdde'),
+        'pp_fix'    :   ('ppdra', 'ppdde'),
+        }
+
+sys.exit(0)
+
+##--------------------------------------------------------------------------##
 ##------------------       load Gaia sources from CSV       ----------------##
 ##--------------------------------------------------------------------------##
 
@@ -363,81 +310,152 @@ if context.gaia_csv:
         logger.error("failed to load from %s" % context.gaia_csv)
         sys.exit(1)
 
+##--------------------------------------------------------------------------##
+##------------------      load listed ExtendedCatalogs      ----------------##
+##--------------------------------------------------------------------------##
+
+## Read list of ExCat files:
+cat_files = read_column(context.cat_list)
+
+## Load listed ExCat files from disk:
+tik = time.time()
+cdata_all = []
+total = len(cat_files)
+for ii,fname in enumerate(cat_files, 1):
+    sys.stderr.write("\rLoading catalog %d of %d ... " % (ii, total))
+    ccc = ec.ExtendedCatalog()
+    ccc.load_from_fits(fname)
+    cdata_all.append(ccc)
+tok = time.time()
+sys.stderr.write("done. Took %.3f seconds.\n" % (tok-tik))
+
+## Keep only subset (why would this be needed?):
+cdata = [x for x in cdata_all]  # everything
+
+## Useful summary data:
+cbcd_name = [x.get_imname() for x in cdata]
+#irac_band = np.array([irac_channel_from_filename(x) for x in cbcd_name])
+expo_time = np.array([x.get_header()['EXPTIME'] for x in cdata])
+n_sources = np.array([len(x.get_catalog()) for x in cdata])
+sip_order = np.array([x.get_header()['AP_ORDER'] for x in cdata])
+timestamp = astt.Time([x.get_header()['DATE_OBS'] for x in cdata],
+        format='isot', scale='utc')
+jdutc = timestamp.jd
+#jdutc = ['%.6f'%x for x in timestamp.jd]
+jd2im = {kk:vv for kk,vv in zip(jdutc, cbcd_name)}
+im2jd = {kk:vv for kk,vv in zip(cbcd_name, jdutc)}
+im2ex = {kk:vv for kk,vv in zip(cbcd_name, expo_time)}
+
+##--------------------------------------------------------------------------##
+## Concatenated list of RA/Dec coordinates:
+
+centroid_method = 'simple'
+#centroid_method = 'window'
+#centroid_method = 'pp_fix'
+_ra_key, _de_key = centroid_colmap[centroid_method]
+every_dra = np.concatenate([x._imcat[_ra_key] for x in cdata])
+every_dde = np.concatenate([x._imcat[_de_key] for x in cdata])
+every_jdutc = np.concatenate([n*[jd] for n,jd in zip(n_sources, jdutc)])
+#every_jdutc = np.float_(every_jdutc)
+gc.collect()
+
+##--------------------------------------------------------------------------##
+##-----------------   Cross-Match to Gaia, Extract Target  -----------------##
+##--------------------------------------------------------------------------##
+
+#ntodo = 100
+#toler_sec = 3.0
+gcounter = {x:0 for x in gm._srcdata.source_id}
+n_gaia = len(gm._srcdata)
+
+## First, check which Gaia sources might get used:
+tik = time.time()
+for ii,(index, gsrc) in enumerate(gm._srcdata.iterrows(), 1):
+    sys.stderr.write("\rChecking Gaia source %d of %d ... " % (ii, n_gaia))
+    sep_sec = 3600. * angle.dAngSep(gsrc.ra, gsrc.dec, every_dra, every_dde)
+    gcounter[gsrc.source_id] += np.sum(sep_sec <= context.gaia_tol_arcsec)
+tok = time.time()
+sys.stderr.write("done. (%.3f s)\n" % (tok-tik))
+gc.collect()
+
+## Collect subset of useful Gaia objects:
+need_srcs = 3
+useful_ids = [kk for kk,vv in gcounter.items() if vv>need_srcs]
+use_gaia = gm._srcdata[gm._srcdata.source_id.isin(useful_ids)]
+n_useful = len(use_gaia)
+sys.stderr.write("Found possible matches to %d of %d Gaia sources.\n"
+        % (n_useful, len(gm._srcdata)))
+gc.collect()
+if n_useful < 5:
+    sys.stderr.write("Gaia match error: found %d useful objects\n" % n_useful)
+    sys.exit(1)
+
+## Total Gaia-detected PM in surviving object set:
+use_gaia = use_gaia.assign(pmtot=np.hypot(use_gaia.pmra, use_gaia.pmdec))
+gaia_pmsrt = use_gaia.sort_values(by='pmtot', ascending=False)
+
+## Robust (non-double-counted) matching of Gaia sources using slimmed list:
+sys.stderr.write("Associating catalog objects with Gaia sources:\n")
+tik = time.time()
+gmatches = {x:[] for x in use_gaia.source_id}
+for ci,extcat in enumerate(cdata, 1):
+#for ci,extcat in enumerate(cdata[:10], 1):
+    #sys.stderr.write("\n------------------------------\n")
+    sys.stderr.write("\rChecking image %d of %d ... " % (ci, len(cdata)))
+    #ccat = extcat._imcat
+    ccat = extcat.get_catalog()
+    #cat_jd = jdutc[ci]
+    jd_info = {'jd':jdutc[ci-1], 'iname':extcat.get_imname()}
+    for gi,(gix, gsrc) in enumerate(use_gaia.iterrows(), 1):
+        #sys.stderr.write("Checking Gaia source %d of %d ... " % (gi, n_useful))
+        sep_sec = 3600.0 * angle.dAngSep(gsrc.ra, gsrc.dec,
+                                    ccat[_ra_key], ccat[_de_key])
+                                    #ccat['dra'], ccat['dde'])
+        matches = sep_sec <= context.gaia_tol_arcsec
+        nhits = np.sum(matches)
+        if (nhits == 0):
+            #sys.stderr.write("no match!\n")
+            continue
+        else:
+            #sys.stderr.write("got %d match(es).  " % nhits)
+            hit_sep = sep_sec[matches]
+            hit_cat = ccat[matches]
+            sepcheck = 3600.0 * angle.dAngSep(gsrc.ra, gsrc.dec,
+                    hit_cat[_ra_key], hit_cat[_de_key])
+                    #hit_cat['dra'], hit_cat['dde'])
+            #sys.stderr.write("sepcheck: %.4f\n" % sepcheck)
+            nearest = hit_sep.argmin()
+            m_info = {}
+            m_info.update(jd_info)
+            m_info['sep'] = hit_sep[nearest]
+            m_info['cat'] = hit_cat[nearest]
+            #import pdb; pdb.set_trace()
+            #sys.exit(1)
+            gmatches[gsrc.source_id].append(m_info)
+    pass
+tok = time.time()
+sys.stderr.write("done. (%.3f s)\n" % (tok-tik))
+gc.collect()
+
+## Stop here if no Gaia matches:
+if not gmatches:
+    sys.stderr.write("No matches to Gaia detected! Something is wrong ...\n")
+    sys.exit(1)
+
+##--------------------------------------------------------------------------##
+##-----------------     Extract Target with Ephemeris      -----------------##
+##--------------------------------------------------------------------------##
+
+
+
 
 ##--------------------------------------------------------------------------##
 
 ##--------------------------------------------------------------------------##
-## New-style string formatting (more at https://pyformat.info/):
 
 ##--------------------------------------------------------------------------##
-## Quick ASCII I/O:
-#data_file = 'data.txt'
-#gftkw = {'encoding':None} if (_have_np_vers >= 1.14) else {}
-#gftkw.update({'names':True, 'autostrip':True})
-#gftkw.update({'delimiter':'|', 'comments':'%0%0%0%0'})
-#gftkw.update({'loose':True, 'invalid_raise':False})
-#all_data = np.genfromtxt(data_file, dtype=None, **gftkw)
-#all_data = aia.read(data_file)
-
-#all_data = pd.read_csv(data_file)
-#all_data = pd.read_table(data_file, delim_whitespace=True)
-#all_data = pd.read_table(data_file, skipinitialspace=True)
-#all_data = pd.read_table(data_file, sep='|')
-#fields = all_data.dtype.names
-#if not fields:
-#    x = all_data[:, 0]
-#    y = all_data[:, 1]
-#else:
-#    x = all_data[fields[0]]
-#    y = all_data[fields[1]]
-
-#vot_file = 'neato.xml'
-#vot_data = av.parse_single_table(vot_file)
-#vot_data = av.parse_single_table(vot_file).to_table()
 
 ##--------------------------------------------------------------------------##
-## Timestamp modification:
-#def time_warp(jdutc, jd_offset, scale):
-#    return (jdutc - jd_offset) * scale
-
-## Self-consistent time-modification for plotting:
-#tfudge = partial(time_warp, jd_offset=tstart.jd, scale=24.0)    # relative hrs
-#tfudge = partial(time_warp, jd_offset=tstart.jd, scale=1440.0)  # relative min
-
-##--------------------------------------------------------------------------##
-## Quick FITS I/O:
-#data_file = 'image.fits'
-#img_vals = pf.getdata(data_file)
-#hdr_keys = pf.getheader(data_file)
-#img_vals, hdr_keys = pf.getdata(data_file, header=True)
-#img_vals, hdr_keys = pf.getdata(data_file, header=True, uint=True) # USHORT
-#img_vals, hdr_keys = fitsio.read(data_file, header=True)
-
-#date_obs = hdr_keys['DATE-OBS']
-#site_lat = hdr_keys['LATITUDE']
-#site_lon = hdr_keys['LONGITUD']
-
-## Initialize time:
-#img_time = astt.Time(hdr_keys['DATE-OBS'], scale='utc', format='isot')
-#img_time += astt.TimeDelta(0.5 * hdr_keys['EXPTIME'], format='sec')
-#jd_image = img_time.jd
-
-## Initialize location:
-#observer = ephem.Observer()
-#observer.lat = np.radians(site_lat)
-#observer.lon = np.radians(site_lon)
-#observer.date = img_time.datetime
-
-#pf.writeto('new.fits', img_vals)
-#qsave('new.fits', img_vals)
-#qsave('new.fits', img_vals, header=hdr_keys)
-
-## Star extraction:
-#pse.set_image(img_vals, gain=3.6)
-#objlist = pse.analyze(sigthresh=5.0)
-
-
-
 
 
 ######################################################################
