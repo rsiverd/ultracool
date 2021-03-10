@@ -63,7 +63,7 @@ done
 # ----------------------------------------------------------------------- 
 
 # fit/analyze testing:
-%run ./slice_and_dice.py -C separate/cat_2m0415.txt -g csv/gaia_2mass0415.csv
+%run ./slice_and_dice.py -C separate/cat_2m0415.txt -g csv/gaia_2m0415.csv
 
 %run ./slice_and_dice.py -C separate/cat_wi1828.txt -g csv/gaia_wise1828.csv
 
@@ -72,14 +72,14 @@ done
 %run ./slice_and_dice.py -C collections/wise1828_clean_pcat.txt -g csv/gaia_wise1828.csv
 
 %run ./11_match_and_group_sources.py -C collections/2m0415_clean_fcat.txt \
-      -g csv/gaia_2m0415.csv -o process/2m0415_fcat.pickle
+      -G csv/gaia_2m0415.csv -o process/2m0415_fcat.pickle
 %run ./11_match_and_group_sources.py -C collections/2m0415_clean_pcat.txt \
-      -g csv/gaia_2m0415.csv -o process/2m0415_pcat.pickle
+      -G csv/gaia_2m0415.csv -o process/2m0415_pcat.pickle
 
 %run ./11_match_and_group_sources.py -C collections/wise1828_clean_fcat.txt \
-      -g csv/gaia_wise1828.csv -o process/wise1828_fcat.pickle
+      -G csv/gaia_wise1828.csv -o process/wise1828_fcat.pickle
 %run ./11_match_and_group_sources.py -C collections/wise1828_clean_pcat.txt \
-      -g csv/gaia_wise1828.csv -o process/wise1828_pcat.pickle
+      -G csv/gaia_wise1828.csv -o process/wise1828_pcat.pickle
 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
