@@ -111,7 +111,7 @@ sys.stderr = Unbuffered(sys.stderr)
 ## Various from astropy:
 try:
 #    import astropy.io.ascii as aia
-#    import astropy.io.fits as pf
+    import astropy.io.fits as pf
 #    import astropy.io.votable as av
     import astropy.table as apt
     import astropy.time as astt
@@ -223,7 +223,8 @@ if __name__ == '__main__':
     parser = MyParser(prog=prog_name, description=descr_txt,
                           formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
-    #parser.set_defaults(thing1='value1', thing2='value2')
+    parser.set_defaults(gather_headers=True)
+    parser.set_defaults(qmax=50)
     # ------------------------------------------------------------------
     #parser.add_argument('firstpos', help='first positional argument')
     #parser.add_argument('-w', '--whatever', required=False, default=5.0,
@@ -238,13 +239,6 @@ if __name__ == '__main__':
             help='where to save retrieved ephemeris data', type=str)
     iogroup.add_argument('-W', '--walk', default=False, action='store_true',
             help='recursively walk subfolders to find CBCD images')
-    # ------------------------------------------------------------------
-    # ------------------------------------------------------------------
-    #iogroup = parser.add_argument_group('File I/O')
-    #iogroup.add_argument('-o', '--output_file', default=None, required=True,
-    #        help='Output filename', type=str)
-    #iogroup.add_argument('-R', '--ref_image', default=None, required=True,
-    #        help='KELT image with WCS')
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
     # Miscellany:
@@ -277,20 +271,79 @@ if context.walk:
     all_cbcd_files = sfh.get_files_walk(context.image_folder, flavor=iflav)
 else:
     all_cbcd_files = sfh.get_files_single(context.image_folder, flavor=iflav)
-use_cbcd_files = [x for x in all_cbcd_files]
 sys.stderr.write("Identified %d '%s' FITS images.\n"
         % (len(all_cbcd_files), iflav))
 
+## Retrieve FITS headers:
+if context.gather_headers:
+    sys.stderr.write("Loading FITS headers for all files ... ")
+    #cbcd_headers = {x:pf.getheader(x) for x in all_cbcd_files}
+    all_cbcd_headers = [pf.getheader(x) for x in all_cbcd_files]
+    sys.stderr.write("done.\n")
+
+## Make list of base names for storage:
+img_bases  = [os.path.basename(x) for x in all_cbcd_files]
+
+## Extract observation timestamps:
+obs_dates  = [x['DATE_OBS'] for x in all_cbcd_headers]
+exp_times  = [x['EXPTIME']  for x in all_cbcd_headers]
+timestamps = astt.Time(obs_dates, scale='utc', format='isot') \
+                + 0.5 * astt.TimeDelta(exp_times, format='sec')
 
 ##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
+## Spitzer ephemeris retrieval config:
+loc_ssb = {'location':'@0'}    # solar system barycenter
+spitzkw = {'id':'Spitzer Space Telescope', 'id_type':'id'}
+r_plane = 'earth'     # 'ecliptic'
+
+## Query HORIZONS piecewise (avoids 2000-char URL length limit):
+sys.stderr.write("Querying HORIZONS ...\n")
+tik = time.time()
+nchunks = (timestamps.tdb.jd.size // context.qmax) + 1
+batches = np.array_split(timestamps.tdb.jd, nchunks)
+results = []
+for ii,batch in enumerate(batches, 1):
+    sys.stderr.write("\rQuery batch %d of %d ... " % (ii, nchunks))
+    sst_query = Horizons(**spitzkw, **loc_ssb, epochs=batch.tolist())
+    batch_eph = sst_query.vectors(refplane=r_plane)
+    results.append(batch_eph)
+
+## Combine into single table:
+horiz_eph = apt.vstack(results)
+tok = time.time()
+sys.stderr.write("done. %.3f sec\n" % (tok-tik))
 
 ##--------------------------------------------------------------------------##
-## New-style string formatting (more at https://pyformat.info/):
-
+##------------------         Tweak Table and Save           ----------------##
 ##--------------------------------------------------------------------------##
-## Quick ASCII I/O:
 
+## Column config:
+iname_col = 'filename'
+drop_cols = ['targetname', 'datetime_str']
 
+## Make adjustments to a copy of the results:
+sst_table = horiz_eph.copy()
+sst_table.rename_column('datetime_jd', 'jdtdb')
+for cc in drop_cols:
+    if cc in sst_table.keys():
+        sst_table.remove_column(cc)
+
+## Columns to be saved in CSV:
+want_cols = [iname_col]
+want_cols.extend(sst_table.keys())
+
+## Attach file names and re-order columns:
+ibase_col = apt.Column(data=img_bases, name=iname_col)
+sst_table.add_column(ibase_col)
+sst_table = sst_table[want_cols]
+
+## Save result as CSV:
+sys.stderr.write("Saving to %s ... " % context.output_file)
+sst_table.write(context.output_file, format='csv', overwrite=True)
+sys.stderr.write("done.\n")
 
 
 ######################################################################
