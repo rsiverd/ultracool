@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2020-02-07
-# Last modified: 2020-02-07
+# Last modified: 2021-03-16
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 ## Modules:
 import os
@@ -54,33 +54,6 @@ def calc_ls_med_MAD(a, axis=None):
     med_val = np.median(a, axis=axis)
     sig_hat = (1.482602218 * np.median(np.abs(a - med_val), axis=axis))
     return (med_val, sig_hat)
-
-##--------------------------------------------------------------------------##
-##------------------       Quick SST Ephemeris Recall       ----------------##
-##--------------------------------------------------------------------------##
-
-class SSTEph(object):
-
-    def __init__(self):
-        return
-    
-    def load(self, filename):
-        self._eph_file = filename
-        gftkw = {'encoding':None} if (_have_np_vers >= 1.14) else {}
-        gftkw.update({'names':True, 'autostrip':True})
-        gftkw.update({'delimiter':',', 'comments':'%0%0%0%0'})
-        self._eph_data = np.genfromtxt(filename, dtype=None, **gftkw)
-        self._im_names = self._eph_data['filename'].tolist()
-        return
-
-    def retrieve(self, image_names):
-        if not np.all([x in self._im_names for x in image_names]):
-            sys.stderr.write("Yikes ... images not found??\n")
-            return None
-        #which = np.array([(x in self._im_names) for x in image_names])
-        which = [self._im_names.index(x) for x in image_names]
-        tdata = self._eph_data.copy()[which]
-        return append_fields(tdata, 't', tdata['jdtdb'], usemask=False)
 
 ##--------------------------------------------------------------------------##
 ##------------------       Astrometry Fitting (5-par)       ----------------##

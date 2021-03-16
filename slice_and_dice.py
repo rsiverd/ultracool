@@ -97,7 +97,10 @@ reload(fluxmag)
 import astrom_test
 reload(astrom_test)
 af = astrom_test.AstFit()
-eee = astrom_test.SSTEph()
+
+import horizons_eph_helpers
+reload(horizons_eph_helpers)
+eee = horizons_eph_helpers.SSTEph()
 
 ## Easy Gaia source matching:
 try:
