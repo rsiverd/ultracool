@@ -22,6 +22,14 @@
 
 # ----------------------------------------------------------------------- 
 
+# retrieve SST ephemeris data before preprocessing:
+./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/2m0415/ \
+     -o  /home/rsiverd/ucd_project/ucd_targets/2m0415/sst_eph_2m0415.dat
+./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/wise1828/ \
+     -o  /home/rsiverd/ucd_project/ucd_targets/wise1828/sst_eph_wise1828.dat
+
+# ----------------------------------------------------------------------- 
+
 # clean images:
 cd ~/ucd_project/ultracool
 source ~/venv/astrom/bin/activate
