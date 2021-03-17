@@ -194,7 +194,7 @@ class EphTool(object):
         self._im_names = self._eph_data['filename'].tolist()
         return
 
-    def retrieve(self, image_names, as_basename=False):
+    def retrieve_multiple(self, image_names, as_basename=False):
         # demote to basename if requested:
         if as_basename:
             use_inames = [os.path.basename(x) for x in image_names]
@@ -210,6 +210,7 @@ class EphTool(object):
         tdata = self._eph_data.copy()[which]
         return append_fields(tdata, 't', tdata['jdtdb'], usemask=False)
 
+    #def make
 
 
 ######################################################################
