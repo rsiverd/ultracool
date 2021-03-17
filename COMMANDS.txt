@@ -51,6 +51,7 @@ done
       -t targets.txt --ignore_off_target -W
 
 ./02_clean_all_spitzer.py -I /home/rsiverd/ucd_project/ucd_targets/wise1828/r46438912 \
+      -t targets.txt --ignore_off_target \
       -E /home/rsiverd/ucd_project/ucd_targets/wise1828/sst_eph_wise1828.csv
 
 
