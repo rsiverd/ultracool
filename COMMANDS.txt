@@ -54,6 +54,17 @@ done
       -t targets.txt --ignore_off_target \
       -E /home/rsiverd/ucd_project/ucd_targets/wise1828/sst_eph_wise1828.csv
 
+# ----------------------------------------------------------------------- 
+# Reprocess each object with ephemeris included:
+
+./02_clean_all_spitzer.py -I /home/rsiverd/ucd_project/ucd_targets/wise1828 \
+      -t targets.txt --ignore_off_target --overwrite -W \
+      -E /home/rsiverd/ucd_project/ucd_targets/wise1828/sst_eph_wise1828.csv
+
+./02_clean_all_spitzer.py -I /home/rsiverd/ucd_project/ucd_targets/2m0415 \
+      -t targets.txt --ignore_off_target --overwrite -W \
+      -E /home/rsiverd/ucd_project/ucd_targets/2m0415/sst_eph_2m0415.csv
+
 
 # ----------------------------------------------------------------------- 
 
@@ -113,8 +124,8 @@ done
 ./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/2m0415/r17577216 --hcfix
 
 # rerun all AOR extraction:
-./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/ --hcfix -W
-./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/ --clean -W
+./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/ --hcfix -W --overwrite
+./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/ --clean -W --overwrite
 
 # unweighted ...
 ./06_sextract_spitzer.sh --original -I ../ucd_sha_data -O ../ucd_scat_orig --START -r
