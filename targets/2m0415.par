@@ -1,9 +1,9 @@
 {
-     'name'      :  '2m0415',
-     'ra_deg'    :  63.83469,
-     'de_deg'    :  -9.58437,
-   'pmra_masyr'  :   2.204,      # pmRA * cos(dec)
-   'pmde_masyr'  :   0.541,
-   'epoch_jdutc' :   2453024.56,
+     'name'             :  '2m0415',
+     'ra_deg'           :  63.83469,
+     'de_deg'           :  -9.58437,
+   'pmra_cosdec_masyr'  :   2.204,      # pmRA * cos(dec)
+   'pmde_masyr'         :   0.541,
+   'epoch_jdutc'        :   2453024.56,
 
 }
