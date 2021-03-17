@@ -53,6 +53,7 @@ done
 ./02_clean_all_spitzer.py -I /home/rsiverd/ucd_project/ucd_targets/wise1828/r46438912 \
       -E /home/rsiverd/ucd_project/ucd_targets/wise1828/sst_eph_wise1828.csv
 
+
 # ----------------------------------------------------------------------- 
 
 # extraction test:
