@@ -241,6 +241,7 @@ class EphTool(object):
 
     @staticmethod
     def _make_hkeys(data):
+        #cards = [('COMMENT', 60*'-')]
         cards = []
         for hdrkey,ephkey,comment in _hspec:
             cards.append((hdrkey, data[ephkey], comment))
