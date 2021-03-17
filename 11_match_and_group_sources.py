@@ -323,7 +323,7 @@ for tpath in context.target_param_files:
         targ_pars.append(ast.literal_eval(tp.read()))
 
 ## Validate parameter files (FIXME: should be in a module):
-need_keys = ['name', 'ra_deg', 'de_deg', 'pmra_cosdec_masyr', 'pmde_masyr',
+need_keys = ['name', 'ra_deg', 'de_deg', 'pmra_cosdec_asyr', 'pmde_asyr',
                 'epoch_jdutc']
 for tp in targ_pars:
     if not all([x in tp.keys() for x in need_keys]):
@@ -335,14 +335,14 @@ for tp in targ_pars:
 for tp in targ_pars:
     tp['astt_epoch'] = astt.Time(tp['epoch_jdutc'], scale='utc', format='jd')
     cosine_dec = np.cos(np.radians(tp['de_deg']))
-    tp['pmra_masyr'] = tp['pmra_cosdec_masyr'] / cosine_dec
+    tp['pmra_asyr'] = tp['pmra_cosdec_asyr'] / cosine_dec
 
 ## Epoch-correct position calculation:
 def corrected_targpos(tpars, obstime):
     _asec_per_deg = 3600.0
     dt_yrs = (obstime - tpars['astt_epoch']).jd / 365.25
-    fix_ra = tpars['ra_deg'] + (tpars['pmra_masyr'] / _asec_per_deg * dt_yrs)
-    fix_de = tpars['de_deg'] + (tpars['pmde_masyr'] / _asec_per_deg * dt_yrs)
+    fix_ra = tpars['ra_deg'] + (tpars['pmra_asyr'] / _asec_per_deg * dt_yrs)
+    fix_de = tpars['de_deg'] + (tpars['pmde_asyr'] / _asec_per_deg * dt_yrs)
     return fix_ra, fix_de
 
 
