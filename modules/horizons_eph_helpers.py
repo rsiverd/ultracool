@@ -29,31 +29,16 @@ except NameError:
 import os
 import sys
 import time
-#import calendar
-#import ephem
 import numpy as np
-#from numpy.lib.recfunctions import append_fields
-#import datetime as dt
-#from dateutil import parser as dtp
-#from functools import partial
-#from collections import OrderedDict
-#from collections.abc import Iterable
-#import multiprocessing as mp
-#np.set_printoptions(suppress=True, linewidth=160)
+from numpy.lib.recfunctions import append_fields
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
 ##--------------------------------------------------------------------------##
 
 ## Various from astropy:
 try:
-#    import astropy.io.ascii as aia
-#    import astropy.io.fits as pf
-#    import astropy.io.votable as av
     import astropy.table as apt
     import astropy.time as astt
-#    from astropy import constants as aconst
-#    from astropy import coordinates as coord
-#    from astropy import units as uu
 except ImportError:
     logger.error("astropy module not found!  Install and retry.")
     sys.exit(1)
@@ -64,17 +49,6 @@ try:
 except ImportError:
     logger.error("Unable to load astroquery/Horizons module!")
     sys.exit(1)
-
-##--------------------------------------------------------------------------##
-def ldmap(things):
-    return dict(zip(things, range(len(things))))
-
-def argnear(vec, val):
-    return (np.abs(vec - val)).argmin()
-
-
-
-
 
 ##--------------------------------------------------------------------------##
 ##------------------     Ephemeris Retrieval and Storage    ----------------##
@@ -220,12 +194,19 @@ class SSTEph(object):
         self._im_names = self._eph_data['filename'].tolist()
         return
 
-    def retrieve(self, image_names):
-        if not np.all([x in self._im_names for x in image_names]):
+    def retrieve(self, image_names, as_basename=False):
+        # demote to basename if requested:
+        if as_basename:
+            use_inames = [os.path.basename(x) for x in image_names]
+        else:
+            use_inames = [x for x in image_names]
+
+        # ensure matches for all requested images:
+        if not np.all([x in self._im_names for x in use_inames]):
             sys.stderr.write("Yikes ... images not found??\n")
             return None
-        #which = np.array([(x in self._im_names) for x in image_names])
-        which = [self._im_names.index(x) for x in image_names]
+        #which = np.array([(x in self._im_names) for x in use_inames])
+        which = [self._im_names.index(x) for x in use_inames]
         tdata = self._eph_data.copy()[which]
         return append_fields(tdata, 't', tdata['jdtdb'], usemask=False)
 
