@@ -752,7 +752,7 @@ if _DO_EXPORT:
     tsrc_dir = os.path.join(targ_dir, 'target')
     mkdir_p(tsrc_dir)
     _tsave = os.path.join(tsrc_dir, gse_tuple_savefile)
-    tgt_eph = eee.retrieve(tgt_ccat['iname'])
+    tgt_eph = eee.retrieve_multiple(tgt_ccat['iname'])
     with open(_tsave, 'wb') as ff:
         pickle.dump((None, tgt_ccat, tgt_eph), ff)
     res_data['tgt'] = get_fit_residuals(tgt_ccat, tgt_eph, sigcut)
@@ -761,7 +761,7 @@ if _DO_EXPORT:
     for gid in lookie:
         sys.stderr.write("Examining %d ... \n" % gid) 
         gneat, sneat = gather_by_id(gid)
-        use_eph = eee.retrieve(sneat['iname'])
+        use_eph = eee.retrieve_multiple(sneat['iname'])
         gse_data[gid] = (gneat, sneat, use_eph)
     
         #tmpres = {}
@@ -817,7 +817,7 @@ sys.stderr.write("pmDE:     %10.4f +/- %8.4f\n"
 #use_epoch_tdb = 2456712.3421157757
 sst_eph_file = 'ephemerides/spitz_ssb_data.csv'
 eee.load(sst_eph_file)
-use_eph = eee.retrieve(sneat['iname'])
+use_eph = eee.retrieve_multiple(sneat['iname'])
 #sjd_tdb = use_eph['jdtdb']
 
 ## Optionally save data for external plotting:
