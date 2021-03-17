@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.5"
 
 ## Python version-agnostic module reloading:
 try:
@@ -31,10 +31,6 @@ except NameError:
         from importlib import reload    # Python 3.4+
     except ImportError:
         from imp import reload          # Python 3.0 - 3.3
-
-### Python version-agnostic module reloading (cute, 2.7+?):
-#import sys
-#reload = sys.modules['imp' if 'imp' in sys.modules else 'importlib'].reload
 
 ## Modules:
 import argparse
@@ -81,6 +77,15 @@ except ImportError:
     logger.error("failed to import spitz_fs_helpers module!")
     sys.exit(1)
 sfh = spitz_fs_helpers
+
+## HORIZONS ephemeris interaction:
+try:
+    import horizons_eph_helpers
+    reload(horizons_eph_helpers)
+except ImportError:
+    logger.error("failed to import horizons_eph_helpers module!")
+    sys.exit(1)
+fhe = horizons_eph_helpers.FetchHorizEphem()
 
 ##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
@@ -290,55 +295,16 @@ exp_times  = [x['EXPTIME']  for x in all_cbcd_headers]
 timestamps = astt.Time(obs_dates, scale='utc', format='isot') \
                 + 0.5 * astt.TimeDelta(exp_times, format='sec')
 
+
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
-## Spitzer ephemeris retrieval config:
-loc_ssb = {'location':'@0'}    # solar system barycenter
+## Retrieve Spitzer ephemeris:
 spitzkw = {'id':'Spitzer Space Telescope', 'id_type':'id'}
-r_plane = 'earth'     # 'ecliptic'
-
-## Query HORIZONS piecewise (avoids 2000-char URL length limit):
-sys.stderr.write("Querying HORIZONS ...\n")
-tik = time.time()
-nchunks = (timestamps.tdb.jd.size // context.qmax) + 1
-batches = np.array_split(timestamps.tdb.jd, nchunks)
-results = []
-for ii,batch in enumerate(batches, 1):
-    sys.stderr.write("\rQuery batch %d of %d ... " % (ii, nchunks))
-    sst_query = Horizons(**spitzkw, **loc_ssb, epochs=batch.tolist())
-    batch_eph = sst_query.vectors(refplane=r_plane)
-    results.append(batch_eph)
-
-## Combine into single table:
-horiz_eph = apt.vstack(results)
-tok = time.time()
-sys.stderr.write("done. %.3f sec\n" % (tok-tik))
-
-##--------------------------------------------------------------------------##
-##------------------         Tweak Table and Save           ----------------##
-##--------------------------------------------------------------------------##
-
-## Column config:
-iname_col = 'filename'
-drop_cols = ['targetname', 'datetime_str']
-
-## Make adjustments to a copy of the results:
-sst_table = horiz_eph.copy()
-sst_table.rename_column('datetime_jd', 'jdtdb')
-for cc in drop_cols:
-    if cc in sst_table.keys():
-        sst_table.remove_column(cc)
-
-## Columns to be saved in CSV:
-want_cols = [iname_col]
-want_cols.extend(sst_table.keys())
-
-## Attach file names and re-order columns:
-ibase_col = apt.Column(data=img_bases, name=iname_col)
-sst_table.add_column(ibase_col)
-sst_table = sst_table[want_cols]
+fhe.set_target(spitzkw)
+fhe.set_imdata(img_bases, timestamps)
+sst_table = fhe.get_ephdata()
 
 ## Save result as CSV:
 sys.stderr.write("Saving to %s ... " % context.output_file)
