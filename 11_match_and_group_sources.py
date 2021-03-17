@@ -10,7 +10,7 @@
 #
 # Rob Siverd
 # Created:       2021-03-09
-# Last modified: 2021-03-09
+# Last modified: 2021-03-10
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -45,7 +45,7 @@ import sys
 import time
 #import ephem
 import numpy as np
-#from numpy.lib.recfunctions import append_fields
+from numpy.lib.recfunctions import append_fields
 #import datetime as dt
 #from dateutil import parser as dtp
 #import scipy.linalg as sla
@@ -105,6 +105,17 @@ try:
 except ImportError:
     logger.error("failed to import extended_catalog module!")
     sys.exit(1)
+
+## Astrometry support routines:
+#try:
+#    import astrom_test
+#    reload(astrom_test)
+#except ImportError:
+#    logger.error("failed to import astrom_test module!")
+#    sys.exit(1)
+#af = astrom_test.AstFit()
+#eee = astrom_test.SSTEph()
+
 
 ##--------------------------------------------------------------------------##
 
@@ -312,6 +323,31 @@ for tpath in context.target_param_files:
     with open(tpath, 'r') as tp:
         targ_pars.append(ast.literal_eval(tp.read()))
 
+## Validate parameter files (FIXME: should be in a module):
+need_keys = ['name', 'ra_deg', 'de_deg', 'pmra_cosdec_masyr', 'pmde_masyr',
+                'epoch_jdutc']
+for tp in targ_pars:
+    if not all([x in tp.keys() for x in need_keys]):
+        logger.error("Required keywords missing from %s" % str(tp))
+        sys.exit(1)
+
+
+## Augment parameters with astropy Time object (FIXME: in same module):
+for tp in targ_pars:
+    tp['astt_epoch'] = astt.Time(tp['epoch_jdutc'], scale='utc', format='jd')
+    cosine_dec = np.cos(np.radians(tp['de_deg']))
+    tp['pmra_masyr'] = tp['pmra_cosdec_masyr'] / cosine_dec
+
+## Epoch-correct position calculation:
+def corrected_targpos(tpars, obstime):
+    _asec_per_deg = 3600.0
+    dt_yrs = (obstime - tpars['astt_epoch']).jd / 365.25
+    fix_ra = tpars['ra_deg'] + (tpars['pmra_masyr'] / _asec_per_deg * dt_yrs)
+    fix_de = tpars['de_deg'] + (tpars['pmde_masyr'] / _asec_per_deg * dt_yrs)
+    return fix_ra, fix_de
+
+
+#sys.exit(0)
 
 ##--------------------------------------------------------------------------##
 ##------------------          catalog config (FIXME)        ----------------##
@@ -469,10 +505,78 @@ if not gmatches:
     sys.exit(1)
 
 ##--------------------------------------------------------------------------##
-##-----------------     Extract Target with Ephemeris      -----------------##
+##-----------------     Extract Targets by Ephemerides     -----------------##
 ##--------------------------------------------------------------------------##
 
+#for targ in targ_pars:
+#    tname = targ['name']
+#    sys.stderr.write("Extracting moving target '%s' ... \n" % tname)
+    
+tpars = targ_pars[0]
+sys.stderr.write("Extracting %s data ... " % tpars['name'])
+tik = time.time()
+tgt_data = []
+tgt_tol_asec = 3.
+for ci,extcat in enumerate(cdata, 1):
+    ccat = extcat.get_catalog()
+    jd_info = {'jd':jdutc[ci-1], 'iname':extcat.get_imname()}
+    # FIXME:
+    # date_obs = extcat.get_header()['DATE_OBS']
+    obsdate = astt.Time(extcat.get_header()['DATE_OBS'], scale='utc')
+    #elapsed_yr = (jd_info['jd'] - j2000_epoch.utc.jd) / 365.25
+    #elapsed_yr = (jd_info['jd'] - trent_epoch_jd) / 365.25
+    #_ra, _de = targpos(elapsed_yr, trent_pars)
+    _ra, _de = corrected_targpos(tpars, obsdate)
+    sep_sec = 3600. * angle.dAngSep(_ra, _de, ccat[_ra_key], ccat[_de_key])
+    matches = sep_sec <= tgt_tol_asec
+    nhits = np.sum(matches)
 
+    for match in ccat[matches]:
+        m_info = {}
+        m_info.update(jd_info)
+        m_info['cat'] = match
+        tgt_data.append(m_info)
+    #nhits = np.sum(which)
+    #if (nhits > 1):
+    #    sys.stderr.write("Found multiple in-box sources in catalog %d!\n" % ci)
+    #    sys.exit(1)
+    #if np.any(which):
+    #    m_info = {}
+    #    m_info.update(jd_info)
+    #    m_info['cat'] = ccat[which]
+    #    tgt_data.append(m_info)
+    pass
+tok = time.time()
+sys.stderr.write("done. (%.3f s)\n" % (tok-tik))
+gc.collect()
+
+## Stop here in case of matching failure(s):
+if not tgt_data:
+    sys.stderr.write("No matches for target data??  Please investigate ...\n")
+    sys.exit(1)
+
+##--------------------------------------------------------------------------##
+##------------------      Repackage Results for Export      ----------------##
+##--------------------------------------------------------------------------##
+
+## How to repackage matched data points:
+def repack_matches(match_infos):
+    ccat = np.vstack([x['cat'] for x in match_infos])
+    jtmp = np.array([x['jd'] for x in match_infos])
+    itmp = np.array([x['iname'] for x in match_infos])
+    return append_fields(ccat, ('jdutc', 'iname'), (jtmp, itmp), usemask=False)
+
+## Collect and export target data set:
+tgt_ccat = repack_matches(tgt_data)
+
+## Collect data sets by Gaia source for analysis:
+gtargets = {}
+for ii,gid in enumerate(gmatches.keys(), 1):
+    sys.stderr.write("\rGathering gaia source %d of %d ..." % (ii, n_useful))
+    gtargets[gid] = repack_matches(gmatches[gid])
+sys.stderr.write("done.\n")
+gtg_npts = {gg:len(cc) for gg,cc in gtargets.items()}
+npts_100 = [gg for gg,nn in gtg_npts.items() if nn>100]
 
 
 ##--------------------------------------------------------------------------##
