@@ -180,7 +180,7 @@ class FetchHorizEphem(object):
 ##------------------       Quick SST Ephemeris Recall       ----------------##
 ##--------------------------------------------------------------------------##
 
-class SSTEph(object):
+class EphTool(object):
 
     def __init__(self):
         return

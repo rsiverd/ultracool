@@ -15,7 +15,7 @@
 #
 # Rob Siverd
 # Created:       2019-10-30
-# Last modified: 2021-02-25
+# Last modified: 2021-03-16
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -73,6 +73,15 @@ except ImportError:
     sys.exit(1)
 sfh = spitz_fs_helpers
 
+## HORIZONS ephemeris tools:
+try:
+    import jpl_eph_helpers
+    reload(jpl_eph_helpers)
+except ImportError:
+    logger.error("failed to import jpl_eph_helpers module!")
+    sys.exit(1)
+eee = jpl_eph_helpers.EphTool()
+
 ## Parallax pipeline coordinate helpers:
 try:
     import coord_helpers
@@ -103,25 +112,9 @@ sys.stderr = Unbuffered(sys.stderr)
 try:
 #    import astropy.io.ascii as aia
     import astropy.io.fits as pf
-#    import astropy.io.votable as av
-#    import astropy.table as apt
-#    import astropy.time as astt
-#    import astropy.wcs as awcs
-#    from astropy import constants as aconst
-#    from astropy import coordinates as coord
-#    from astropy import units as uu
 except ImportError:
     logger.error("astropy module not found!  Install and retry.")
-#    sys.stderr.write("\nError: astropy module not found!\n")
     sys.exit(1)
-
-### FITSIO module (provides compression ability):
-#try:
-#    import fitsio
-#except ImportError:
-#    logger.error("fitsio module not found!  Install and retry.")
-#    sys.stderr.write("Error: fitsio module not found!\n\n")
-#    sys.exit(1)
 
 ## Star extraction:
 try:
@@ -214,8 +207,10 @@ if __name__ == '__main__':
     parser = MyParser(prog=prog_name, description=descr_txt,
                           formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
-    parser.set_defaults(ignore_short=True, gather_headers=False)
+    parser.set_defaults(ignore_short=True)
+    parser.set_defaults(gather_headers=False)
     parser.set_defaults(delete_ignored=True)
+    parser.set_defaults(skip_existing=True)
     #parser.set_defaults(diag_frac=0.25)
     parser.set_defaults(diag_frac=0.25)
     # ------------------------------------------------------------------
@@ -226,6 +221,10 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
     iogroup = parser.add_argument_group('File I/O')
+    iogroup.add_argument('--overwrite', required=False, dest='skip_existing',
+            action='store_false', help='overwrite existing image files')
+    iogroup.add_argument('-E', '--ephem_data', default=None, required=True,
+            help='CSV file with SST ephemeris data', type=str)
     iogroup.add_argument('-I', '--image_folder', default=None, required=True,
             help='where to find CBCD images', type=str)
     iogroup.add_argument('-t', '--target_list', required=False, default=None,
@@ -287,8 +286,6 @@ sys.stderr.write("Identified %d '%s' FITS images.\n"
 cbcd_headers = {}
 if context.gather_headers:
     sys.stderr.write("Loading FITS headers for all files ... ")
-    #for ipath in cbcd_files:
-    #    cbcd_headers[ipath] = pf.getheader(ipath)
     cbcd_headers = {x:pf.getheader(x) for x in all_cbcd_files}
     sys.stderr.write("done.\n")
 
@@ -338,6 +335,21 @@ if context.ignore_off_target:
     sys.stderr.write("Off-target check took %.3f seconds.\n" % (tok-tik))
 
 ##--------------------------------------------------------------------------##
+##------------------         Load SST Ephemeris Data        ----------------##
+##--------------------------------------------------------------------------##
+
+## Ephemeris data file must exist:
+if not context.ephem_data:
+    logger.error("context.ephem_data not set?!?!")
+    sys.exit(1)
+if not os.path.isfile(context.ephem_data):
+    logger.error("Ephemeris file not found: %s" % context.ephem_data)
+    sys.exit(1)
+
+## Load ephemeris data:
+eee.load(context.ephem_data)
+
+##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
@@ -351,7 +363,6 @@ if context.ignore_short:
     sys.stderr.write("Checking for short frames ... ")
     trouble = 'PTGCPD'
     for ipath in use_cbcd_files:
-        #thdr = pf.getheader(ipath)
         thdr = cbcd_headers[ipath]
         if (trouble in thdr.keys()):
             drop_cbcd.append(ipath)
@@ -447,10 +458,13 @@ for ii,cbcd_path in enumerate(use_cbcd_files, 1):
     sys.stderr.write("\rFile %s (%d of %d) ... " 
             % (opaths['clean'], ii, total))
     done_list = list(opaths.values())
-    if all([os.path.isfile(x) for x in done_list]):
-        sys.stderr.write("already done!   ")
-        continue
-    sys.stderr.write("not found, processing ... \n")
+    if context.skip_existing:
+        if all([os.path.isfile(x) for x in done_list]):
+            sys.stderr.write("already done!   ")
+            continue
+        sys.stderr.write("not found, processing ... \n")
+    else:
+        sys.stderr.write("processing ...    \n")
     nproc += 1
 
     # load data:

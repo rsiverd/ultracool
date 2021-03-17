@@ -114,7 +114,6 @@ except ImportError:
 #    logger.error("failed to import astrom_test module!")
 #    sys.exit(1)
 #af = astrom_test.AstFit()
-#eee = astrom_test.SSTEph()
 
 
 ##--------------------------------------------------------------------------##

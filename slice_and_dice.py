@@ -100,7 +100,7 @@ af = astrom_test.AstFit()
 
 import jpl_eph_helpers
 reload(jpl_eph_helpers)
-eee = jpl_eph_helpers.SSTEph()
+eee = jpl_eph_helpers.EphTool()
 
 ## Easy Gaia source matching:
 try:
