@@ -472,6 +472,13 @@ for ii,cbcd_path in enumerate(use_cbcd_files, 1):
     udata, uhdrs = pf.getdata(ipaths['cbunc'], header=True)
     #fdata, fhdrs = fitsio.read(img_ipath, header=True)
 
+    # augment header with ephemeris data:
+    addme = eee.make_header_keys(ipaths['cbcd'], as_basename=True)
+    if not addme:
+        sys.stderr.write("Failed to load ephemeris data!\n")
+        sys.exit(1)
+    ihdrs.extend(addme)
+
     # get median image value:
     ignore = np.isnan(idata) | np.isinf(idata)
     medval = np.median(idata[~ignore])
