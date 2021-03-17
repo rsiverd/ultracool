@@ -185,15 +185,23 @@ class EphTool(object):
     def __init__(self):
         return
 
+    # Read and augment ephemeris data from file:
     def load(self, filename):
         self._eph_file = filename
         gftkw = {'encoding':None} if (_have_np_vers >= 1.14) else {}
         gftkw.update({'names':True, 'autostrip':True})
         gftkw.update({'delimiter':',', 'comments':'%0%0%0%0'})
-        self._eph_data = np.genfromtxt(filename, dtype=None, **gftkw)
+        _raw_data = np.genfromtxt(filename, dtype=None, **gftkw)
+        self._eph_data = self._column_tweaks(_raw_data)
         self._im_names = self._eph_data['filename'].tolist()
         return
 
+    @staticmethod
+    def _column_tweaks(edata):
+        tdata = append_fields(edata, 't', edata['jdtdb'], usemask=False)
+        return tdata
+
+    # Extract multiple entries from data set by image name:
     def retrieve_multiple(self, image_names, as_basename=False):
         # demote to basename if requested:
         if as_basename:
@@ -207,10 +215,12 @@ class EphTool(object):
             return None
         #which = np.array([(x in self._im_names) for x in use_inames])
         which = [self._im_names.index(x) for x in use_inames]
-        tdata = self._eph_data.copy()[which]
-        return append_fields(tdata, 't', tdata['jdtdb'], usemask=False)
+        return self._eph_data.copy()[which]
+        #return append_fields(tdata, 't', tdata['jdtdb'], usemask=False)
 
-    #def make
+    # Generage header keywords for injection into specific image:
+    def make_header_keys(self, imname, as_basename=False):
+        use_imname = os.path.basename(imname) if as_basename else imname
 
 
 ######################################################################
