@@ -8,13 +8,13 @@
 #
 # Rob Siverd
 # Created:       2021-03-16
-# Last modified: 2021-03-16
+# Last modified: 2021-03-17
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -180,6 +180,17 @@ class FetchHorizEphem(object):
 ##------------------       Quick SST Ephemeris Recall       ----------------##
 ##--------------------------------------------------------------------------##
 
+## Convention for embedding ephemeris in FITS header:
+_hspec = [
+        ('OBS_TIME', 'jdtdb', 'mid-exposure JD (TDB)'),
+        ('OBS_POSX',     'x', '[AU] observer barycentric X position'),
+        ('OBS_POSY',     'y', '[AU] observer barycentric Y position'),
+        ('OBS_POSZ',     'z', '[AU] observer barycentric Z position'),
+        ('OBS_VELX',    'vx', '[AU/d] observer barycentric X velocity'),
+        ('OBS_VELY',    'vy', '[AU/d] observer barycentric Y velocity'),
+        ('OBS_VELZ',    'vz', '[AU/d] observer barycentric Z velocity'),
+    ]
+
 class EphTool(object):
 
     def __init__(self):
@@ -202,7 +213,7 @@ class EphTool(object):
         return tdata
 
     # Extract multiple entries from data set by image name:
-    def retrieve_multiple(self, image_names, as_basename=False):
+    def retrieve_multiple(self, image_names, as_basename=True):
         # demote to basename if requested:
         if as_basename:
             use_inames = [os.path.basename(x) for x in image_names]
@@ -219,9 +230,21 @@ class EphTool(object):
         #return append_fields(tdata, 't', tdata['jdtdb'], usemask=False)
 
     # Generage header keywords for injection into specific image:
-    def make_header_keys(self, imname, as_basename=False):
+    def make_header_keys(self, imname, as_basename=True):
         use_imname = os.path.basename(imname) if as_basename else imname
+        if not use_imname in self._im_names:
+            sys.stderr.write("Image not found: %s\n" % use_imname)
+            return None
+        which = self._im_names.index(use_imname)
+        edata = self._eph_data.copy()[which]
+        return self._make_hkeys(edata)
 
+    @staticmethod
+    def _make_hkeys(data):
+        cards = []
+        for hdrkey,ephkey,comment in _hspec:
+            cards.append((hdrkey, data[ephkey], comment))
+        return cards
 
 ######################################################################
 # CHANGELOG (jpl_eph_helpers.py):
