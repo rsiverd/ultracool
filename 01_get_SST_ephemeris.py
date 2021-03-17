@@ -80,12 +80,12 @@ sfh = spitz_fs_helpers
 
 ## HORIZONS ephemeris interaction:
 try:
-    import horizons_eph_helpers
-    reload(horizons_eph_helpers)
+    import jpl_eph_helpers
+    reload(jpl_eph_helpers)
 except ImportError:
-    logger.error("failed to import horizons_eph_helpers module!")
+    logger.error("failed to import jpl_eph_helpers module!")
     sys.exit(1)
-fhe = horizons_eph_helpers.FetchHorizEphem()
+fhe = jpl_eph_helpers.FetchHorizEphem()
 
 ##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:

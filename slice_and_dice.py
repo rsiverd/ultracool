@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2019-10-16
-# Last modified: 2020-02-09
+# Last modified: 2021-03-16
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.3.5"
+__version__ = "0.3.6"
 
 ## Optional matplotlib control:
 #from matplotlib import use, rc, rcParams
@@ -98,9 +98,9 @@ import astrom_test
 reload(astrom_test)
 af = astrom_test.AstFit()
 
-import horizons_eph_helpers
-reload(horizons_eph_helpers)
-eee = horizons_eph_helpers.SSTEph()
+import jpl_eph_helpers
+reload(jpl_eph_helpers)
+eee = jpl_eph_helpers.SSTEph()
 
 ## Easy Gaia source matching:
 try:

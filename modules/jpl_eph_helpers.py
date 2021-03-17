@@ -213,10 +213,10 @@ class SSTEph(object):
 
 
 ######################################################################
-# CHANGELOG (horizons_eph_helpers.py):
+# CHANGELOG (jpl_eph_helpers.py):
 #---------------------------------------------------------------------
 #
 #  2021-03-16:
 #     -- Increased __version__ to 0.0.1.
-#     -- First created horizons_eph_helpers.py.
+#     -- First created jpl_eph_helpers.py.
 #
