@@ -138,6 +138,15 @@ done
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
+
+# Rebuild collections of extended catalog files:
+cd collections
+./01_remake_collections.sh /home/rsiverd/ucd_project/ucd_targets/2m0415   --START
+./01_remake_collections.sh /home/rsiverd/ucd_project/ucd_targets/wise1828 --START
+
+# ----------------------------------------------------------------------- 
+# ----------------------------------------------------------------------- 
+# ----------------------------------------------------------------------- 
 # ancillary stuff:
 
 ./compare_distortion.py -i ~/ucd_project/ucd_sha_data/SPITZER_I2_61246976_0004_0000_1_cbcd.fits
