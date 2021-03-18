@@ -8,7 +8,7 @@
 #
 # Rob Siverd
 # Created:       2021-02-02
-# Last modified: 2021-02-25
+# Last modified: 2021-03-18
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.2.6"
+__version__ = "0.3.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -90,6 +90,16 @@ try:
 except ImportError:
     logger.error("spitz_extract module not found!")
     sys.exit(1)
+
+## Hybrid stack+individual position calculator:
+try:
+    import spitz_stack_astrom
+    reload(spitz_stack_astrom)
+    ha = spitz_stack_astrom.HybridAstrom()
+except ImportError:
+    logger.error("failed to import spitz_stack_astrom module!")
+    sys.exit(1)
+
 
 ##--------------------------------------------------------------------------##
 ## Fast FITS I/O:
@@ -380,6 +390,10 @@ for aor_tag in unique_tags:
     xshifts, yshifts = sxc.get_stackcat_offsets()
     xcp.set_master_catalog(sdata)
     xcp.set_image_offsets(xshifts, yshifts)
+
+    # Set up hybrid astrometry system:
+    ha.set_stack_excat(stack_cat)       # catalog of detections
+    ha.set_xcorr_metadata(sxc)          # pixel offsets by image
  
     ## Stop here for now ...
     #if skip_stuff:
@@ -409,7 +423,7 @@ for aor_tag in unique_tags:
 
         sys.stderr.write("Catalog %s ... " % cat_fpath)
         if context.skip_existing:
-            if os.path.isfile(cat_ppath):
+            if os.path.isfile(cat_mpath):
                 sys.stderr.write("exists!  Skipping ... \n")
                 continue
         nproc += 1
@@ -430,6 +444,12 @@ for aor_tag in unique_tags:
             sys.exit(1)
         result.set_catalog(pruned)
         result.save_as_fits(cat_ppath, overwrite=True)
+
+        # build and save hybrid catalog:
+        mcat = ha.make_hybrid_excat(result)
+        mcat.save_as_fits(cat_mpath, overwrite=True)
+        mxcat_rfile = img_ipath + '.mcat.reg'
+        #regify_excat_pix(mcat.get_catalog(), mxcat_rfile, win=True)
 
         # stop early if requested:
         if (ntodo > 0) and (nproc >= ntodo):
