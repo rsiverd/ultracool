@@ -5,14 +5,14 @@
 #
 # Rob Siverd
 # Created:      2021-02-23
-# Last updated: 2021-03-04
+# Last updated: 2021-03-18
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Default options:
 debug=0 ; clobber=0 ; force=0 ; timer=0 ; vlevel=0
-script_version="0.15"
+script_version="0.20"
 this_prog="${0##*/}"
 #shopt -s nullglob
 # Propagate errors through pipelines: set -o pipefail
@@ -83,7 +83,7 @@ targ_dir="$1"
 ##--------------------------------------------------------------------------##
 
 ## Permutation config:
-cat_suffixes=( fcat pcat )
+cat_suffixes=( fcat pcat mcat )
 image_flavors=( clean hcfix )
 
 targname=`basename $targ_dir`
