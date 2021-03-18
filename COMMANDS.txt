@@ -99,11 +99,15 @@ done
       -C collections/2m0415_clean_fcat.txt -o process/2m0415_fcat.pickle
 %run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
       -C collections/2m0415_clean_pcat.txt -o process/2m0415_pcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
+      -C collections/2m0415_clean_mcat.txt -o process/2m0415_mcat.pickle
 
 %run ./11_match_and_group_sources.py -G csv/gaia_wise1828.csv \
       -C collections/wise1828_clean_fcat.txt -o process/wise1828_fcat.pickle
 %run ./11_match_and_group_sources.py -G csv/gaia_wise1828.csv \
       -C collections/wise1828_clean_pcat.txt -o process/wise1828_pcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_wise1828.csv \
+      -C collections/wise1828_clean_mcat.txt -o process/wise1828_mcat.pickle
 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
