@@ -7,7 +7,7 @@
 #
 # Rob Siverd
 # Created:       2021-03-17
-# Last modified: 2021-03-17
+# Last modified: 2021-03-18
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 ## Python version-agnostic module reloading:
 try:
@@ -132,7 +132,6 @@ class HybridAstrom(object):
     def make_hybrid_excat(self, imexcat):
         imname = imexcat.get_imname()
         header = imexcat.get_header()
-        sys.stderr.write("imname: %s\n" % imname)
         if not imname in self._xshifts.keys():
             sys.stderr.write("Unrecognized image: %s\n" % imname)
             raise
