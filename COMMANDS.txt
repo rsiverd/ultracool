@@ -131,13 +131,17 @@ done
 ./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/ --hcfix -W --overwrite
 ./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/ --clean -W --overwrite
 
-# unweighted ...
-./06_sextract_spitzer.sh --original -I ../ucd_sha_data -O ../ucd_scat_orig --START -r
-./06_sextract_spitzer.sh --cosclean -I ../ucd_sha_data -O ../ucd_scat_ccln --START -r
+# ----------------------------------------------------------------------- 
+# ----------------------------------------------------------------------- 
+# ----------------------------------------------------------------------- 
 
-# weighted!
-./06_sextract_spitzer.sh --original -I ../ucd_sha_data -O ../wei_scat_orig --START -r --rmswei
-./06_sextract_spitzer.sh --cosclean -I ../ucd_sha_data -O ../wei_scat_ccln --START -r --rmswei
+## unweighted ...
+#./06_sextract_spitzer.sh --original -I ../ucd_sha_data -O ../ucd_scat_orig --START -r
+#./06_sextract_spitzer.sh --cosclean -I ../ucd_sha_data -O ../ucd_scat_ccln --START -r
+#
+## weighted!
+#./06_sextract_spitzer.sh --original -I ../ucd_sha_data -O ../wei_scat_orig --START -r --rmswei
+#./06_sextract_spitzer.sh --cosclean -I ../ucd_sha_data -O ../wei_scat_ccln --START -r --rmswei
 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
