@@ -166,8 +166,8 @@ _imtypes = {
 _EPH_KEYS = ('jdtdb', 'obs_x', 'obs_y', 'obs_z', 'obs_vx', 'obs_vy', 'obs_vz')
 
 ## List of allowed metadata keywords and ordering:
-_META_KEYS = ['ECVERS', 'INAME', 'UNAME', *_EPH_KEYS]
-_META_KEYS = [x.upper() for x in _META_KEYS]
+_META_KEYS = ['ecvers', 'iname', 'uname', *_EPH_KEYS]
+#_META_KEYS = [x.upper() for x in _META_KEYS]
 
 ## Container class:
 class ExtendedCatalog(object):
@@ -180,9 +180,9 @@ class ExtendedCatalog(object):
         self._unhdr = None
         self._imcat = data
         self._imeta = {
-                'ECVERS'  : __version__,
-                'INAME'   :        name,
-                'UNAME'   :       uname,
+                'ecvers'  : __version__,
+                'iname'   :        name,
+                'uname'   :       uname,
                 }
         self.set_header(header, which='img')
         self.set_header(uheader, which='unc')
@@ -192,31 +192,21 @@ class ExtendedCatalog(object):
     #           getters and setters           #
     # --------------------------------------- #
 
-    def set_ephem(self, eph_dict):
-        # take no action in case of incomplete ephemeris:
-        if not all([(x in eph_dict.keys()) for x in _EPH_KEYS]):
-            sys.stderr.write("Ephemeris dict is incomplete:\n")
-            sys.stderr.write("Expected keys: %s\n" % str(_EPH_KEYS))
-            sys.stderr.write("Received keys: %s\n" % str(eph_dict.keys()))
-            return
-        # store a copy of ephemeris in _imeta (upper-case keys):
-        for kk in _EPH_KEYS:
-            self._imeta[kk.upper()] = eph_dict[kk]
-
-        return
-
     def get_catalog(self):
         return self._imcat.copy()
 
     def set_catalog(self, data):
         self._imcat = data
+        if 'jdtdb' in self._imeta:
+            sys.stderr.write("WARNING: ephemeris exists!\n")
         return
 
     def get_imname(self):
-        return self._imeta['INAME']
+        return self._imeta['iname']
+        #return self._imeta['INAME']
 
     def set_imname(self, iname):
-        self._imeta['INAME'] = iname
+        self._imeta['iname'] = iname
         return
 
     def get_header(self, which='img'):
@@ -236,6 +226,27 @@ class ExtendedCatalog(object):
             setattr(self, _imtypes[which], thdr)
         #else:
         #    logging.warn("ignoring non-header (imhdr not set)")
+        return
+
+    # --------------------------------------- #
+    #       ephemeris and catalog updates     #
+    # --------------------------------------- #
+ 
+    def set_ephem(self, eph_dict):
+        # take no action in case of incomplete ephemeris:
+        if not all([(x in eph_dict.keys()) for x in _EPH_KEYS]):
+            sys.stderr.write("Ephemeris dict is incomplete:\n")
+            sys.stderr.write("Expected keys: %s\n" % str(_EPH_KEYS))
+            sys.stderr.write("Received keys: %s\n" % str(eph_dict.keys()))
+            return
+        # store a copy of ephemeris in _imeta (upper-case keys):
+        for kk in _EPH_KEYS:
+            self._imeta[kk.upper()] = eph_dict[kk]
+        # update catalog array if present:
+        if isinstance(self._imcat, np.ndarray):
+            sys.stderr.write("Catalog already set, update required!\n")
+        else:
+            sys.stderr.write("Catalog is NOT set ... update later.\n")
         return
 
     # --------------------------------------- #
@@ -307,7 +318,7 @@ class ExtendedCatalog(object):
         if self._imeta == None:
             logging.warning("image metadata not set!")
             n_missing += 1
-        if self._imeta['INAME'] == '':
+        if self._imeta['iname'] == '':
             logging.warning("image name not set!")
             n_missing += 1
         if n_missing > 0:
@@ -351,7 +362,10 @@ class ExtendedCatalog(object):
         return hdr
 
     def _meta_from_header(self, header):
-        return dict(self._prune_header(header).items())
+        return {kk.lower():vv for kk,vv in self._prune_header(header).items()}
+
+    #def _meta_from_header(self, header):
+    #    return dict(self._prune_header(header).items())
 
     def _make_catalog_hdu(self):
         return pf.BinTableHDU(data=self._imcat,
