@@ -100,6 +100,14 @@ except ImportError:
     logger.error("failed to import spitz_stack_astrom module!")
     sys.exit(1)
 
+## HORIZONS ephemeris tools:
+try:
+    import jpl_eph_helpers
+    reload(jpl_eph_helpers)
+except ImportError:
+    logger.error("failed to import jpl_eph_helpers module!")
+    sys.exit(1)
+eee = jpl_eph_helpers.EphTool()
 
 ##--------------------------------------------------------------------------##
 ## Fast FITS I/O:
@@ -180,6 +188,8 @@ if __name__ == '__main__':
     iogroup = parser.add_argument_group('File I/O')
     iogroup.add_argument('--overwrite', required=False, dest='skip_existing',
             action='store_false', help='overwrite existing catalogs')
+    #iogroup.add_argument('-E', '--ephem_data', default=None, required=True,
+    #        help='CSV file with SST ephemeris data', type=str)
     iogroup.add_argument('-I', '--input_folder', default=None, required=True,
             help='where to find input images', type=str)
     iogroup.add_argument('-O', '--output_folder', default=None, required=False,
@@ -265,6 +275,21 @@ n_images = len(img_files)
 #    sys.stderr.write("done.\n") 
 
 ##--------------------------------------------------------------------------##
+##------------------         Load SST Ephemeris Data        ----------------##
+##--------------------------------------------------------------------------##
+
+### Ephemeris data file must exist:
+#if not context.ephem_data:
+#    logger.error("context.ephem_data not set?!?!")
+#    sys.exit(1)
+#if not os.path.isfile(context.ephem_data):
+#    logger.error("Ephemeris file not found: %s" % context.ephem_data)
+#    sys.exit(1)
+#
+### Load ephemeris data:
+#eee.load(context.ephem_data)
+
+##--------------------------------------------------------------------------##
 ##------------------       Unique AOR/Channel Combos        ----------------##
 ##--------------------------------------------------------------------------##
 
@@ -285,6 +310,13 @@ def regify_excat_pix(data, rpath, win=False, rr=2.0):
         for xx,yy in zip(xpix, ypix):
             rfile.write("image; circle(%8.3f, %8.3f, %8.3f)\n" % (xx, yy, rr))
     return
+
+##--------------------------------------------------------------------------##
+##------------------      ExtendedCatalog Ephem Format      ----------------##
+##--------------------------------------------------------------------------##
+
+#def reformat_ephem(edata):
+
 
 ##--------------------------------------------------------------------------##
 ##------------------         Stack/Image Comparison         ----------------##
@@ -435,8 +467,10 @@ for aor_tag in unique_tags:
         frame_rfile = img_ipath + '.reg'
         regify_excat_pix(result.get_catalog(), frame_rfile, win=True)
 
+        eph_data = eee.eph_from_header(result.get_header())
+
         # prune sources not detected in stacked frame:
-        pruned = xcp.prune_spurious(result.get_catalog(), img_ipath) #, rcut=5.0)
+        pruned = xcp.prune_spurious(result.get_catalog(), img_ipath)
         npruned = len(pruned)
         sys.stderr.write("nfound: %d, npruned: %d\n" % (nfound, npruned))
         if (len(pruned) < 5):
