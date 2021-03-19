@@ -38,7 +38,7 @@ import os
 import sys
 import time
 import numpy as np
-#from numpy.lib.recfunctions import append_fields
+from numpy.lib.recfunctions import append_fields
 #import datetime as dt
 #from dateutil import parser as dtp
 #import scipy.linalg as sla
@@ -199,6 +199,7 @@ class ExtendedCatalog(object):
         self._imcat = data
         if 'jdtdb' in self._imeta:
             sys.stderr.write("WARNING: ephemeris exists!\n")
+            self._update_catalog_ephem()
         return
 
     def get_imname(self):
@@ -230,10 +231,14 @@ class ExtendedCatalog(object):
     # --------------------------------------- #
     #       ephemeris and catalog updates     #
     # --------------------------------------- #
- 
+
+    @staticmethod
+    def _has_all_eph_keys(eph_dict):
+        return all([(x in eph_dict.keys()) for x in _EPH_KEYS])
+
     def set_ephem(self, eph_dict):
         # take no action in case of incomplete ephemeris:
-        if not all([(x in eph_dict.keys()) for x in _EPH_KEYS]):
+        if not self._has_all_eph_keys(eph_dict):
             sys.stderr.write("Ephemeris dict is incomplete:\n")
             sys.stderr.write("Expected keys: %s\n" % str(_EPH_KEYS))
             sys.stderr.write("Received keys: %s\n" % str(eph_dict.keys()))
@@ -244,8 +249,27 @@ class ExtendedCatalog(object):
         # update catalog array if present:
         if isinstance(self._imcat, np.ndarray):
             sys.stderr.write("Catalog already set, update required!\n")
+            self._update_catalog_ephem()
         else:
             sys.stderr.write("Catalog is NOT set ... update later.\n")
+        return
+
+    def _update_catalog_ephem(self):
+        if not self._has_all_eph_keys(self._imeta):
+            sys.stderr.write("_imeta missing required eph keys!\n")
+            return
+        tdata = self._imcat.copy()
+        nobjs = len(tdata)
+        for kk in _EPH_KEYS:
+            vec = np.zeros(nobjs, dtype='float') + self._imeta[kk]
+            if kk in tdata.dtype.names:
+                sys.stderr.write("Column %s exists ... updating!\n" % kk)
+                tdata[kk] = vec
+            else:
+                sys.stderr.write("Column %s not found ... adding!\n" % kk)
+                tdata = append_fields(tdata, kk, vec, usemask=False)
+            pass
+        self._imcat = tdata
         return
 
     # --------------------------------------- #
@@ -260,7 +284,7 @@ class ExtendedCatalog(object):
         if not self._have_required_data():
             logging.warning("data missing, output not saved!")
             return
-        self._imeta['SAVEDATE'] = self._current_timestamp()
+        self._imeta['savedate'] = self._current_timestamp()
         hdu_list = pf.HDUList([pf.PrimaryHDU()])
         hdu_list.append(self._make_catalog_hdu())
         if isinstance(self._imhdr, pf.Header):
