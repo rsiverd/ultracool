@@ -170,14 +170,14 @@ class ExtendedCatalog(object):
     """Flexible storage medium that encapsulates a catalog of extracted
     objects along with relevant metadata from the source image."""
 
-    def __init__(self, data=None, name=None, header=None,
-            uname=None, uheader=None):
+    def __init__(self, data=None, name='', header=None,
+            uname='', uheader=None):
         self._imhdr = None
         self._unhdr = None
         self._imcat = data
         self._imeta = {
-                'INAME'   :  name,
-                'UNAME'   : uname,
+                'INAME'   :        name,
+                'UNAME'   :       uname,
                 'ECVERS'  : __version__,
                 }
         self.set_header(header, which='img')
@@ -303,7 +303,7 @@ class ExtendedCatalog(object):
         if self._imeta == None:
             logging.warning("image metadata not set!")
             n_missing += 1
-        if self._imeta['INAME'] == None:
+        if self._imeta['INAME'] == '':
             logging.warning("image name not set!")
             n_missing += 1
         if n_missing > 0:
