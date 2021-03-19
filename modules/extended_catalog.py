@@ -240,7 +240,7 @@ class ExtendedCatalog(object):
             return
         # store a copy of ephemeris in _imeta (upper-case keys):
         for kk in _EPH_KEYS:
-            self._imeta[kk.upper()] = eph_dict[kk]
+            self._imeta[kk] = eph_dict[kk]
         # update catalog array if present:
         if isinstance(self._imcat, np.ndarray):
             sys.stderr.write("Catalog already set, update required!\n")
