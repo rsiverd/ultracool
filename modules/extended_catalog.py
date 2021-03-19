@@ -165,6 +165,10 @@ _imtypes = {
 ## Ephemeris contents:
 _EPH_KEYS = ('jdtdb', 'obs_x', 'obs_y', 'obs_z', 'obs_vx', 'obs_vy', 'obs_vz')
 
+## List of allowed metadata keywords and ordering:
+_META_KEYS = ['ECVERS', 'INAME', 'UNAME', *_EPH_KEYS]
+_META_KEYS = [x.upper() for x in _META_KEYS]
+
 ## Container class:
 class ExtendedCatalog(object):
     """Flexible storage medium that encapsulates a catalog of extracted
@@ -176,9 +180,9 @@ class ExtendedCatalog(object):
         self._unhdr = None
         self._imcat = data
         self._imeta = {
+                'ECVERS'  : __version__,
                 'INAME'   :        name,
                 'UNAME'   :       uname,
-                'ECVERS'  : __version__,
                 }
         self.set_header(header, which='img')
         self.set_header(uheader, which='unc')
@@ -340,7 +344,10 @@ class ExtendedCatalog(object):
 
     def _meta_to_header(self):
         hdr = pf.Header()
-        hdr.update(self._imeta)
+        #hdr.update(self._imeta)
+        for kk in _META_KEYS:
+            if kk in self._imeta.keys():
+                hdr.append((kk, self._imeta[kk]))
         return hdr
 
     def _meta_from_header(self, header):
