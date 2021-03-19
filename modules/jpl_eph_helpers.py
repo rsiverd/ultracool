@@ -245,9 +245,7 @@ class EphTool(object):
     def eph_from_header(header):
         result = {}
         for hdrkey,ephkey,comment in _hspec:
-            obskey = 'obs_' + ephkey
             result[ephkey] = header[hdrkey]
-            result[obskey] = header[hdrkey]
         return result
 
     # Generage header keywords for injection into specific image:
