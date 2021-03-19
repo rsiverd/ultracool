@@ -462,12 +462,19 @@ for aor_tag in unique_tags:
         sys.stderr.write("not found ... creating ...\n")
         spf.use_images(ipath=img_ipath, upath=unc_ipath)
         result = spf.find_stars(context.sigthresh)
+
+        ## FIXME: this just grabs the ephemeris from the header content
+        ## of the first ExtendedCatalog produced. This should be obtained
+        ## separately to make things easier to follow (and to eliminate
+        ## the need to pre-modify the image headers ...)
+        eph_data = eee.eph_from_header(result.get_header())
+
+        result.set_ephem(eph_data)
         result.save_as_fits(cat_fpath, overwrite=True)
         nfound = len(result.get_catalog())
         frame_rfile = img_ipath + '.reg'
         regify_excat_pix(result.get_catalog(), frame_rfile, win=True)
 
-        eph_data = eee.eph_from_header(result.get_header())
 
         # prune sources not detected in stacked frame:
         pruned = xcp.prune_spurious(result.get_catalog(), img_ipath)
@@ -481,6 +488,7 @@ for aor_tag in unique_tags:
 
         # build and save hybrid catalog:
         mcat = ha.make_hybrid_excat(result)
+        mcat.set_ephem(eph_data)
         mcat.save_as_fits(cat_mpath, overwrite=True)
         mxcat_rfile = img_ipath + '.mcat.reg'
         #regify_excat_pix(mcat.get_catalog(), mxcat_rfile, win=True)
