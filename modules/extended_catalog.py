@@ -8,7 +8,7 @@
 #
 # Rob Siverd
 # Created:       2019-10-12
-# Last modified: 2021-02-04
+# Last modified: 2021-03-18
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.6"
+__version__ = "0.2.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -162,6 +162,9 @@ _imtypes = {
         'unc'   :   '_unhdr'
         }
 
+## Ephemeris contents:
+_EPH_KEYS = ('jdtdb', 'obs_x', 'obs_y', 'obs_z', 'obs_vx', 'obs_vy', 'obs_vz')
+
 ## Container class:
 class ExtendedCatalog(object):
     """Flexible storage medium that encapsulates a catalog of extracted
@@ -184,6 +187,19 @@ class ExtendedCatalog(object):
     # --------------------------------------- #
     #           getters and setters           #
     # --------------------------------------- #
+
+    def set_ephem(self, eph_dict):
+        # take no action in case of incomplete ephemeris:
+        if not all([(x in eph_dict.keys()) for x in _EPH_KEYS]):
+            sys.stderr.write("Ephemeris dict is incomplete:\n")
+            sys.stderr.write("Expected keys: %s\n" % str(_EPH_KEYS))
+            sys.stderr.write("Received keys: %s\n" % str(eph_dict.keys()))
+            return
+        # store a copy of ephemeris in _imeta (upper-case keys):
+        for kk in _EPH_KEYS:
+            self._imeta[kk.upper()] = eph_dict[kk]
+
+        return
 
     def get_catalog(self):
         return self._imcat.copy()
