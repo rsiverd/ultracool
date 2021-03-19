@@ -8,7 +8,7 @@
 #
 # Rob Siverd
 # Created:       2021-03-16
-# Last modified: 2021-03-17
+# Last modified: 2021-03-18
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -31,6 +31,7 @@ import sys
 import time
 import numpy as np
 from numpy.lib.recfunctions import append_fields
+#import numpy.lib.recfunctions as nlr
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
 ##--------------------------------------------------------------------------##
@@ -56,6 +57,7 @@ except ImportError:
 
 class FetchHorizEphem(object):
 
+
     def __init__(self, vlevel=0):
         # Miscellany:
         self._vlevel = vlevel
@@ -74,6 +76,10 @@ class FetchHorizEphem(object):
         # Storage config:
         self._fname_col = 'filename'
         self._drop_cols = ['targetname', 'datetime_str']
+        self._rename_cols = [   ('datetime_jd', 'jdtdb'),
+                                ('x', 'obs_x'), ('vx', 'obs_vx'),
+                                ('y', 'obs_y'), ('vy', 'obs_vy'),
+                                ('z', 'obs_z'), ('vz', 'obs_vz'),]
         return
 
     # ----------------------------------------------------
@@ -160,7 +166,9 @@ class FetchHorizEphem(object):
     def _update_eph_table(self, eph_table):
         # adjust/remove columns:
         new_table = eph_table.copy()
-        new_table.rename_column('datetime_jd', 'jdtdb')
+        #new_table.rename_column('datetime_jd', 'jdtdb')
+        for old_name,new_name in self._rename_cols:
+            new_table.rename_column(old_name, new_name)
         for cc in self._drop_cols:
             if cc in new_table.keys():
                 new_table.remove_column(cc)
@@ -182,15 +190,16 @@ class FetchHorizEphem(object):
 
 ## Convention for embedding ephemeris in FITS header:
 _hspec = [
-        ('OBS_TIME', 'jdtdb', 'mid-exposure JD (TDB)'),
-        ('OBS_POSX',     'x', '[AU] observer barycentric X position'),
-        ('OBS_POSY',     'y', '[AU] observer barycentric Y position'),
-        ('OBS_POSZ',     'z', '[AU] observer barycentric Z position'),
-        ('OBS_VELX',    'vx', '[AU/d] observer barycentric X velocity'),
-        ('OBS_VELY',    'vy', '[AU/d] observer barycentric Y velocity'),
-        ('OBS_VELZ',    'vz', '[AU/d] observer barycentric Z velocity'),
+        ('OBS_TIME',  'jdtdb', 'mid-exposure JD (TDB)'),
+        ('OBS_POSX',  'obs_x', '[AU] observer barycentric X position'),
+        ('OBS_POSY',  'obs_y', '[AU] observer barycentric Y position'),
+        ('OBS_POSZ',  'obs_z', '[AU] observer barycentric Z position'),
+        ('OBS_VELX', 'obs_vx', '[AU/d] observer barycentric X velocity'),
+        ('OBS_VELY', 'obs_vy', '[AU/d] observer barycentric Y velocity'),
+        ('OBS_VELZ', 'obs_vz', '[AU/d] observer barycentric Z velocity'),
     ]
 
+## Load and manipulate stored per-image HORIZONS ephemeris data:
 class EphTool(object):
 
     def __init__(self):
@@ -207,6 +216,8 @@ class EphTool(object):
         self._im_names = self._eph_data['filename'].tolist()
         return
 
+    # The following duplicates columns using different names to prevent
+    # problems with legacy code. To be removed some day. FIXME.
     @staticmethod
     def _column_tweaks(edata):
         tdata = append_fields(edata, 't', edata['jdtdb'], usemask=False)
