@@ -106,6 +106,15 @@ except ImportError:
     logger.error("failed to import extended_catalog module!")
     sys.exit(1)
 
+## HORIZONS ephemeris tools:
+try:
+    import jpl_eph_helpers
+    reload(jpl_eph_helpers)
+except ImportError:
+    logger.error("failed to import jpl_eph_helpers module!")
+    sys.exit(1)
+eee = jpl_eph_helpers.EphTool()
+
 ## Astrometry support routines:
 #try:
 #    import astrom_test
