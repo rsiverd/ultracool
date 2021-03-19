@@ -229,6 +229,16 @@ class EphTool(object):
         return self._eph_data.copy()[which]
         #return append_fields(tdata, 't', tdata['jdtdb'], usemask=False)
 
+    # Parse ephemeris data from header keywords:
+    @staticmethod
+    def eph_from_header(header):
+        result = {}
+        for hdrkey,ephkey,comment in _hspec:
+            obskey = 'obs_' + ephkey
+            result[ephkey] = header[hdrkey]
+            result[obskey] = header[hdrkey]
+        return result
+
     # Generage header keywords for injection into specific image:
     def make_header_keys(self, imname, as_basename=True):
         use_imname = os.path.basename(imname) if as_basename else imname
