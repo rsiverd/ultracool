@@ -203,7 +203,6 @@ class ExtendedCatalog(object):
 
     def get_imname(self):
         return self._imeta['iname']
-        #return self._imeta['INAME']
 
     def set_imname(self, iname):
         self._imeta['iname'] = iname
@@ -272,13 +271,17 @@ class ExtendedCatalog(object):
         return
 
     # Reload structure contents from FITS file:
-    def load_from_fits(self, filename):
+    def load_from_fits(self, filename, vers_warn=True):
         """Load extended catalog information from FITS file."""
 
         with pf.open(filename, mode='readonly') as hdulist:
             for hdu in hdulist[1:]:
                 logging.debug("hdu.name: %s" % hdu.name)
                 if (hdu.name == _EXT['cat']):
+                    if vers_warn and (hdu.header['ECVERS'] != __version__):
+                        sys.stderr.write("VERSION MISMATCH WARNING:\n"
+                            + "This EC version: %s\n" % __version__
+                            + "FITS EC version: %s\n" % hdu.header['ECVERS'])
                     cln_data = self._unfitsify_recarray(hdu.data)
                     self.set_catalog(cln_data) #.byteswap().newbyteorder())
                     self._imeta.update(self._meta_from_header(hdu.header))
