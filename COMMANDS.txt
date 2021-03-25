@@ -27,6 +27,10 @@
      -o  /home/rsiverd/ucd_project/ucd_targets/2m0415/sst_eph_2m0415.csv
 ./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/wise1828/ \
      -o  /home/rsiverd/ucd_project/ucd_targets/wise1828/sst_eph_wise1828.csv
+./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/J0212/ \
+     -o  /home/rsiverd/ucd_project/ucd_targets/wise1828/sst_eph_J0212.csv
+./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/J1832/ \
+     -o  /home/rsiverd/ucd_project/ucd_targets/wise1828/sst_eph_J1832.csv
 
 # ----------------------------------------------------------------------- 
 
@@ -130,6 +134,11 @@ done
 # rerun all AOR extraction:
 ./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/ --hcfix -W --overwrite
 ./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/ --clean -W --overwrite
+
+./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/wise1828/ --hcfix -W --overwrite
+./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/wise1828/ --clean -W --overwrite
+./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/2m0415/ --hcfix -W --overwrite
+./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/2m0415/ --clean -W --overwrite
 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
