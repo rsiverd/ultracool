@@ -85,19 +85,25 @@ targ_dir="$1"
 ## Permutation config:
 cat_suffixes=( fcat pcat mcat )
 image_flavors=( clean hcfix )
+irac_channels=( 1 2 )
 
 targname=`basename $targ_dir`
 echo "targname: $targname"
 
 for suff in ${cat_suffixes[*]}; do
    find $targ_dir/r* -type f -name "*${suff}*" | sort > $foo
+   #cat $foo
+   #exit
    for ppalg in ${image_flavors[*]}; do
-      echo -------
-      csave="${targname}_${ppalg}_${suff}.txt"
-      #grep 'clean.fits.fcat$' $foo > $csave
-      echo "csave: '$csave'"
-      grep "${ppalg}.fits.${suff}\$" $foo | head
-      grep "${ppalg}.fits.${suff}\$" $foo > $csave
+      grep "${ppalg}.fits.${suff}\$" $foo > $bar
+      for ichan in ${irac_channels[*]}; do
+         echo -------
+         chtag="SPITZER_I${ichan}"
+         csave="${targname}_${chtag}_${ppalg}_${suff}.txt"
+         echo "csave: '$csave'"
+         grep "$chtag" $bar | head
+         grep "$chtag" $bar > $csave
+      done
    done
 done
 
