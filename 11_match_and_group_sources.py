@@ -10,7 +10,7 @@
 #
 # Rob Siverd
 # Created:       2021-03-09
-# Last modified: 2021-03-10
+# Last modified: 2021-03-23
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -249,7 +249,8 @@ if __name__ == '__main__':
                           formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
     #parser.set_defaults(thing1='value1', thing2='value2')
-    parser.set_defaults(gaia_tol_arcsec=3.0)
+    #parser.set_defaults(gaia_tol_arcsec=3.0)
+    parser.set_defaults(gaia_tol_arcsec=2.0)
     parser.set_defaults(target_param_files=[])
     # ------------------------------------------------------------------
     #parser.add_argument('firstpos', help='first positional argument')
@@ -314,6 +315,14 @@ if __name__ == '__main__':
 if not context.target_param_files:
     logger.error("No targets specified!")
     sys.exit(1)
+
+##--------------------------------------------------------------------------##
+##------------------       miscellaneous helper routines    ----------------##
+##--------------------------------------------------------------------------##
+
+## Handy routine to append scalar quantities to existing record/recarray:
+def scalar_append(recarray, colname, colvalue):
+    return append_fields(recarray, colname, np.array([colvalue]), usemask=False)
 
 ##--------------------------------------------------------------------------##
 ##------------------       load target 5-parameter guess    ----------------##
@@ -476,6 +485,7 @@ for ci,extcat in enumerate(cdata, 1):
     ccat = extcat.get_catalog()
     #cat_jd = jdutc[ci]
     jd_info = {'jd':jdutc[ci-1], 'iname':extcat.get_imname()}
+    this_imname = extcat.get_imname()
     for gi,(gix, gsrc) in enumerate(use_gaia.iterrows(), 1):
         #sys.stderr.write("Checking Gaia source %d of %d ... " % (gi, n_useful))
         sep_sec = 3600.0 * angle.dAngSep(gsrc.ra, gsrc.dec,
@@ -496,9 +506,15 @@ for ci,extcat in enumerate(cdata, 1):
             #sys.stderr.write("sepcheck: %.4f\n" % sepcheck)
             nearest = hit_sep.argmin()
             m_info = {}
+            #sep_asec = np.array([hit_sep[nearest]])
+            #cat_data = np.atleast_1d(hit_cat[nearest])
+            #cat_data = scalar_append(cat_data, 'sep', hit_sep[nearest])
+            #cat_data = scalar_append(cat_data, 'iname', this_imname)
+            #cat_data = append_fields(cat_data, 'sep', sep_asec, usemask=False)
             m_info.update(jd_info)
             m_info['sep'] = hit_sep[nearest]
             m_info['cat'] = hit_cat[nearest]
+            #m_info['cat'] = cat_data
             #import pdb; pdb.set_trace()
             #sys.exit(1)
             gmatches[gsrc.source_id].append(m_info)
@@ -585,13 +601,130 @@ for ii,gid in enumerate(gmatches.keys(), 1):
 sys.stderr.write("done.\n")
 gtg_npts = {gg:len(cc) for gg,cc in gtargets.items()}
 npts_100 = [gg for gg,nn in gtg_npts.items() if nn>100]
+gid_list = sorted(gtg_npts.keys())
+
+##--------------------------------------------------------------------------##
+## Saving the match count:
+save_count = False
+if save_count:
+    savefile = os.path.basename(context.cat_list) + '.npts'
+    sys.stderr.write("Saving data point count to: %s\n" % savefile)
+    with open(savefile, 'w') as f:
+        for gg in gid_list:
+            f.write("%d %d\n" % (gg, gtg_npts[gg]))
+            pass
+        pass
+
+##--------------------------------------------------------------------------##
+## Gaia source data for matched stars:
+gaia_full = gm._srcdata
+gaia_hits = gaia_full[gaia_full['source_id'].isin(npts_100)]
+
+## Look at star brightnesses:
+
+gaia_bands = ['g', 'bp', 'rp']
+bp_columns = ['phot_%s_mean_mag'%b for b in gaia_bands]
+#for bb in gaia_bands:
+
+##--------------------------------------------------------------------------##
+## Dictify gaia astrometric parameters:
+def dictify_gaia(params):
+    use_keys = ['ref_epoch', 'ra', 'ra_error', 'dec', 'dec_error', 
+            'parallax', 'parallax_error', 'parallax_over_error',
+            'pmra', 'pmra_error', 'pmdec', 'pmdec_error']
+    return {kk:np.atleast_1d(params[kk])[0] for kk in use_keys}
+
+## Evaluate gaia ephem:
+def eval_gaia(jdtdb, pars):
+    ref_epoch = pars['ref_epoch']
+    if (ref_epoch != 2015.5):
+        sys.stderr.write("Unhandled Gaia epoch: %f\n" % ref_epoch)
+        raise
+    gpoch = astt.Time(2457206.375, format='jd', scale='tcb')
+    tdiff = astt.Time(jdtdb, format='jd', scale='tdb') - gpoch
+    years = tdiff.jd / 365.25
+    use_pmra = pars['pmra'] / np.cos(np.radians(pars['dec']))
+    calc_ra = pars['ra'] + (years * use_pmra / 3.6e6)
+    calc_de = pars['dec'] + (years * pars['pmdec'] / 3.6e6)
+    return (calc_ra, calc_de)
+
+## Save data for external plotting:
+save_dir = 'pdata'
+#if not os.path.isdir(save_dir):
+#    os.mkdir(save_dir)
+
+## This third version allows the user to specify keyword choice/order if
+## desired but defaults to the keys provided in the first dictionary.
+def recarray_from_dicts(list_of_dicts, use_keys=None):
+    keys = use_keys if use_keys else list_of_dicts[0].keys()
+    data = [np.array([d[k] for d in list_of_dicts]) for k in keys]
+    return np.core.records.fromarrays(data, names=','.join(keys))
+
+## Per-image storage of x,y and residuals:
+resid_data = {cc.get_imname():[] for cc in cdata}
+
+j2000_epoch = astt.Time('2000-01-01T12:00:00', scale='tt', format='isot')
+for gid in npts_100:
+    sys.stderr.write("gid: %d\n" % gid)
+    gdata = gtargets[gid]   # all measurements for this gaia source
+    tjd = astt.Time(gdata['jdtdb'], format='jd', scale='tdb')
+    gpars = use_gaia[use_gaia.source_id == gid]
+    dpars = dictify_gaia(gpars)
+    gaia_ra, gaia_de = eval_gaia(tjd, dpars)
+    cos_dec = np.cos(np.radians(dpars['dec']))
+    delta_ra_mas = 3.6e6 * (gdata['wdra'] - gaia_ra)
+    delta_de_mas = 3.6e6 * (gdata['wdde'] - gaia_de) * cos_dec
+    year = 2000. + ((tjd.tt.jd - j2000_epoch.tt.jd) / 365.25)
+    for iname,xpix,ypix,rmiss,dmiss in zip(gdata['iname'],
+            gdata['x'], gdata['y'], delta_ra_mas, delta_de_mas):
+        resid_data[iname].append({'x':xpix, 'y':ypix,
+            'ra_err':rmiss, 'de_err':dmiss})
+
+## Promote dictionary lists to recarrays:
+resid_data = {kk:recarray_from_dicts(vv) for kk,vv in resid_data.items()}
+
+##--------------------------------------------------------------------------##
+#import matplotlib.pyplot as plt
+#
+##fig = plt.figure(3)
+##fig.clf()
+#plt.gcf().clf()
+#fig, axs = plt.subplots(2, 3, sharex=True, num=3)
+#for ii,cc in enumerate(bp_columns):
+#    axs[0, ii].hist(gaia_hits[cc], bins=20, range=(10,25))
+#for ii,cc in enumerate(bp_columns):
+#    axs[1, ii].hist(gaia_full[cc], bins=20, range=(10,25))
+
+##--------------------------------------------------------------------------##
+sys.exit(0)
+import matplotlib.pyplot as plt
+
+fig = plt.figure(3)
+total = len(resid_data)
+for ii,(imname,iresid) in enumerate(resid_data.items(), 1):
+    sys.stderr.write("%s (image %d of %d) ...   \n" % (imname, ii, total))
+    fig.clf()
+    ax1 = fig.add_subplot(111, aspect='equal')
+    ax1.grid(True)
+    #ax1.scatter(iresid['x'], iresid['y'])
+    ax1.quiver(iresid['x'], iresid['y'], iresid['ra_err'], iresid['de_err'])
+    ax1.set_xlim(0, 260)
+    ax1.set_ylim(0, 260)
+    fig.tight_layout()
+    plt.draw()
+    sys.stderr.write("press ENTER to continue ...\n")
+    response = input()
+    #break
 
 
 ##--------------------------------------------------------------------------##
 
-##--------------------------------------------------------------------------##
 
 ##--------------------------------------------------------------------------##
+
+
+##--------------------------------------------------------------------------##
+
 
 ##--------------------------------------------------------------------------##
 
