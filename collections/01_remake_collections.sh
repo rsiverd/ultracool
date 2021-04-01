@@ -12,7 +12,7 @@
 
 ## Default options:
 debug=0 ; clobber=0 ; force=0 ; timer=0 ; vlevel=0
-script_version="0.20"
+script_version="0.25"
 this_prog="${0##*/}"
 #shopt -s nullglob
 # Propagate errors through pipelines: set -o pipefail
@@ -106,6 +106,11 @@ for suff in ${cat_suffixes[*]}; do
       done
    done
 done
+
+## Make an 'everything' file:
+everything="all_files_${targname}.txt"
+cat ${targname}_*.txt | sort -u > $everything
+cmde "wc -l $everything"
 
 ##--------------------------------------------------------------------------##
 ## Clean up:
