@@ -8,7 +8,7 @@
 #
 # Rob Siverd
 # Created:       2019-10-12
-# Last modified: 2021-03-18
+# Last modified: 2021-04-01
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 ## Python version-agnostic module reloading:
 try:
@@ -165,8 +165,11 @@ _imtypes = {
 ## Ephemeris contents:
 _EPH_KEYS = ('jdtdb', 'obs_x', 'obs_y', 'obs_z', 'obs_vx', 'obs_vy', 'obs_vz')
 
+## Gaia match keywords:
+_GAIA_KEYS = ['gmatches', 'gradelta', 'grasigma', 'gdedelta', 'gdesigma']
+
 ## List of allowed metadata keywords and ordering:
-_META_KEYS = ['ecvers', 'iname', 'uname', *_EPH_KEYS]
+_META_KEYS = ['ecvers', 'iname', 'uname', *_EPH_KEYS, *_GAIA_KEYS]
 #_META_KEYS = [x.upper() for x in _META_KEYS]
 
 ## Container class:
