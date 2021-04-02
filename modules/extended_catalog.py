@@ -288,6 +288,7 @@ class ExtendedCatalog(object):
             logging.warning("data missing, output not saved!")
             return
         self._imeta['savedate'] = self._current_timestamp()
+        self._imeta['ecvers'] = __version__
         hdu_list = pf.HDUList([pf.PrimaryHDU()])
         hdu_list.append(self._make_catalog_hdu())
         if isinstance(self._imhdr, pf.Header):
