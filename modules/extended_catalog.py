@@ -302,6 +302,7 @@ class ExtendedCatalog(object):
     def load_from_fits(self, filename, vers_warn=True):
         """Load extended catalog information from FITS file."""
 
+        self._imeta = {}
         with pf.open(filename, mode='readonly') as hdulist:
             for hdu in hdulist[1:]:
                 logging.debug("hdu.name: %s" % hdu.name)
