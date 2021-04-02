@@ -99,12 +99,19 @@ done
 %run ./slice_and_dice.py -C collections/wise1828_clean_fcat.txt -g csv/gaia_wise1828.csv
 %run ./slice_and_dice.py -C collections/wise1828_clean_pcat.txt -g csv/gaia_wise1828.csv
 
+# 2m0415, ch1 variants:
 %run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
-      -C collections/2m0415_clean_fcat.txt -o process/2m0415_fcat.pickle
+      -C collections/2m0415_SPITZER_I1_clean_fcat.txt -o process/2m0415_fcat.pickle
 %run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
-      -C collections/2m0415_clean_pcat.txt -o process/2m0415_pcat.pickle
+      -C collections/2m0415_SPITZER_I1_clean_pcat.txt -o process/2m0415_pcat.pickle
 %run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
-      -C collections/2m0415_clean_mcat.txt -o process/2m0415_mcat.pickle
+      -C collections/2m0415_SPITZER_I1_clean_mcat.txt -o process/2m0415_mcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
+      -C collections/2m0415_SPITZER_I2_clean_fcat.txt -o process/2m0415_fcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
+      -C collections/2m0415_SPITZER_I2_clean_pcat.txt -o process/2m0415_pcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
+      -C collections/2m0415_SPITZER_I2_clean_mcat.txt -o process/2m0415_mcat.pickle
 
 %run ./11_match_and_group_sources.py -G csv/gaia_wise1828.csv \
       -C collections/wise1828_clean_fcat.txt -o process/wise1828_fcat.pickle
@@ -140,6 +147,11 @@ done
 ./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/2m0415/ --hcfix -W --overwrite
 ./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/2m0415/ --clean -W --overwrite
 
+## After extraction, fix WCS zero-point errors in-place:
+./08_inplace_fix_WCS_offsets.py -C collections/all_files_2m0415.txt -G csv/gaia_2m0415.csv
+./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise1828.txt -G csv/gaia_wise1828.csv
+
+
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
@@ -167,4 +179,10 @@ cd collections
 # ancillary stuff:
 
 ./compare_distortion.py -i ~/ucd_project/ucd_sha_data/SPITZER_I2_61246976_0004_0000_1_cbcd.fits
+
+
+# Gaia nudge testing:
+./nudge_wcs_test.py -G csv/gaia_2m0415.csv \
+   -C /home/rsiverd/ucd_project/ucd_targets/2m0415/r49754880/SPITZER_I1_49754880_0006_0000_2_clean.fits.fcat
+
 
