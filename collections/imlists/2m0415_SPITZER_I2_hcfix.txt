@@ -1,3 +1,8 @@
+/home/rsiverd/ucd_project/ucd_targets/2m0415/r3954944/SPITZER_I2_3954944_0011_0000_7_hcfix.fits
+/home/rsiverd/ucd_project/ucd_targets/2m0415/r3954944/SPITZER_I2_3954944_0013_0000_7_hcfix.fits
+/home/rsiverd/ucd_project/ucd_targets/2m0415/r3954944/SPITZER_I2_3954944_0015_0000_7_hcfix.fits
+/home/rsiverd/ucd_project/ucd_targets/2m0415/r3954944/SPITZER_I2_3954944_0017_0000_7_hcfix.fits
+/home/rsiverd/ucd_project/ucd_targets/2m0415/r3954944/SPITZER_I2_3954944_0019_0000_7_hcfix.fits
 /home/rsiverd/ucd_project/ucd_targets/2m0415/r17576448/SPITZER_I2_17576448_0001_0000_6_hcfix.fits
 /home/rsiverd/ucd_project/ucd_targets/2m0415/r17576448/SPITZER_I2_17576448_0002_0000_6_hcfix.fits
 /home/rsiverd/ucd_project/ucd_targets/2m0415/r17576448/SPITZER_I2_17576448_0003_0000_6_hcfix.fits
@@ -38,11 +43,6 @@
 /home/rsiverd/ucd_project/ucd_targets/2m0415/r17577216/SPITZER_I2_17577216_0008_0000_6_hcfix.fits
 /home/rsiverd/ucd_project/ucd_targets/2m0415/r17577216/SPITZER_I2_17577216_0009_0000_6_hcfix.fits
 /home/rsiverd/ucd_project/ucd_targets/2m0415/r17577216/SPITZER_I2_17577216_0010_0000_6_hcfix.fits
-/home/rsiverd/ucd_project/ucd_targets/2m0415/r3954944/SPITZER_I2_3954944_0011_0000_7_hcfix.fits
-/home/rsiverd/ucd_project/ucd_targets/2m0415/r3954944/SPITZER_I2_3954944_0013_0000_7_hcfix.fits
-/home/rsiverd/ucd_project/ucd_targets/2m0415/r3954944/SPITZER_I2_3954944_0015_0000_7_hcfix.fits
-/home/rsiverd/ucd_project/ucd_targets/2m0415/r3954944/SPITZER_I2_3954944_0017_0000_7_hcfix.fits
-/home/rsiverd/ucd_project/ucd_targets/2m0415/r3954944/SPITZER_I2_3954944_0019_0000_7_hcfix.fits
 /home/rsiverd/ucd_project/ucd_targets/2m0415/r44717824/SPITZER_I2_44717824_0001_0000_2_hcfix.fits
 /home/rsiverd/ucd_project/ucd_targets/2m0415/r44717824/SPITZER_I2_44717824_0002_0000_2_hcfix.fits
 /home/rsiverd/ucd_project/ucd_targets/2m0415/r44717824/SPITZER_I2_44717824_0003_0000_2_hcfix.fits
