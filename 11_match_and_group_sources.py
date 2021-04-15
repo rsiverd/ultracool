@@ -10,7 +10,7 @@
 #
 # Rob Siverd
 # Created:       2021-03-09
-# Last modified: 2021-03-23
+# Last modified: 2021-04-13
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -106,14 +106,14 @@ except ImportError:
     logger.error("failed to import extended_catalog module!")
     sys.exit(1)
 
-## HORIZONS ephemeris tools:
-try:
-    import jpl_eph_helpers
-    reload(jpl_eph_helpers)
-except ImportError:
-    logger.error("failed to import jpl_eph_helpers module!")
-    sys.exit(1)
-eee = jpl_eph_helpers.EphTool()
+### HORIZONS ephemeris tools:
+#try:
+#    import jpl_eph_helpers
+#    reload(jpl_eph_helpers)
+#except ImportError:
+#    logger.error("failed to import jpl_eph_helpers module!")
+#    sys.exit(1)
+#eee = jpl_eph_helpers.EphTool()
 
 ## Astrometry support routines:
 #try:
@@ -250,6 +250,7 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------
     #parser.set_defaults(thing1='value1', thing2='value2')
     #parser.set_defaults(gaia_tol_arcsec=3.0)
+    parser.set_defaults(min_src_hits=3)
     parser.set_defaults(gaia_tol_arcsec=2.0)
     parser.set_defaults(target_param_files=[])
     # ------------------------------------------------------------------
@@ -323,6 +324,14 @@ if not context.target_param_files:
 ## Handy routine to append scalar quantities to existing record/recarray:
 def scalar_append(recarray, colname, colvalue):
     return append_fields(recarray, colname, np.array([colvalue]), usemask=False)
+
+## How to repackage matched data points:
+def repack_matches(match_infos):
+    ccat = np.vstack([x['cat'] for x in match_infos])
+    jtmp = np.array([x['jd'] for x in match_infos])
+    itmp = np.array([x['iname'] for x in match_infos])
+    return append_fields(ccat, ('jdutc', 'iname'), (jtmp, itmp), usemask=False)
+
 
 ##--------------------------------------------------------------------------##
 ##------------------       load target 5-parameter guess    ----------------##
@@ -439,6 +448,110 @@ every_jdutc = np.concatenate([n*[jd] for n,jd in zip(n_sources, jdutc)])
 gc.collect()
 
 ##--------------------------------------------------------------------------##
+##-----------------     Reasonably Complete Source List    -----------------##
+##--------------------------------------------------------------------------##
+
+#rfile = 'nifty.reg'
+#r_sec = 2.0
+#with open(rfile, 'w') as f:
+#    r_deg = r_sec / 3600.0
+#    for rr,dd in zip(every_dra, every_dde):
+#        f.write("fk5; circle(%10.6fd, %10.6fd, %.6fd)\n" % (rr,dd, r_deg))
+
+## Use most populous catalog as 'master' source list (simple):
+master_list = cdata[n_sources.argmax()].get_catalog()
+n_master = len(master_list)
+
+## Create identifiers based on coordinates:
+def make_coo_string(dra, dde):
+    return '%.7f%+.7f' % (dra, dde)
+
+master_cc_string = [make_coo_string(rr,dd) for rr,dd in \
+                        zip(master_list[_ra_key], master_list[_de_key])]
+#master_ra_string = ['%.7f'%x for x in master_list[_ra_key]]
+#master_de_string = ['%+.7f'%x for x in master_list[_de_key]]
+#master_cc_string = [x+y for x,y in zip(master_ra_string, master_de_string)]
+
+#sys.stderr.write("Looking for repeating sources ... \n")
+#tik = time.time()
+#for rtrial,dtrial in zip(every_dra, every_dde):
+#    sep_sec = 3600.0 * angle.dAngSep(rtrial, dtrial, every_dra, every_dde)
+#    matches = sep_sec <= context.gaia_tol_arcsec
+#tok = time.time()
+#sys.stderr.write("Each-against-all took %.3f sec\n" % (tok-tik))
+
+## In first pass, count matches to each ID:
+sys.stderr.write("Checking which master list sources are used ...\n")
+tik = time.time()
+scounter = {x:0 for x in master_cc_string}
+for ii,(_ra,_de) in enumerate(zip(master_list[_ra_key], 
+                                    master_list[_de_key]), 1):
+    sys.stderr.write("\rChecking ML source %d of %d ... " % (ii, n_master))
+    mlid = make_coo_string(_ra, _de)
+    sep_sec = 3600. * angle.dAngSep(_ra, _de, every_dra, every_dde)
+    scounter[mlid] += np.sum(sep_sec <= context.gaia_tol_arcsec)
+tok = time.time()
+sys.stderr.write("done. (%.3f s)\n" % (tok-tik))
+gc.collect()
+
+
+## Self-associate sources:
+sys.stderr.write("Self-associating catalog objects:\n")
+tik = time.time()
+smatches = {x:[] for x in master_cc_string}
+for ci,extcat in enumerate(cdata, 1):
+    sys.stderr.write("\rChecking image %d of %d ... " % (ci, len(cdata)))
+    ccat = extcat.get_catalog()
+    jd_info = {'jd':jdutc[ci-1], 'iname':extcat.get_imname()}
+    this_imname = extcat.get_imname()
+    for mltarg in master_list:
+        _ra, _de = mltarg[_ra_key], mltarg[_de_key]
+        mlid = make_coo_string(_ra, _de)
+        sep_sec = 3600.0 * angle.dAngSep(_ra, _de, ccat[_ra_key], ccat[_de_key])
+        matches = sep_sec <= context.gaia_tol_arcsec
+        nhits = np.sum(matches)
+        if (nhits == 0):
+            #sys.stderr.write("no match!\n")
+            continue
+        else:
+            #sys.stderr.write("got %d match(es).  " % nhits)
+            hit_sep = sep_sec[matches]
+            hit_cat = ccat[matches]
+            #sepcheck = 3600.0 * angle.dAngSep(_ra, _de,
+            #        hit_cat[_ra_key], hit_cat[_de_key])
+            #sys.stderr.write("sepcheck: %.4f\n" % sepcheck)
+            nearest = hit_sep.argmin()
+            m_info = {}
+            #sep_asec = np.array([hit_sep[nearest]])
+            #cat_data = np.atleast_1d(hit_cat[nearest])
+            #cat_data = scalar_append(cat_data, 'sep', hit_sep[nearest])
+            #cat_data = scalar_append(cat_data, 'iname', this_imname)
+            #cat_data = append_fields(cat_data, 'sep', sep_asec, usemask=False)
+            m_info.update(jd_info)
+            m_info['sep'] = hit_sep[nearest]
+            m_info['cat'] = hit_cat[nearest]
+            #m_info['cat'] = cat_data
+            #import pdb; pdb.set_trace()
+            #sys.exit(1)
+            smatches[mlid].append(m_info)
+    pass
+tok = time.time()
+sys.stderr.write("done. (%.3f s)\n" % (tok-tik))
+gc.collect()
+
+## Collect data sets by Gaia source for analysis:
+stargets = {}
+for ii,sid in enumerate(smatches.keys(), 1):
+    sys.stderr.write("\rGathering ML source %d of %d ..." % (ii, n_master))
+    stargets[sid] = repack_matches(smatches[sid])
+sys.stderr.write("done.\n")
+stg_npts = {ss:len(cc) for ss,cc in stargets.items()}
+#npts_100 = [gg for gg,nn in gtg_npts.items() if nn>100]
+#gid_list = sorted(gtg_npts.keys())
+
+#sys.exit(0)
+
+##--------------------------------------------------------------------------##
 ##-----------------   Cross-Match to Gaia, Extract Target  -----------------##
 ##--------------------------------------------------------------------------##
 
@@ -458,8 +571,8 @@ sys.stderr.write("done. (%.3f s)\n" % (tok-tik))
 gc.collect()
 
 ## Collect subset of useful Gaia objects:
-need_srcs = 3
-useful_ids = [kk for kk,vv in gcounter.items() if vv>need_srcs]
+#need_srcs = 3
+useful_ids = [kk for kk,vv in gcounter.items() if vv>context.min_src_hits]
 use_gaia = gm._srcdata[gm._srcdata.source_id.isin(useful_ids)]
 n_useful = len(use_gaia)
 sys.stderr.write("Found possible matches to %d of %d Gaia sources.\n"
@@ -584,11 +697,11 @@ if not tgt_data:
 ##--------------------------------------------------------------------------##
 
 ## How to repackage matched data points:
-def repack_matches(match_infos):
-    ccat = np.vstack([x['cat'] for x in match_infos])
-    jtmp = np.array([x['jd'] for x in match_infos])
-    itmp = np.array([x['iname'] for x in match_infos])
-    return append_fields(ccat, ('jdutc', 'iname'), (jtmp, itmp), usemask=False)
+#def repack_matches(match_infos):
+#    ccat = np.vstack([x['cat'] for x in match_infos])
+#    jtmp = np.array([x['jd'] for x in match_infos])
+#    itmp = np.array([x['iname'] for x in match_infos])
+#    return append_fields(ccat, ('jdutc', 'iname'), (jtmp, itmp), usemask=False)
 
 ## Collect and export target data set:
 tgt_ccat = repack_matches(tgt_data)
@@ -602,6 +715,16 @@ sys.stderr.write("done.\n")
 gtg_npts = {gg:len(cc) for gg,cc in gtargets.items()}
 npts_100 = [gg for gg,nn in gtg_npts.items() if nn>100]
 gid_list = sorted(gtg_npts.keys())
+
+##--------------------------------------------------------------------------##
+##------------------    Export Grouped Data for Analysis    ----------------##
+##--------------------------------------------------------------------------##
+
+sys.stderr.write("Saving groupings to file: %s\n" % context.output_file)
+with open(context.output_file, 'wb') as of:
+    pickle.dump((tgt_ccat, stargets, gtargets), of)
+
+sys.exit(0)
 
 ##--------------------------------------------------------------------------##
 ## Saving the match count:
