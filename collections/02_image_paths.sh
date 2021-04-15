@@ -1,6 +1,7 @@
 #!/bin/bash
 #
 # Make lists of processed images corresponding to the various catalog sets.
+# For convenience, image files are sorted by observation date.
 #
 # Rob Siverd
 # Created:      2021-04-12
@@ -11,7 +12,7 @@
 
 ## Default options:
 debug=0 ; clobber=0 ; force=0 ; timer=0 ; vlevel=0
-script_version="0.01"
+script_version="0.10"
 this_prog="${0##*/}"
 #shopt -s nullglob
 # Propagate errors through pipelines: set -o pipefail
@@ -32,8 +33,8 @@ tmp_dir="$tmp_root"
 #mkdir -p $tmp_dir
 foo="$tmp_dir/foo_$$.txt"
 bar="$tmp_dir/bar_$$.txt"
-baz="$tmp_dir/baz_$$.fits"
-qux="$tmp_dir/qux_$$.fits"
+baz="$tmp_dir/baz_$$.txt"
+qux="$tmp_dir/qux_$$.txt"
 jnk="$foo $bar $baz $qux"  # working copy
 def_jnk="$jnk"             # original set
 dir_cleanup='(echo -e "\nAutomatic clean up ... " ; cmde "rm -vrf $tmp_dir")'
@@ -46,7 +47,7 @@ trap "$jnk_cleanup >&2" EXIT
 
 ## Required programs:
 declare -a need_exec
-need_exec+=( awk cat FuncDef sed tr )
+need_exec+=( awk cat FuncDef imhget sed tr )
 #need_exec+=( shuf shuffle sort ) # for randomization
 for need in ${need_exec[*]}; do
    if ! ( /usr/bin/which $need >& /dev/null ); then
@@ -93,16 +94,22 @@ for cfile in ${cat_lists[*]}; do
    ifile="$imdir/${cfile%_pcat.txt}.txt"
    echo "ifile: $ifile"
    sed 's/\.pcat$//' $cfile > $foo
-   cmde "mv -f $foo $ifile" || exit $?
+   cmde "imhget -l $foo DATE-OBS DATE_OBS -o $bar" || exit $?
+   #cmde "cat $bar"
+   sed 's/___//' $bar | sort -k2 | awk '{ print $1 }' > $baz
+   #cmde "cat $baz"
+   #exit
+   #cmde "mv -f $foo $ifile" || exit $?
+   cmde "mv -f $baz $ifile" || exit $?
 done
 
 ##--------------------------------------------------------------------------##
 ## Clean up:
 #[ -d $tmp_dir ] && [ -O $tmp_dir ] && rm -rf $tmp_dir
 [ -f $foo ] && rm -f $foo
-#[ -f $bar ] && rm -f $bar
-#[ -f $baz ] && rm -f $baz
-#[ -f $qux ] && rm -f $qux
+[ -f $bar ] && rm -f $bar
+[ -f $baz ] && rm -f $baz
+[ -f $qux ] && rm -f $qux
 exit 0
 
 ######################################################################
@@ -110,6 +117,6 @@ exit 0
 #---------------------------------------------------------------------
 #
 #  2021-04-12:
-#     -- Increased script_version to 0.01.
+#     -- Increased script_version to 0.10.
 #     -- First created 02_image_paths.sh.
 #
