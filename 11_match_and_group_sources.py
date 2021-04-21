@@ -262,6 +262,8 @@ if __name__ == '__main__':
     iogroup = parser.add_argument_group('File I/O')
     iogroup.add_argument('-C', '--cat_list', default=None, required=True,
             help='ASCII file with list of catalog paths in column 1')
+    iogroup.add_argument('-D', '--det_list', default=None, required=True,
+            help='ASCII file with master detections list', type=str)
     iogroup.add_argument('-G', '--gaia_csv', default=None, required=True,
             help='CSV file with Gaia source list', type=str)
     iogroup.add_argument('-T', '--targfile', required=False,
@@ -376,6 +378,16 @@ def corrected_targpos(tpars, obstime):
 #sys.exit(0)
 
 ##--------------------------------------------------------------------------##
+##------------------       load master detections list      ----------------##
+##--------------------------------------------------------------------------##
+
+sys.stderr.write("Loading detections list ... ")
+gftkw = {'encoding':None} if (_have_np_vers >= 1.14) else {}
+gftkw.update({'names':True, 'autostrip':True})
+det_data = np.genfromtxt(context.det_list, dtype=None, **gftkw)
+sys.stderr.write("done.\n")
+
+##--------------------------------------------------------------------------##
 ##------------------          catalog config (FIXME)        ----------------##
 ##--------------------------------------------------------------------------##
 
@@ -459,15 +471,15 @@ gc.collect()
 #        f.write("fk5; circle(%10.6fd, %10.6fd, %.6fd)\n" % (rr,dd, r_deg))
 
 ## Use most populous catalog as 'master' source list (simple):
-master_list = cdata[n_sources.argmax()].get_catalog()
-n_master = len(master_list)
-
-## Create identifiers based on coordinates:
-def make_coo_string(dra, dde):
-    return '%.7f%+.7f' % (dra, dde)
-
-master_cc_string = [make_coo_string(rr,dd) for rr,dd in \
-                        zip(master_list[_ra_key], master_list[_de_key])]
+#master_list = cdata[n_sources.argmax()].get_catalog()
+#n_master = len(master_list)
+#
+### Create identifiers based on coordinates:
+#def make_coo_string(dra, dde):
+#    return '%.7f%+.7f' % (dra, dde)
+#
+#master_cc_string = [make_coo_string(rr,dd) for rr,dd in \
+#                        zip(master_list[_ra_key], master_list[_de_key])]
 #master_ra_string = ['%.7f'%x for x in master_list[_ra_key]]
 #master_de_string = ['%+.7f'%x for x in master_list[_de_key]]
 #master_cc_string = [x+y for x,y in zip(master_ra_string, master_de_string)]
@@ -483,30 +495,33 @@ master_cc_string = [make_coo_string(rr,dd) for rr,dd in \
 ## In first pass, count matches to each ID:
 sys.stderr.write("Checking which master list sources are used ...\n")
 tik = time.time()
-scounter = {x:0 for x in master_cc_string}
-for ii,(_ra,_de) in enumerate(zip(master_list[_ra_key], 
-                                    master_list[_de_key]), 1):
-    sys.stderr.write("\rChecking ML source %d of %d ... " % (ii, n_master))
-    mlid = make_coo_string(_ra, _de)
-    sep_sec = 3600. * angle.dAngSep(_ra, _de, every_dra, every_dde)
-    scounter[mlid] += np.sum(sep_sec <= context.gaia_tol_arcsec)
+n_detect = len(det_data)
+scounter = {x:0 for x in det_data['srcid']}
+for ii,sdata in enumerate(det_data, 1):
+    sys.stderr.write("\rChecking detection %d of %d ... " % (ii, n_detect))
+    sep_sec = 3600. * angle.dAngSep(sdata['dra'], sdata['dde'],
+                                            every_dra, every_dde)
+    scounter[sdata['srcid']] += np.sum(sep_sec <= context.gaia_tol_arcsec)
 tok = time.time()
 sys.stderr.write("done. (%.3f s)\n" % (tok-tik))
 gc.collect()
 
+## Collect subset of useful detections:
+useful = np.array([scounter[x]>context.min_src_hits for x in det_data['srcid']])
+use_dets = det_data[useful]
 
 ## Self-associate sources:
-sys.stderr.write("Self-associating catalog objects:\n")
+sys.stderr.write("Associating catalog objects:\n")
 tik = time.time()
-smatches = {x:[] for x in master_cc_string}
+smatches = {x:[] for x in use_dets['srcid']}
 for ci,extcat in enumerate(cdata, 1):
     sys.stderr.write("\rChecking image %d of %d ... " % (ci, len(cdata)))
     ccat = extcat.get_catalog()
     jd_info = {'jd':jdutc[ci-1], 'iname':extcat.get_imname()}
     this_imname = extcat.get_imname()
-    for mltarg in master_list:
-        _ra, _de = mltarg[_ra_key], mltarg[_de_key]
-        mlid = make_coo_string(_ra, _de)
+    for dobj in use_dets:
+        _ra, _de = dobj['dra'], dobj['dde']
+        mlid = dobj['srcid']
         sep_sec = 3600.0 * angle.dAngSep(_ra, _de, ccat[_ra_key], ccat[_de_key])
         matches = sep_sec <= context.gaia_tol_arcsec
         nhits = np.sum(matches)
@@ -542,7 +557,7 @@ gc.collect()
 ## Collect data sets by Gaia source for analysis:
 stargets = {}
 for ii,sid in enumerate(smatches.keys(), 1):
-    sys.stderr.write("\rGathering ML source %d of %d ..." % (ii, n_master))
+    sys.stderr.write("\rGathering ML source %d of %d ..." % (ii, len(use_dets)))
     stargets[sid] = repack_matches(smatches[sid])
 sys.stderr.write("done.\n")
 stg_npts = {ss:len(cc) for ss,cc in stargets.items()}
@@ -795,8 +810,8 @@ for gid in npts_100:
     dpars = dictify_gaia(gpars)
     gaia_ra, gaia_de = eval_gaia(tjd, dpars)
     cos_dec = np.cos(np.radians(dpars['dec']))
-    delta_ra_mas = 3.6e6 * (gdata['wdra'] - gaia_ra)
-    delta_de_mas = 3.6e6 * (gdata['wdde'] - gaia_de) * cos_dec
+    delta_ra_mas = 3.6e6 * (gdata['wdra'] - gaia_ra) * cos_dec
+    delta_de_mas = 3.6e6 * (gdata['wdde'] - gaia_de)
     year = 2000. + ((tjd.tt.jd - j2000_epoch.tt.jd) / 365.25)
     for iname,xpix,ypix,rmiss,dmiss in zip(gdata['iname'],
             gdata['x'], gdata['y'], delta_ra_mas, delta_de_mas):
