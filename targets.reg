@@ -2,3 +2,4 @@ fk5; annulus( 63.83208333d,  -9.58497222d, 0.0015d, 0.0005d) # color=red text={2
 fk5; annulus(277.12595833d,  26.84355556d, 0.0015d, 0.0005d) # color=red text={WISE1828}
 fk5; annulus( 33.18145833d,   5.52977778d, 0.0015d, 0.0005d) # color=red text={J021243}
 fk5; annulus(278.03308333d, -54.16202778d, 0.0015d, 0.0005d) # color=red text={J183207}
+fk5; annulus(194.34220560d,  71.89425280d, 0.0015d, 0.0005d) # color=red text={WISE1257}
