@@ -12,14 +12,16 @@
       -f manifest_J1832.txt
 ./fetch_sha_data.py -t targets/wise1828.txt -o ~/ucd_project/ucd_targets/wise1828 \
       -f manifest_wise1828.txt
+./fetch_sha_data.py -t targets/wise1257.txt -o ~/ucd_project/ucd_targets/wise1257 \
+      -f manifest_wise1257.txt
 
 # ----------------------------------------------------------------------- 
 
-./fetch_gaia_nearby.py -R 0.3 194.34220560  +71.89425280 -o csv/gaia_wise1257.csv
 ./fetch_gaia_nearby.py -R 0.5 277.12595833  +26.84355556 -o csv/gaia_wise1828.csv
 ./fetch_gaia_nearby.py -R 0.5  63.83208333   -9.58497222 -o csv/gaia_2mass0415.csv
 ./fetch_gaia_nearby.py -R 0.5  33.18145833   +5.52977778 -o csv/gaia_J02124355.csv
 ./fetch_gaia_nearby.py -R 0.5 278.03308333  -54.16202778 -o csv/gaia_J18320794.csv
+./fetch_gaia_nearby.py -R 0.3 194.33754167  +71.89702778 -o csv/gaia_wise1257.csv
 
 # ----------------------------------------------------------------------- 
 
@@ -32,6 +34,8 @@
      -o  /home/rsiverd/ucd_project/ucd_targets/wise1828/sst_eph_J0212.csv
 ./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/J1832/ \
      -o  /home/rsiverd/ucd_project/ucd_targets/wise1828/sst_eph_J1832.csv
+./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/wise1257/ \
+     -o  /home/rsiverd/ucd_project/ucd_targets/wise1257/sst_eph_wise1257.csv
 
 # ----------------------------------------------------------------------- 
 
@@ -70,6 +74,10 @@ done
       -t targets.txt --ignore_off_target --overwrite -W \
       -E /home/rsiverd/ucd_project/ucd_targets/2m0415/sst_eph_2m0415.csv
 
+./02_clean_all_spitzer.py -I /home/rsiverd/ucd_project/ucd_targets/wise1257 \
+      -t targets.txt --ignore_off_target --overwrite -W \
+      -E /home/rsiverd/ucd_project/ucd_targets/wise1257/sst_eph_wise1257.csv
+
 
 # ----------------------------------------------------------------------- 
 
@@ -101,38 +109,6 @@ done
 %run ./slice_and_dice.py -C collections/wise1828_clean_pcat.txt -g csv/gaia_wise1828.csv
 
 # ----------------------------------------------------------------------- 
-# master list build commands:
-./10_make_master_source_list.py -C collections/2m0415_SPITZER_I1_clean_pcat.txt \
-      -o process/2m0415_detections.txt
-
-# ----------------------------------------------------------------------- 
-
-# 2m0415, ch1 variants:
-%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
-      -D process/2m0415_detections.txt \
-      -C collections/2m0415_SPITZER_I1_clean_fcat.txt -o process/2m0415_ch1_fcat.pickle
-%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
-      -D process/2m0415_detections.txt \
-      -C collections/2m0415_SPITZER_I1_clean_pcat.txt -o process/2m0415_ch1_pcat.pickle
-%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
-      -D process/2m0415_detections.txt \
-      -C collections/2m0415_SPITZER_I1_clean_mcat.txt -o process/2m0415_ch1_mcat.pickle
-%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
-      -D process/2m0415_detections.txt \
-      -C collections/2m0415_SPITZER_I2_clean_fcat.txt -o process/2m0415_ch2_fcat.pickle
-%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
-      -D process/2m0415_detections.txt \
-      -C collections/2m0415_SPITZER_I2_clean_pcat.txt -o process/2m0415_ch2_pcat.pickle
-%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
-      -D process/2m0415_detections.txt \
-      -C collections/2m0415_SPITZER_I2_clean_mcat.txt -o process/2m0415_ch2_mcat.pickle
-
-%run ./11_match_and_group_sources.py -G csv/gaia_wise1828.csv \
-      -C collections/wise1828_clean_fcat.txt -o process/wise1828_fcat.pickle
-%run ./11_match_and_group_sources.py -G csv/gaia_wise1828.csv \
-      -C collections/wise1828_clean_pcat.txt -o process/wise1828_pcat.pickle
-%run ./11_match_and_group_sources.py -G csv/gaia_wise1828.csv \
-      -C collections/wise1828_clean_mcat.txt -o process/wise1828_mcat.pickle
 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
@@ -160,11 +136,77 @@ done
 ./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/wise1828/ --clean -W --overwrite
 ./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/2m0415/ --hcfix -W --overwrite
 ./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/2m0415/ --clean -W --overwrite
+./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/wise1257/ --hcfix -W --overwrite
+./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/wise1257/ --clean -W --overwrite
+
+# ----------------------------------------------------------------------- 
+
+# Rebuild collections of extended catalog files:
+cd collections
+./01_remake_collections.sh /home/rsiverd/ucd_project/ucd_targets/2m0415   --START
+./01_remake_collections.sh /home/rsiverd/ucd_project/ucd_targets/wise1828 --START
 
 ## After extraction, fix WCS zero-point errors in-place:
 ./08_inplace_fix_WCS_offsets.py -C collections/all_files_2m0415.txt -G csv/gaia_2m0415.csv
 ./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise1828.txt -G csv/gaia_wise1828.csv
+./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise1257.txt -G csv/gaia_wise1257.csv
 
+# ----------------------------------------------------------------------- 
+# ----------------------------------------------------------------------- 
+# ----------------------------------------------------------------------- 
+
+
+# master list build commands:
+./10_make_master_source_list.py -C collections/2m0415_SPITZER_I1_clean_pcat.txt \
+      -o process/2m0415_detections.txt
+
+
+# ----------------------------------------------------------------------- 
+
+# 2m0415, ch1 variants:
+%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
+      -D process/2m0415_detections.txt \
+      -C collections/2m0415_SPITZER_I1_clean_fcat.txt -o process/2m0415_ch1_fcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
+      -D process/2m0415_detections.txt \
+      -C collections/2m0415_SPITZER_I1_clean_pcat.txt -o process/2m0415_ch1_pcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
+      -D process/2m0415_detections.txt \
+      -C collections/2m0415_SPITZER_I1_clean_mcat.txt -o process/2m0415_ch1_mcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
+      -D process/2m0415_detections.txt \
+      -C collections/2m0415_SPITZER_I2_clean_fcat.txt -o process/2m0415_ch2_fcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
+      -D process/2m0415_detections.txt \
+      -C collections/2m0415_SPITZER_I2_clean_pcat.txt -o process/2m0415_ch2_pcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
+      -D process/2m0415_detections.txt \
+      -C collections/2m0415_SPITZER_I2_clean_mcat.txt -o process/2m0415_ch2_mcat.pickle
+
+# wise1828 fcat, both channels:
+%run ./11_match_and_group_sources.py -G csv/gaia_wise1828.csv -T targets/wise1828.par \
+      -D process/wise1828_detections.txt \
+      -C collections/wise1828_SPITZER_I1_clean_pcat.txt -o process/wise1828_ch1_pcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_wise1828.csv -T targets/wise1828.par \
+      -D process/wise1828_detections.txt \
+      -C collections/wise1828_SPITZER_I2_clean_pcat.txt -o process/wise1828_ch2_pcat.pickle
+
+# wise1828, fcat/mcat, ch1:
+%run ./11_match_and_group_sources.py -G csv/gaia_wise1828.csv -T targets/wise1828.par \
+      -D process/wise1828_detections.txt \
+      -C collections/wise1828_SPITZER_I1_clean_fcat.txt -o process/wise1828_ch1_fcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_wise1828.csv -T targets/wise1828.par \
+      -D process/wise1828_detections.txt \
+      -C collections/wise1828_SPITZER_I1_clean_mcat.txt -o process/wise1828_ch1_mcat.pickle
+
+
+# wise1257 pcat, both channels:
+%run ./11_match_and_group_sources.py -G csv/gaia_wise1257.csv -T targets/wise1257.par \
+      -D process/wise1257_detections.txt \
+      -C collections/wise1257_clean_pcat.txt -o process/wise1257_pcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_wise1257.csv -T targets/wise1257.par \
+      -D process/wise1257_detections.txt \
+      -C collections/wise1257_clean_pcat.txt -o process/wise1257_pcat.pickle
 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
@@ -181,11 +223,6 @@ done
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
-
-# Rebuild collections of extended catalog files:
-cd collections
-./01_remake_collections.sh /home/rsiverd/ucd_project/ucd_targets/2m0415   --START
-./01_remake_collections.sh /home/rsiverd/ucd_project/ucd_targets/wise1828 --START
 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
