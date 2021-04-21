@@ -15,7 +15,7 @@
 #
 # Rob Siverd
 # Created:       2019-10-30
-# Last modified: 2021-03-16
+# Last modified: 2021-04-21
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.5.0"
+__version__ = "0.5.1"
 
 ## Python version-agnostic module reloading:
 try:
@@ -278,9 +278,15 @@ if context.walk:
     all_cbcd_files = sfh.get_files_walk(context.image_folder, flavor=iflav)
 else:
     all_cbcd_files = sfh.get_files_single(context.image_folder, flavor=iflav)
+n_cbcd_initial = len(all_cbcd_files)
 use_cbcd_files = [x for x in all_cbcd_files]
 sys.stderr.write("Identified %d '%s' FITS images.\n"
-        % (len(all_cbcd_files), iflav))
+        % (n_cbcd_initial, iflav))
+
+## Stop here if nothing to process:
+if not use_cbcd_files:
+    logger.warning("No images to process, exiting!\n")
+    sys.exit(1)
 
 ## Retrieve FITS headers if needed:
 cbcd_headers = {}
@@ -334,6 +340,12 @@ if context.ignore_off_target:
     tok = time.time()
     sys.stderr.write("Off-target check took %.3f seconds.\n" % (tok-tik))
 
+    # halt with specific warning if all images dropped:
+    if not use_cbcd_files:
+        logger.warning("No images survived off-target check.")
+        logger.warning("Wrong images or incomplete target list?")
+        sys.exit(1)
+
 ##--------------------------------------------------------------------------##
 ##------------------         Load SST Ephemeris Data        ----------------##
 ##--------------------------------------------------------------------------##
@@ -384,7 +396,7 @@ if context.random:
 
 ## Abort with warning if no files identified:
 if not use_cbcd_files:
-    sys.stderr.write("\nError: no cbcd files found in specified location:\n")
+    sys.stderr.write("\nError: no usable cbcd files found in location:\n")
     sys.stderr.write("--> %s\n\n" % context.image_folder)
     sys.exit(1)
 
