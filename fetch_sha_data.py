@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2019-08-27
-# Last modified: 2021-01-26
+# Last modified: 2021-04-21
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.4.4"
+__version__ = "0.4.5"
 
 ## Python version-agnostic module reloading:
 try:
@@ -361,7 +361,7 @@ def already_have_data(item, suff_list, outdir):
 ##--------------------------------------------------------------------------##
 
 ## Search for results:
-max_imgs = 1
+max_imgs = 0
 max_objs = 0
 tmp_zsave = 'temp.zip'
 wanted_instruments = ['I1', 'I2']
