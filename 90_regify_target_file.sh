@@ -7,6 +7,10 @@
 # ./90_regify_target_file.sh targets_deg.txt    # inspect manually
 # ./90_regify_target_file.sh targets_deg.txt > targets.reg
 
+if [ -z "$1" ]; then
+   echo "Syntax: $0 targets_deg.txt"
+   exit 1
+fi
 
 cat $1 | awk '{
    name = $1
