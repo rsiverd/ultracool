@@ -145,6 +145,7 @@ done
 cd collections
 ./01_remake_collections.sh /home/rsiverd/ucd_project/ucd_targets/2m0415   --START
 ./01_remake_collections.sh /home/rsiverd/ucd_project/ucd_targets/wise1828 --START
+./01_remake_collections.sh /home/rsiverd/ucd_project/ucd_targets/wise1257 --START
 
 ## After extraction, fix WCS zero-point errors in-place:
 ./08_inplace_fix_WCS_offsets.py -C collections/all_files_2m0415.txt -G csv/gaia_2m0415.csv
@@ -159,6 +160,12 @@ cd collections
 # master list build commands:
 ./10_make_master_source_list.py -C collections/2m0415_SPITZER_I1_clean_pcat.txt \
       -o process/2m0415_detections.txt
+
+./10_make_master_source_list.py -C collections/wise1257_SPITZER_I2_clean_pcat.txt \
+      -o process/wise1257_detections.txt
+
+./10_make_master_source_list.py -C collections/wise1828_SPITZER_I1_clean_pcat.txt \
+      -o process/wise1828_detections.txt
 
 
 # ----------------------------------------------------------------------- 
@@ -183,7 +190,7 @@ cd collections
       -D process/2m0415_detections.txt \
       -C collections/2m0415_SPITZER_I2_clean_mcat.txt -o process/2m0415_ch2_mcat.pickle
 
-# wise1828 fcat, both channels:
+# wise1828 pcat, both channels:
 %run ./11_match_and_group_sources.py -G csv/gaia_wise1828.csv -T targets/wise1828.par \
       -D process/wise1828_detections.txt \
       -C collections/wise1828_SPITZER_I1_clean_pcat.txt -o process/wise1828_ch1_pcat.pickle
@@ -203,10 +210,18 @@ cd collections
 # wise1257 pcat, both channels:
 %run ./11_match_and_group_sources.py -G csv/gaia_wise1257.csv -T targets/wise1257.par \
       -D process/wise1257_detections.txt \
-      -C collections/wise1257_clean_pcat.txt -o process/wise1257_pcat.pickle
+      -C collections/wise1257_SPITZER_I1_clean_pcat.txt -o process/wise1257_ch1_pcat.pickle
 %run ./11_match_and_group_sources.py -G csv/gaia_wise1257.csv -T targets/wise1257.par \
       -D process/wise1257_detections.txt \
-      -C collections/wise1257_clean_pcat.txt -o process/wise1257_pcat.pickle
+      -C collections/wise1257_SPITZER_I2_clean_pcat.txt -o process/wise1257_ch2_pcat.pickle
+
+# ----------------------------------------------------------------------- 
+# ----------------------------------------------------------------------- 
+# ----------------------------------------------------------------------- 
+
+# empirical noise model for ch1:
+./12_empirical_noise_model.py process/wise1828_ch1_pcat.pickle process/2m0415_ch1_pcat.pickle
+
 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
