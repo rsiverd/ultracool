@@ -332,7 +332,9 @@ def repack_matches(match_infos):
     ccat = np.vstack([x['cat'] for x in match_infos])
     jtmp = np.array([x['jd'] for x in match_infos])
     itmp = np.array([x['iname'] for x in match_infos])
-    return append_fields(ccat, ('jdutc', 'iname'), (jtmp, itmp), usemask=False)
+    etmp = np.array([x['expt'] for x in match_infos])
+    return append_fields(ccat, ('jdutc', 'iname', 'exptime'),
+            (jtmp, itmp, etmp), usemask=False)
 
 
 ##--------------------------------------------------------------------------##
@@ -517,7 +519,8 @@ smatches = {x:[] for x in use_dets['srcid']}
 for ci,extcat in enumerate(cdata, 1):
     sys.stderr.write("\rChecking image %d of %d ... " % (ci, len(cdata)))
     ccat = extcat.get_catalog()
-    jd_info = {'jd':jdutc[ci-1], 'iname':extcat.get_imname()}
+    jd_info = {'jd':jdutc[ci-1], 'iname':extcat.get_imname(),
+            'expt':expo_time[ci-1]}
     this_imname = extcat.get_imname()
     for dobj in use_dets:
         _ra, _de = dobj['dra'], dobj['dde']
@@ -612,7 +615,8 @@ for ci,extcat in enumerate(cdata, 1):
     #ccat = extcat._imcat
     ccat = extcat.get_catalog()
     #cat_jd = jdutc[ci]
-    jd_info = {'jd':jdutc[ci-1], 'iname':extcat.get_imname()}
+    jd_info = {'jd':jdutc[ci-1], 'iname':extcat.get_imname(),
+            'expt':expo_time[ci-1]}
     this_imname = extcat.get_imname()
     for gi,(gix, gsrc) in enumerate(use_gaia.iterrows(), 1):
         #sys.stderr.write("Checking Gaia source %d of %d ... " % (gi, n_useful))
@@ -671,7 +675,8 @@ tgt_data = []
 tgt_tol_asec = 3.
 for ci,extcat in enumerate(cdata, 1):
     ccat = extcat.get_catalog()
-    jd_info = {'jd':jdutc[ci-1], 'iname':extcat.get_imname()}
+    jd_info = {'jd':jdutc[ci-1], 'iname':extcat.get_imname(),
+            'expt':expo_time[ci-1]}
     # FIXME:
     # date_obs = extcat.get_header()['DATE_OBS']
     obsdate = astt.Time(extcat.get_header()['DATE_OBS'], scale='utc')
