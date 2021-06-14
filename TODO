@@ -1,0 +1,6 @@
+
+* include zenith angle in extended catalog explicitly? Or should this be
+      handled earlier in the process?
+
+* Calculate sensible uncertainties and include those in the catalogs from start
+
