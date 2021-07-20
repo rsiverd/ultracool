@@ -41,6 +41,7 @@ import gc
 import os
 import sys
 import time
+import pickle
 #import vaex
 #import calendar
 #import ephem
@@ -67,9 +68,9 @@ import matplotlib.colors as mplcolors
 #from collections.abc import Iterable
 #import multiprocessing as mp
 #np.set_printoptions(suppress=True, linewidth=160)
-#import pandas as pd
-#import statsmodels.api as sm
-#import statsmodels.formula.api as smf
+import pandas as pd
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
 #from statsmodels.regression.quantile_regression import QuantReg
 #import PIL.Image as pli
 #import seaborn as sns
@@ -189,7 +190,26 @@ def ldmap(things):
 def argnear(vec, val):
     return (np.abs(vec - val)).argmin()
 
+##--------------------------------------------------------------------------##
 
+j2000_epoch = astt.Time('2000-01-01T12:00:00', scale='tt', format='isot')
+
+def fit_4par(data):
+    years = (data['jdtdb'] - j2000_epoch.tdb.jd) / 365.25
+    ts_ra_model = ts.linefit(years, data[_ra_key])
+    ts_de_model = ts.linefit(years, data[_de_key])
+    return {'epoch_jdtdb'  :   j2000_epoch.tdb.jd,
+                 'ra_deg'  :   ts_ra_model[0],
+                 'de_deg'  :   ts_de_model[0],
+             'pmra_degyr'  :   ts_ra_model[1],
+             'pmde_degyr'  :   ts_de_model[1],
+            }
+
+def eval_4par(data, model):
+    years = (data['jdtdb'] - model['epoch_jdtdb']) / 365.25
+    calc_ra = model['ra_deg'] + years * model['pmra_degyr']
+    calc_de = model['de_deg'] + years * model['pmde_degyr']
+    return calc_ra, calc_de
 
 
 ##--------------------------------------------------------------------------##
@@ -224,6 +244,8 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------
     #parser.set_defaults(thing1='value1', thing2='value2')
     # ------------------------------------------------------------------
+    parser.add_argument('-i', '--instrument', required=True, default=None,
+            help='instrument name for plot', type=str)
     #parser.add_argument('firstpos', help='first positional argument')
     #parser.add_argument('-w', '--whatever', required=False, default=5.0,
     #        help='some option with default [def: %(default)s]', type=float)
@@ -273,6 +295,22 @@ if not context.data_files:
     sys.exit(1)
 
 ##--------------------------------------------------------------------------##
+##------------------          catalog config (FIXME)        ----------------##
+##--------------------------------------------------------------------------##
+
+## RA/DE coordinate keys for various methods:
+centroid_colmap = {
+        'simple'    :   ('dra', 'dde'),
+        'window'    :   ('wdra', 'wdde'),
+        'pp_fix'    :   ('ppdra', 'ppdde'),
+        }
+
+centroid_method = 'simple'
+centroid_method = 'window'
+#centroid_method = 'pp_fix'
+_ra_key, _de_key = centroid_colmap[centroid_method]
+
+##--------------------------------------------------------------------------##
 ## Ensure presence of input files:
 sys.stderr.write("Checking input files ... ")
 for dfile in context.data_files:
@@ -282,131 +320,82 @@ for dfile in context.data_files:
         sys.exit(1)
 sys.stderr.write("done.\n")
 
-##--------------------------------------------------------------------------##
-## New-style string formatting (more at https://pyformat.info/):
+## Load data files:
+sys.stderr.write("Loading data files ... ")
+tdata, sdata, gdata = {}, {}, {}
+for dfile in context.data_files:
+    with open(dfile, 'rb') as pp:
+        tdata[dfile], sdata[dfile], gdata[dfile] = pickle.load(pp)
+sys.stderr.write("done.\n")
 
 ##--------------------------------------------------------------------------##
-## Quick ASCII I/O:
-#data_file = 'data.txt'
-#gftkw = {'encoding':None} if (_have_np_vers >= 1.14) else {}
-#gftkw.update({'names':True, 'autostrip':True})
-#gftkw.update({'delimiter':'|', 'comments':'%0%0%0%0'})
-#gftkw.update({'loose':True, 'invalid_raise':False})
-#all_data = np.genfromtxt(data_file, dtype=None, **gftkw)
-#all_data = aia.read(data_file)
+##------------------       Initial Dataset Inspection       ----------------##
+##--------------------------------------------------------------------------##
 
-#all_data = pd.read_csv(data_file)
-#all_data = pd.read_table(data_file, delim_whitespace=True)
-#all_data = pd.read_table(data_file, skipinitialspace=True)
-#all_data = pd.read_table(data_file, sep='|')
-#fields = all_data.dtype.names
-#if not fields:
-#    x = all_data[:, 0]
-#    y = all_data[:, 1]
-#else:
-#    x = all_data[fields[0]]
-#    y = all_data[fields[1]]
+## Tag data sets by filename:
+tags = context.data_files
 
-#vot_file = 'neato.xml'
-#vot_data = av.parse_single_table(vot_file)
-#vot_data = av.parse_single_table(vot_file).to_table()
+min_pts = 25
+
+ds_npts, ds_large, results_4par = {}, {}, {}
+for tag in context.data_files:
+    ds_npts[tag] = {x:len(sdata[tag][x]) for x in sdata[tag].keys()}
+    ds_large[tag] = [ss for ss,nn in ds_npts[tag].items() if nn>min_pts]
+    results_4par[tag] = {x:fit_4par(sdata[tag][x]) for x in ds_large[tag]}
+
 
 ##--------------------------------------------------------------------------##
-## Timestamp modification:
-#def time_warp(jdutc, jd_offset, scale):
-#    return (jdutc - jd_offset) * scale
-
-## Self-consistent time-modification for plotting:
-#tfudge = partial(time_warp, jd_offset=tstart.jd, scale=24.0)    # relative hrs
-#tfudge = partial(time_warp, jd_offset=tstart.jd, scale=1440.0)  # relative min
-
+##------------------         Do 4-Parameter Fitting         ----------------##
 ##--------------------------------------------------------------------------##
-## Quick FITS I/O:
-#data_file = 'image.fits'
-#img_vals = pf.getdata(data_file)
-#hdr_keys = pf.getheader(data_file)
-#img_vals, hdr_keys = pf.getdata(data_file, header=True)
-#img_vals, hdr_keys = pf.getdata(data_file, header=True, uint=True) # USHORT
-#img_vals, hdr_keys = fitsio.read(data_file, header=True)
 
-#date_obs = hdr_keys['DATE-OBS']
-#site_lat = hdr_keys['LATITUDE']
-#site_lon = hdr_keys['LONGITUD']
+#for tag in context.data_files:
 
-## Initialize time:
-#img_time = astt.Time(hdr_keys['DATE-OBS'], scale='utc', format='isot')
-#img_time += astt.TimeDelta(0.5 * hdr_keys['EXPTIME'], format='sec')
-#jd_image = img_time.jd
+## Merge residuals of all data sets:
+lookie_snr = {x:[] for x in context.data_files}
+inspection = {x:[] for x in context.data_files}
 
-## Initialize location:
-#observer = ephem.Observer()
-#observer.lat = np.radians(site_lat)
-#observer.lon = np.radians(site_lon)
-#observer.date = img_time.datetime
+sys.stderr.write("Performing 4-parameter fits:\n")
+for tag in context.data_files:
+    sys.stderr.write("--> fitting data from %s ...\n" % tag)
+    for sid in ds_large[tag]:
+        stmp = sdata[tag][sid]
+        model = results_4par[tag][sid]
+        sra, sde = eval_4par(stmp, model)
+        cos_dec = np.cos(np.radians(model['de_deg']))
+        delta_ra_mas = 3.6e6 * (stmp[_ra_key] - sra) * cos_dec
+        delta_de_mas = 3.6e6 * (stmp[_de_key] - sde)
+        #for iname,xpix,ypix,expt,rmiss,dmiss in zip(stmp['iname'],
+        #        stmp['wx'], stmp['wy'], stmp['exptime'],
+        #        delta_ra_mas, delta_de_mas):
+        #    resid_data_ch1[iname].append({'x':xpix, 'y':ypix,
+        #        'ra_err':rmiss, 'de_err':dmiss, 'exptime':expt})
+        delta_tot_mas = np.sqrt(delta_ra_mas**2 + delta_de_mas**2)
+        med_flux, iqr_flux = rs.calc_ls_med_IQR(stmp['flux'])
+        med_resd, iqr_resd = rs.calc_ls_med_IQR(delta_tot_mas)
+        med_signal = med_flux * stmp['exptime']
+        #snr_scale = med_flux * np.sqrt(stmp['exptime'])
+        snr_scale = np.sqrt(med_signal)
+        approx_fwhm = delta_tot_mas * snr_scale
+        med_fwhm, iqr_fwhm = rs.calc_ls_med_IQR(approx_fwhm)
+        npoints = len(stmp['flux'])
+        non_neg = (delta_tot_mas > 0.0)
+        #if np.any(delta_tot_mas == 0.0):
+        #    sys.stderr.write("blank?!?!?!\n")
+        #    sys.exit(1)
+        lookie_snr[tag].append((med_flux, med_fwhm, npoints,
+            snr_scale[0], med_resd))
+        inspection[tag].extend(list(zip(delta_tot_mas[non_neg],
+            stmp['flux'][non_neg], (stmp['flux']*stmp['exptime'])[non_neg])))
+        sys.stderr.write("approx_fwhm: %s\n" % str(approx_fwhm))
 
-#pf.writeto('new.fits', img_vals)
-#qsave('new.fits', img_vals)
-#qsave('new.fits', img_vals, header=hdr_keys)
+sys.stderr.write("Fitting complete.\n")
 
-## Star extraction:
-#pse.set_image(img_vals, gain=3.6)
-#objlist = pse.analyze(sigthresh=5.0)
-
-##--------------------------------------------------------------------------##
-## Misc:
-#def log_10_product(x, pos):
-#   """The two args are the value and tick position.
-#   Label ticks with the product of the exponentiation."""
-#   return '%.2f' % (x)  # floating-point
-#
-#formatter = plt.FuncFormatter(log_10_product) # wrap function for use
-
-## Convenient, percentile-based plot limits:
-#def nice_limits(vec, pctiles=[1,99], pad=1.2):
-#    ends = np.percentile(vec[~np.isnan(vec)], pctiles)
-#    middle = np.average(ends)
-#    return (middle + pad * (ends - middle))
-
-## Convenient plot limits for datetime/astropy.Time content:
-#def nice_time_limits(tvec, buffer=0.05):
-#    lower = tvec.min()
-#    upper = tvec.max()
-#    ndays = upper - lower
-#    return ((lower - 0.05*ndays).datetime, (upper + 0.05*ndays).datetime)
-
-## Convenient limits for datetime objects:
-#def dt_limits(vec, pad=0.1):
-#    tstart, tstop = vec.min(), vec.max()
-#    trange = (tstop - tstart).total_seconds()
-#    tpad = dt.timedelta(seconds=pad*trange)
-#    return (tstart - tpad, tstop + tpad)
-
-##--------------------------------------------------------------------------##
-## Solve prep:
-#ny, nx = img_vals.shape
-#x_list = (0.5 + np.arange(nx)) / nx - 0.5            # relative (centered)
-#y_list = (0.5 + np.arange(ny)) / ny - 0.5            # relative (centered)
-#xx, yy = np.meshgrid(x_list, y_list)                 # relative (centered)
-#xx, yy = np.meshgrid(nx*x_list, ny*y_list)           # absolute (centered)
-#xx, yy = np.meshgrid(np.arange(nx), np.arange(ny))   # absolute
-#yy, xx = np.meshgrid(np.arange(ny), np.arange(nx), indexing='ij') # absolute
-#yy, xx = np.nonzero(np.ones_like(img_vals))          # absolute
-#yy, xx = np.mgrid[0:ny,   0:nx].astype('uint16')     # absolute (array)
-#yy, xx = np.mgrid[1:ny+1, 1:nx+1].astype('uint16')   # absolute (pixel)
-
-## 1-D vectors:
-#x_pix, y_pix, ivals = xx.flatten(), yy.flatten(), img_vals.flatten()
-#w_vec = np.ones_like(ivals)            # start with uniform weights
-#design_matrix = np.column_stack((np.ones(x_pix.size), x_pix, y_pix))
-
-## Image fitting (statsmodels etc.):
-#data = sm.datasets.stackloss.load()
-#ols_res = sm.OLS(ivals, design_matrix).fit()
-#rlm_res = sm.RLM(ivals, design_matrix).fit()
-#rlm_model = sm.RLM(ivals, design_matrix, M=sm.robust.norms.HuberT())
-#rlm_res = rlm_model.fit()
-#data = pd.DataFrame({'xpix':x_pix, 'ypix':y_pix})
-#rlm_model = sm.RLM.from_formula("ivals ~ xpix + ypix", data)
+## Merge into single data set:
+lookie_combined = []
+inspection_comb = []
+for tag in context.data_files:
+    lookie_combined.extend(lookie_snr[tag])
+    inspection_comb.extend(inspection[tag])
 
 ##--------------------------------------------------------------------------##
 ## Theil-Sen line-fitting (linear):
@@ -431,21 +420,6 @@ sys.stderr.write("done.\n")
 #    return 10**icept * xvals**slope
 
 ##--------------------------------------------------------------------------##
-## KDE:
-#kde_pnts, kde_vals = mk.go(data_vec)
-
-##--------------------------------------------------------------------------##
-## Vaex plotting:
-#ds = vaex.open('big_file.hdf5')
-#ds = vaex.from_arrays(x=x, y=y)     # load from arrays
-#ds = vaex.from_csv('mydata.csv')
-
-## Stats:
-#ds.mean("x"), ds.std("x"), ds.correlation("vx**2+vy**2+vz**2", "E")
-#ds.plot(....)
-#http://vaex.astro.rug.nl/latest/tutorial_ipython_notebook.html
-
-##--------------------------------------------------------------------------##
 ## Plot config:
 
 # gridspec examples:
@@ -459,6 +433,124 @@ sys.stderr.write("done.\n")
 #ax3 = plt.subplot2grid((3, 3), (1, 2), rowspan=2) # mid-right + bot-right
 #ax4 = plt.subplot2grid((3, 3), (2, 0))            # bot-left
 #ax5 = plt.subplot2grid((3, 3), (2, 1))            # bot-center
+
+##--------------------------------------------------------------------------##
+##------------------        Lin-Log Polynomial Fitting      ----------------##
+##--------------------------------------------------------------------------##
+
+def polyfit(x, y, deg):
+    if (deg < 1):
+        return np.average(y)
+    nmat = np.ones_like(y)
+    for expo in range(1, deg+1, 1):
+        nmat = np.column_stack((nmat, x**expo))
+    rckw = {'rcond':None} if (_have_np_vers >= 1.14) else {}
+    return np.linalg.lstsq(nmat, y, **rckw)[0]
+
+def polyval(x, mod):
+    z = np.zeros_like(x)
+    for i in range(mod.size):
+        z += mod[i] * x**i
+    return z
+
+def iter_fit_logrms(mags, lrms, degs):
+    # Initial fit of mag,RMSD, used to find outliers:
+    ppmod = polyfit(mags, lrms, degs[0])
+    resid = lrms - polyval(mags, ppmod)
+    clean = (resid <= 0.5)
+
+    # Make curve from 2nd-pass 'clean' fit:
+    ppmod = polyfit(mags[clean], lrms[clean], degs[1])
+    return ppmod
+
+##--------------------------------------------------------------------------##
+
+# Magnitude to flux conversion:
+def kadu(mag, zeropt=25.0):
+    return 10.0**(0.4 * (zeropt - mag))
+
+# Flux to magnitude conversion:
+def kmag(adu, zeropt=25.0):
+    return (zeropt - 2.5 * np.log10(adu))
+
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
+fig_dims = (10, 7)
+
+def limify(ax):
+    ax.set_xlim(0.2, 50.)
+    ax.set_ylim(500., 2500.)
+
+flx, mfwhm, npoints, msnr, mresd = np.array(lookie_combined).T
+counts = msnr**2
+instmag = kmag(counts)
+
+#inspection_comb = np.array(inspection_comb)
+
+every_delta_mas, every_flux, every_signal = np.array(inspection_comb).T
+every_instmag = kmag(every_signal)
+
+#sys.stderr.write("Performing quantile fits ... ") 
+##fdata = pd.DataFrame(data=np.vstack((np.log10(msnr), np.log10(mresd))).T,
+##        columns=["lmsnr", "lmresd"])
+#fdata = pd.DataFrame(data=np.vstack((instmag, np.log10(mresd))).T,
+#        columns=["fmag", "lrms"])
+fdata = pd.DataFrame(data=np.vstack((every_instmag, 
+                        np.log10(every_delta_mas))).T,
+                        columns=["fmag", "lrms"])
+mod = smf.quantreg('lrms ~ fmag + I(fmag**2)', fdata)
+qlist = [0.25, 0.5, 0.75]
+qmods = {}
+for qq in qlist:
+    sys.stderr.write("\rFitting q=%.2f ... " % qq)
+    res = mod.fit(q=qq)
+    qmods[qq] = res.params.values
+sys.stderr.write("done.\n")
+
+use_imag = True
+
+medmed_fwhm = np.median(mfwhm)
+mmf_txt = 'median: %.1f mas' % medmed_fwhm
+fig = plt.figure(3, figsize=fig_dims)
+fig.clf()
+ax1 = fig.add_subplot(111); ax1.grid(True)
+ax1.set_title(context.instrument)
+#spts = ax1.scatter(msnr, mresd, c=npoints)
+#spts = ax1.scatter(instmag, mresd, c=npoints)
+spts = ax1.scatter(every_instmag, every_delta_mas, lw=0, s=1)
+ax1.set_ylabel('resid (mas)')
+ax1.set_yscale('log')
+ax1.set_ylim(30., 1100.)
+
+if use_imag:
+    ax1.set_xlabel('instrumental mag')
+    ax1.set_xscale('linear')
+    ax1.set_xlim(11, 23.)
+else:
+    ax1.set_xlabel('med_snr')
+    ax1.set_xscale('log')
+    ax1.set_xlim(0.9, 250.)
+cbnorm = mplcolors.Normalize(*spts.get_clim())
+scm = plt.cm.ScalarMappable(norm=cbnorm, cmap=spts.cmap)
+scm.set_array([])
+cbar = fig.colorbar(scm, orientation='vertical')
+
+## overplot quantile fits:
+#fmval = np.linspace(3, 200)
+fmval = np.linspace(12, 23)
+for qq,params in qmods.items():
+    qlabel = 'q=%.2f quantile' % qq
+    #qrmsd = polyval(np.log10(fmval), params)
+    qrmsd = 10.**polyval(fmval, params)
+    ax1.plot(fmval, qrmsd, label=qlabel)
+ax1.legend(loc='upper left')
+
+fig.tight_layout()
+plt.draw()
+
+sys.exit(0)
 
 
 ##--------------------------------------------------------------------------##

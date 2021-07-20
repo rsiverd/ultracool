@@ -66,7 +66,7 @@ import matplotlib.colors as mplcolors
 #import multiprocessing as mp
 #np.set_printoptions(suppress=True, linewidth=160)
 #import pandas as pd
-#import statsmodels.api as sm
+import statsmodels.api as sm
 #import statsmodels.formula.api as smf
 #from statsmodels.regression.quantile_regression import QuantReg
 import theil_sen as ts
@@ -274,8 +274,10 @@ _ra_key, _de_key = centroid_colmap[centroid_method]
 
 ##--------------------------------------------------------------------------##
 ## Input data files:
-tgt_name = '2m0415'
+#tgt_name = '2m0415'
 #tgt_name = 'wise1828'
+tgt_name = 'wise0148'
+tgt_name = 'wise0458'
 ch1_file = 'process/%s_ch1_pcat.pickle' % tgt_name
 ch2_file = 'process/%s_ch2_pcat.pickle' % tgt_name
 #ch1_file = 'process/wise1828_ch1_pcat.pickle'
@@ -285,8 +287,8 @@ pkl_files = {'ch1':ch1_file, 'ch2':ch2_file}
 ## Load data:
 tdata, sdata, gdata = {}, {}, {}
 for tag,filename in pkl_files.items():
-    with open(filename, 'rb') as pf:
-        tdata[tag], sdata[tag], gdata[tag] = pickle.load(pf)
+    with open(filename, 'rb') as pp:
+        tdata[tag], sdata[tag], gdata[tag] = pickle.load(pp)
 
 ## Collect sources:
 srcs_ch1 = set(sdata['ch1'].keys())
@@ -342,6 +344,16 @@ def eval_4par(data, model):
     return calc_ra, calc_de
 
 
+def radec_plx_factors(RA_rad, DE_rad, X_au, Y_au, Z_au):
+    sinRA, cosRA = np.sin(RA_rad), np.cos(RA_rad)
+    sinDE, cosDE = np.sin(DE_rad), np.cos(DE_rad)
+    ra_factor = (X_au * sinRA - Y_au * cosRA) / cosDE
+    de_factor =  X_au * cosRA * sinDE \
+              +  Y_au * sinRA * sinDE \
+              -  Z_au * cosDE
+    return ra_factor, de_factor
+
+
 ##--------------------------------------------------------------------------##
 ## Results for channels 1/2:
 sys.stderr.write("Performing 4-parameter fits ... ")
@@ -361,6 +373,8 @@ resid_data_ch2 = {x:[] for x in large_ch2_inames}
 
 ## Calculate residuals and divvy by image:
 lookie_snr_ch1 = []
+inspection_ch1 = []
+scatter_time_ch1 = []
 sys.stderr.write("Calculating ch1 residuals ... ")
 for sid in large_ch1:
     stmp = sdata['ch1'][sid]
@@ -369,6 +383,10 @@ for sid in large_ch1:
     cos_dec = np.cos(np.radians(model['de_deg']))
     delta_ra_mas = 3.6e6 * (stmp[_ra_key] - sra) * cos_dec
     delta_de_mas = 3.6e6 * (stmp[_de_key] - sde)
+    src_resids_ch1[sid] = np.array([stmp['jdtdb'], delta_ra_mas, delta_de_mas])
+    scatter_time_ch1.extend(list(zip(stmp['jdtdb'], 
+                        delta_ra_mas, delta_de_mas)))
+                        #delta_ra_mas, delta_de_mas, [sid for x in sra])))
     for iname,xpix,ypix,expt,rmiss,dmiss in zip(stmp['iname'],
             stmp['wx'], stmp['wy'], stmp['exptime'],
             delta_ra_mas, delta_de_mas):
@@ -377,19 +395,31 @@ for sid in large_ch1:
     delta_tot_mas = np.sqrt(delta_ra_mas**2 + delta_de_mas**2)
     med_flux, iqr_flux = rs.calc_ls_med_IQR(stmp['flux'])
     med_resd, iqr_resd = rs.calc_ls_med_IQR(delta_tot_mas)
+    med_resd, iqr_resd = np.average(delta_tot_mas), np.std(delta_tot_mas)
+    #med_resd = iqr_flux
     med_signal = med_flux * stmp['exptime']
     #snr_scale = med_flux * np.sqrt(stmp['exptime'])
     snr_scale = np.sqrt(med_signal)
     approx_fwhm = delta_tot_mas * snr_scale
     med_fwhm, iqr_fwhm = rs.calc_ls_med_IQR(approx_fwhm)
     npoints = len(stmp['flux'])
+    typical_ra = np.median(stmp['dra'])
+    typical_de = np.median(stmp['dde'])
+    jdtdb_mean = np.average(stmp['jdtdb'])
+    jdtdb_sdev = np.std(stmp['jdtdb'])
     lookie_snr_ch1.append((med_flux, med_fwhm, npoints, 
-        snr_scale[0], med_resd))
+        snr_scale[0], med_resd, typical_ra, typical_de,
+        jdtdb_mean, jdtdb_sdev, iqr_flux))
+    inspection_ch1.extend(list(zip(delta_tot_mas, stmp['flux'],
+        stmp['flux']*stmp['exptime'])))
     sys.stderr.write("approx_fwhm: %s\n" % str(approx_fwhm))
 sys.stderr.write("done.\n")
 
 ## Calculate residuals and divvy by image:
 lookie_snr_ch2 = []
+inspection_ch2 = []
+scatter_time_ch2 = []
+#lookie_pos_ch2 = []
 sys.stderr.write("Calculating ch2 residuals ... ")
 for sid in large_ch2:
     stmp = sdata['ch2'][sid]
@@ -398,6 +428,10 @@ for sid in large_ch2:
     cos_dec = np.cos(np.radians(model['de_deg']))
     delta_ra_mas = 3.6e6 * (stmp[_ra_key] - sra) * cos_dec
     delta_de_mas = 3.6e6 * (stmp[_de_key] - sde)
+    src_resids_ch2[sid] = np.array([stmp['jdtdb'], delta_ra_mas, delta_de_mas])
+    scatter_time_ch2.extend(list(zip(stmp['jdtdb'], 
+                        delta_ra_mas, delta_de_mas)))
+                        #delta_ra_mas, delta_de_mas, [sid for x in sra])))
     for iname,xpix,ypix,expt,rmiss,dmiss in zip(stmp['iname'],
             stmp['wx'], stmp['wy'], stmp['exptime'],
             delta_ra_mas, delta_de_mas):
@@ -406,13 +440,23 @@ for sid in large_ch2:
     delta_tot_mas = np.sqrt(delta_ra_mas**2 + delta_de_mas**2)
     med_flux, iqr_flux = rs.calc_ls_med_IQR(stmp['flux'])
     med_resd, iqr_resd = rs.calc_ls_med_IQR(delta_tot_mas)
+    med_resd, iqr_resd = np.average(delta_tot_mas), np.std(delta_tot_mas)
     med_signal = med_flux * stmp['exptime']
     snr_scale = np.sqrt(med_signal)
     approx_fwhm = delta_tot_mas * snr_scale
     med_fwhm, iqr_fwhm = rs.calc_ls_med_IQR(approx_fwhm)
     npoints = len(stmp['flux'])
+    typical_ra = np.median(stmp['dra'])
+    typical_de = np.median(stmp['dde'])
+    jdtdb_mean = np.average(stmp['jdtdb'])
+    jdtdb_sdev = np.std(stmp['jdtdb'])
     lookie_snr_ch2.append((med_flux, med_fwhm, npoints, 
-        snr_scale[0], med_resd))
+        snr_scale[0], med_resd, typical_ra, typical_de,
+        jdtdb_mean, jdtdb_sdev, iqr_flux))
+    inspection_ch2.extend(list(zip(delta_tot_mas, stmp['flux'],
+        stmp['flux']*stmp['exptime'])))
+    #lookie_pos_ch2.append((med_flux, med_fwhm, npoints,
+    #    snr_scale[0], med_resd, typical_ra, typical_de))
     sys.stderr.write("approx_fwhm: %s\n" % str(approx_fwhm))
 sys.stderr.write("done.\n")
 
@@ -420,7 +464,107 @@ sys.stderr.write("done.\n")
 resid_data_ch1 = {kk:recarray_from_dicts(vv) for kk,vv in resid_data_ch1.items()}
 resid_data_ch2 = {kk:recarray_from_dicts(vv) for kk,vv in resid_data_ch2.items()}
 
-## Save lookie_snr vectors to file for further analysis:
+## Promote residual data to arrays:
+scatter_time_ch1 = np.array(scatter_time_ch1)
+scatter_time_ch2 = np.array(scatter_time_ch2)
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+## 5-parameter fit to target:
+order_ch1 = np.argsort(tdata['ch1']['jdtdb'])
+order_ch2 = np.argsort(tdata['ch2']['jdtdb'])
+tgt_ch1 = tdata['ch1'][order_ch1]
+tgt_ch2 = tdata['ch2'][order_ch2]
+tgt_both = np.concatenate((tdata['ch1'], tdata['ch2']))
+ref_time = np.median(tgt_both['jdtdb'])
+del order_ch1, order_ch2
+
+tmodel_4par = {cc:fit_4par(dd) for cc,dd in tdata.items()}
+tmodel_4par['both'] = fit_4par(tgt_both)
+
+## Compute parallax factors (dRA*cos(DE), dDE):
+use_dataset = tgt_both
+use_dataset = tgt_ch2
+use_dataset = tgt_ch1
+ts_fit_4par = fit_4par(use_dataset)
+m4ra, m4de = eval_4par(use_dataset, ts_fit_4par)
+nom_ra_deg = np.average(m4ra)
+nom_de_deg = np.average(m4de)
+nom_ra_rad = np.radians(nom_ra_deg)
+nom_de_rad = np.radians(nom_de_deg)
+pfra, pfde = radec_plx_factors(np.radians(nom_ra_deg), np.radians(nom_ra_rad),
+        use_dataset['obs_x'], use_dataset['obs_y'], use_dataset['obs_z'])
+
+ra_resids_deg = use_dataset['dra'] - m4ra       # ==> prlx * pfra
+ra_resids_deg *= np.cos(nom_de_rad)
+de_resids_deg = use_dataset['dde'] - m4de       # ==> prlx * pfde
+
+ra_resids_mas = 3.6e6 * ra_resids_deg
+de_resids_mas = 3.6e6 * de_resids_deg
+
+ra_plxval = 3600. * ra_resids_deg / pfra
+de_plxval = 3600. * de_resids_deg / pfde
+all_plxval = np.hstack((ra_plxval, de_plxval))
+
+## isolate troublesome dates (ch2):
+trouble_jds = use_dataset['jdtdb'][(ra_resids_mas > 800)] 
+trouble_imgs = [jd2im_ch2[x] for x in trouble_jds]
+
+
+
+plot_time = use_dataset['jdtdb'] - ref_time
+
+#fig_dims = (10, 10)
+#fig = plt.figure(12, figsize=fig_dims)
+#fig.clf()
+#ax1 = fig.add_subplot(211)
+#ax2 = fig.add_subplot(212, sharex=ax1, sharey=ax1)
+#ax1.grid(True)
+#ax1.scatter(plot_time, ra_resids_mas, lw=0)
+#ax1.set_ylabel('RA Residual * cos(Dec) (mas)')
+#ax1.set_title('Target: %s' % tgt_name)
+#
+#ax2.grid(True)
+#ax2.scatter(plot_time, de_resids_mas, lw=0)
+#ax2.set_ylabel('DE Residual (mas)')
+#ax2.set_xlabel('Time (~days)')
+#fig.tight_layout()
+#pname = '%s_tgt_4par_resid_ch1.png' % tgt_name
+#fig.savefig(pname)
+#
+## 277.1377951+26.8662544
+##
+## neighbors / other stars ...
+##nei_data = scatter_time_ch2
+#nei_data = scatter_time_ch1
+#ntime, nra_res, nde_res = nei_data.T
+##ntime, nra_res, nde_res = src_resids_ch2['277.1377951+26.8662544']
+##ntime, nra_res, nde_res = src_resids_ch2['277.1407216+26.8323065']
+##ntime, nra_res, nde_res = src_resids_ch2['277.1416760+26.8399335']
+##ntime, nra_res, nde_res = src_resids_ch2['277.1474782+26.8489036']
+##ntime, nra_res, nde_res = src_resids_ch2['277.1476409+26.8547661']
+##ntime, nra_res, nde_res = src_resids_ch2['277.1527917+26.8247245']
+##ntime, nra_res, nde_res = src_resids_ch2['277.1613947+26.8283669']
+#nfg = plt.figure(13, figsize=fig_dims)
+#nfg.clf()
+#ax1 = nfg.add_subplot(211)
+#ax2 = nfg.add_subplot(212, sharex=ax1, sharey=ax1)
+#ax1.grid(True)
+##ax1.scatter(ntime, nra_res, lw=0, s=2)
+#ax1.scatter(ntime, nra_res, lw=0)
+#ax1.set_ylabel('RA Residual * cos(Dec) (mas)')
+#ax1.set_title('Other stars with data ...')
+#ax2.grid(True)
+##ax2.scatter(ntime, nde_res, lw=0, s=2)
+#ax2.scatter(ntime, nde_res, lw=0)
+#ax2.set_ylabel('DE Residual (mas)')
+#ax2.set_xlabel('Time (~days)')
+#
+#
+#nfg.tight_layout()
+#pname = '%s_nei_4par_resid_ch1.png' % tgt_name
+#nfg.savefig(pname)
+#sys.exit(0)
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
@@ -493,26 +637,47 @@ fig.savefig('prmot_diff_vs_prmot.png')
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
+plot_tag = '%s_%s' % (centroid_method, tgt_name)
+
 fig_dims = (10, 11)
 
 def limify(ax):
-    ax.set_xlim(0.2, 50.)
-    ax.set_ylim(500., 2500.)
+   # ax.set_xlim(0.2, 50.)
+    #ax.set_ylim(500., 2500.)
+    ax.set_xlim(0.9, 250.)
+    ax.set_ylim(0.01, 1.0)
+    ax.set_yscale('log')
 
 ## CH1 FWHM:
-flx, mfwhm, npoints, msnr, mresd = np.array(lookie_snr_ch1).T
+every_delta_mas, every_flux, every_signal = np.array(inspection_ch1).T
+every_snr = np.sqrt(every_signal)
+every_invsnr = 1.0 / every_snr
+design_matrix = np.column_stack((np.ones(every_invsnr.size), every_invsnr))
+rlm_res = sm.RLM(every_delta_mas, design_matrix).fit()
+icept, slope = rlm_res.params
+snr_order = np.argsort(every_invsnr)
+srt_invsnr = every_invsnr[snr_order]
+fitted_resid = icept + slope * srt_invsnr
+fitlab = '%.2f, %.2f' % (icept, slope)
+
+flx, mfwhm, npoints, msnr, mresd, avgra, avgde, avgjd, stdjd, iqrflx = \
+                                np.array(lookie_snr_ch1).T
+rel_scatter = iqrflx / flx
 medmed_fwhm = np.median(mfwhm)
 mmf_txt = 'median: %.1f mas' % medmed_fwhm
 fig = plt.figure(3, figsize=fig_dims)
 fig.clf()
 ax1 = fig.add_subplot(211); ax1.grid(True)
 ax1.set_title("IRAC channel 1")
-spts = ax1.scatter(flx, mfwhm, c=npoints)
+#spts = ax1.scatter(flx, mfwhm, c=npoints)
+#spts = ax1.scatter(flx, rel_scatter, c=npoints)
+spts = ax1.scatter(msnr, rel_scatter, c=npoints)
 ax1.axhline(medmed_fwhm, c='r', ls='--', label=mmf_txt)
 limify(ax1)
 ax1.set_xscale('log')
 ax1.set_xlabel('med_flux')
-ax1.set_ylabel('FWHM (mas)')
+#ax1.set_ylabel('FWHM (mas)')
+ax1.set_ylabel('Relative Flux Scatter')
 ax1.legend(loc='upper right')
 cbnorm = mplcolors.Normalize(*spts.get_clim())
 scm = plt.cm.ScalarMappable(norm=cbnorm, cmap=spts.cmap)
@@ -524,35 +689,57 @@ cbar.update_ticks()
 cbar.set_label('Data Points')
 ax2 = fig.add_subplot(212); ax2.grid(True)
 spts = ax2.scatter(msnr, mresd, c=npoints)
+#spts = ax2.scatter(every_invsnr, every_delta_mas, lw=0, s=1)
+ax2.plot(srt_invsnr, fitted_resid, c='r', label=fitlab)
 ax2.set_ylabel('resid (mas)')
 ax2.set_xlabel('med_snr')
 ax2.set_xscale('log')
 ax2.set_yscale('log')
 #ax2.set_xlim(0.9, 110.)
 ax2.set_xlim(0.9, 250.)
-ax2.set_ylim(30., 2500.)
+#ax2.set_ylim(30., 2500.)
+ax2.set_ylim(3., 2500.)
 scm = plt.cm.ScalarMappable(norm=cbnorm, cmap=spts.cmap)
 scm.set_array([])
 cbar = fig.colorbar(scm, orientation='vertical')
 fig.tight_layout()
 plt.draw()
-fig.savefig('empirical_scatter_ch1.png')
+plot_name = 'empirical_scatter_ch1_%s.png' % plot_tag
+fig.savefig(plot_name)
+
 
 ## CH2 FWHM:
-flx, mfwhm, npoints, msnr, mresd = np.array(lookie_snr_ch2).T
+every_delta_mas, every_flux, every_signal = np.array(inspection_ch2).T
+every_snr = np.sqrt(every_signal)
+every_invsnr = 1.0 / every_snr
+design_matrix = np.column_stack((np.ones(every_invsnr.size), every_invsnr))
+rlm_res = sm.RLM(every_delta_mas, design_matrix).fit()
+icept, slope = rlm_res.params
+snr_order = np.argsort(every_invsnr)
+srt_invsnr = every_invsnr[snr_order]
+fitted_resid = icept + slope * srt_invsnr
+fitlab = '%.2f, %.2f' % (icept, slope)
+
+flx, mfwhm, npoints, msnr, mresd, avgra, avgde, avgjd, stdjd, iqrflx = \
+                                np.array(lookie_snr_ch2).T
+rel_scatter = iqrflx / flx
 medmed_fwhm = np.median(mfwhm)
 mmf_txt = 'median: %.1f mas' % medmed_fwhm
 fig = plt.figure(4, figsize=fig_dims)
 fig.clf()
 ax1 = fig.add_subplot(211); ax1.grid(True)
 ax1.set_title("IRAC channel 2")
-spts = ax1.scatter(flx, mfwhm, c=npoints)
+#spts = ax1.scatter(flx, mfwhm, c=npoints)
+#spts = ax1.scatter(flx, rel_scatter, c=npoints)
+spts = ax1.scatter(msnr, rel_scatter, c=npoints)
 ax1.axhline(medmed_fwhm, c='r', ls='--', label=mmf_txt)
 limify(ax1)
 #ax1.set_xlim(0.2, 400.)
 ax1.set_xscale('log')
 ax1.set_xlabel('med_flux')
-ax1.set_ylabel('FWHM (mas)')
+#ax1.set_ylabel('FWHM (mas)')
+ax1.set_ylabel('Relative Flux Scatter')
+ax1.set_ylabel('')
 ax1.legend(loc='upper right')
 cbnorm = mplcolors.Normalize(*spts.get_clim())
 scm = plt.cm.ScalarMappable(norm=cbnorm, cmap=spts.cmap)
@@ -564,19 +751,65 @@ cbar.update_ticks()
 cbar.set_label('Data Points')
 ax2 = fig.add_subplot(212); ax2.grid(True)
 spts = ax2.scatter(msnr, mresd, c=npoints)
+#spts = ax2.scatter(msnr, mresd, c=avgjd)
+#spts = ax2.scatter(every_invsnr, every_delta_mas, lw=0, s=1)
+#ax2.plot(srt_invsnr, fitted_resid, c='r', label=fitlab)
 ax2.set_ylabel('resid (mas)')
 ax2.set_xlabel('med_snr')
 ax2.set_xscale('log')
 ax2.set_yscale('log')
 ax2.set_xlim(0.9, 250.)
-ax2.set_ylim(30., 2500.)
+ax2.set_ylim(3., 2500.)
+#ax2.set_ylim(30., 2500.)
 scm = plt.cm.ScalarMappable(norm=cbnorm, cmap=spts.cmap)
 scm.set_array([])
 cbar = fig.colorbar(scm, orientation='vertical')
 fig.tight_layout()
 plt.draw()
-fig.savefig('empirical_scatter_ch2.png')
+plot_name = 'empirical_scatter_ch2_%s.png' % plot_tag
+fig.savefig(plot_name)
 
+fig = plt.figure(6, figsize=(10,8))
+fig.clf()
+ax1 = fig.add_subplot(111, aspect='equal'); ax1.grid(True)
+ax1.set_title("IRAC channel 2")
+spts = ax1.scatter(avgra, avgde, c=npoints)
+ax1.set_xlabel('typical RA')
+ax1.set_ylabel('typical DE')
+cbnorm = mplcolors.Normalize(*spts.get_clim())
+scm = plt.cm.ScalarMappable(norm=cbnorm, cmap=spts.cmap)
+scm.set_array([])
+cbar = fig.colorbar(scm, orientation='vertical')
+cbar.formatter.set_useOffset(False)
+cbar.update_ticks()
+cbar.set_label('Data Points')
+fig.tight_layout()
+plt.draw()
+plot_name = 'npoints_vs_radec_ch2_%s.png' % plot_tag
+fig.savefig(plot_name)
+
+fig.clf()
+ax1 = fig.add_subplot(111, aspect='equal'); ax1.grid(True)
+ax1.set_title("IRAC channel 2")
+#pcolors = mresd
+pcolors = np.log10(mresd)
+#pcolors = mresd * msnr
+#pcolors = np.log10(mresd * msnr)
+spts = ax1.scatter(avgra, avgde, c=pcolors)
+ax1.set_xlabel('typical RA')
+ax1.set_ylabel('typical DE')
+cbnorm = mplcolors.Normalize(*spts.get_clim())
+scm = plt.cm.ScalarMappable(norm=cbnorm, cmap=spts.cmap)
+scm.set_array([])
+cbar = fig.colorbar(scm, orientation='vertical')
+cbar.formatter.set_useOffset(False)
+cbar.update_ticks()
+cbar.set_label('log10(residual / mas)')
+#cbar.set_label('log10(residual * SNR)')
+fig.tight_layout()
+plt.draw()
+plot_name = 'resid_vs_radec_ch2_%s.png' % plot_tag
+fig.savefig(plot_name)
 
 sys.exit(0)
 

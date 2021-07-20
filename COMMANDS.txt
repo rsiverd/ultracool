@@ -15,6 +15,26 @@
 ./fetch_sha_data.py -t targets/wise1257.txt -o ~/ucd_project/ucd_targets/wise1257 \
       -f manifest_wise1257.txt
 
+./fetch_sha_data.py -t targets/wise0148.txt -o ~/ucd_project/ucd_targets/wise0148 \
+      -f manifest_wise0148.txt
+
+./fetch_sha_data.py -t targets/pso043.txt -o ~/ucd_project/ucd_targets/pso043 \
+      -f manifest_pso043.txt
+
+./fetch_sha_data.py -t targets/wise0410.txt -o ~/ucd_project/ucd_targets/wise0410 \
+      -f manifest_wise0410.txt
+./fetch_sha_data.py -t targets/wise0458.txt -o ~/ucd_project/ucd_targets/wise0458 \
+      -f manifest_wise0458.txt
+./fetch_sha_data.py -t targets/ugps0722.txt -o ~/ucd_project/ucd_targets/ugps0722 \
+      -f manifest_ugps0722.txt
+./fetch_sha_data.py -t targets/2m0729.txt -o ~/ucd_project/ucd_targets/2m0729 \
+      -f manifest_2m0729.txt
+./fetch_sha_data.py -t targets/wise1217.txt -o ~/ucd_project/ucd_targets/wise1217 \
+      -f manifest_wise1217.txt
+./fetch_sha_data.py -t targets/ross458c.txt -o ~/ucd_project/ucd_targets/ross458c \
+      -f manifest_ross458c.txt
+
+
 # ----------------------------------------------------------------------- 
 
 ./fetch_gaia_nearby.py -R 0.5 277.12595833  +26.84355556 -o csv/gaia_wise1828.csv
@@ -22,6 +42,14 @@
 ./fetch_gaia_nearby.py -R 0.5  33.18145833   +5.52977778 -o csv/gaia_J02124355.csv
 ./fetch_gaia_nearby.py -R 0.5 278.03308333  -54.16202778 -o csv/gaia_J18320794.csv
 ./fetch_gaia_nearby.py -R 0.3 194.33754167  +71.89702778 -o csv/gaia_wise1257.csv
+./fetch_gaia_nearby.py -R 0.3  27.03049000  -72.04965000 -o csv/gaia_wise0148.csv
+./fetch_gaia_nearby.py -R 0.3  43.53988000   +2.39964000 -o csv/gaia_pso043.csv
+./fetch_gaia_nearby.py -R 0.3  62.59494000  +15.04641000 -o csv/gaia_wise0410.csv
+./fetch_gaia_nearby.py -R 0.3  74.72478000  +64.58131000 -o csv/gaia_wise0458.csv
+./fetch_gaia_nearby.py -R 0.3 110.61371000   -5.67496000 -o csv/gaia_ugps0722.csv
+./fetch_gaia_nearby.py -R 0.3 112.24794000  -39.89626000 -o csv/gaia_2m0729.csv
+./fetch_gaia_nearby.py -R 0.3 184.48726000  +16.44439000 -o csv/gaia_wise1217.csv
+./fetch_gaia_nearby.py -R 0.3 195.17351000  +12.35406000 -o csv/gaia_ross458c.csv
 
 # ----------------------------------------------------------------------- 
 
@@ -31,11 +59,31 @@
 ./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/wise1828/ \
      -o  /home/rsiverd/ucd_project/ucd_targets/wise1828/sst_eph_wise1828.csv
 ./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/J0212/ \
-     -o  /home/rsiverd/ucd_project/ucd_targets/wise1828/sst_eph_J0212.csv
+     -o  /home/rsiverd/ucd_project/ucd_targets/J0212/sst_eph_J0212.csv
 ./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/J1832/ \
-     -o  /home/rsiverd/ucd_project/ucd_targets/wise1828/sst_eph_J1832.csv
+     -o  /home/rsiverd/ucd_project/ucd_targets/J1832/sst_eph_J1832.csv
 ./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/wise1257/ \
      -o  /home/rsiverd/ucd_project/ucd_targets/wise1257/sst_eph_wise1257.csv
+
+./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/wise0148/ \
+     -o  /home/rsiverd/ucd_project/ucd_targets/wise0148/sst_eph_wise0148.csv
+
+./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/pso043/ \
+     -o  /home/rsiverd/ucd_project/ucd_targets/pso043/sst_eph_pso043.csv
+
+./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/wise0410/ \
+     -o  /home/rsiverd/ucd_project/ucd_targets/wise0410/sst_eph_wise0410.csv
+./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/wise0458/ \
+     -o  /home/rsiverd/ucd_project/ucd_targets/wise0458/sst_eph_wise0458.csv
+./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/ugps0722/ \
+     -o  /home/rsiverd/ucd_project/ucd_targets/ugps0722/sst_eph_ugps0722.csv
+./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/2m0729/ \
+     -o  /home/rsiverd/ucd_project/ucd_targets/2m0729/sst_eph_2m0729.csv
+
+./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/wise1217/ \
+     -o  /home/rsiverd/ucd_project/ucd_targets/wise1217/sst_eph_wise1217.csv
+./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/ross458c/ \
+     -o  /home/rsiverd/ucd_project/ucd_targets/ross458c/sst_eph_ross458c.csv
 
 # ----------------------------------------------------------------------- 
 
@@ -64,6 +112,9 @@ done
       -E /home/rsiverd/ucd_project/ucd_targets/wise1828/sst_eph_wise1828.csv
 
 # ----------------------------------------------------------------------- 
+# Build master 'targets' file for simplicity:
+cat targets/*.txt > targets.txt
+
 # Reprocess each object with ephemeris included:
 
 ./02_clean_all_spitzer.py -I /home/rsiverd/ucd_project/ucd_targets/wise1828 \
@@ -77,6 +128,19 @@ done
 ./02_clean_all_spitzer.py -I /home/rsiverd/ucd_project/ucd_targets/wise1257 \
       -t targets.txt --ignore_off_target --overwrite -W \
       -E /home/rsiverd/ucd_project/ucd_targets/wise1257/sst_eph_wise1257.csv
+
+
+./02_clean_all_spitzer.py -I /home/rsiverd/ucd_project/ucd_targets/wise0148 \
+      -t targets.txt --ignore_off_target --overwrite -W \
+      -E /home/rsiverd/ucd_project/ucd_targets/wise0148/sst_eph_wise0148.csv
+
+./02_clean_all_spitzer.py -I /home/rsiverd/ucd_project/ucd_targets/wise0458 \
+      -t targets.txt --ignore_off_target --overwrite -W \
+      -E /home/rsiverd/ucd_project/ucd_targets/wise0458/sst_eph_wise0458.csv
+
+./02_clean_all_spitzer.py -I /home/rsiverd/ucd_project/ucd_targets/wise1217 \
+      -t targets.txt --ignore_off_target --overwrite -W \
+      -E /home/rsiverd/ucd_project/ucd_targets/wise1217/sst_eph_wise1217.csv
 
 
 # ----------------------------------------------------------------------- 
@@ -139,6 +203,15 @@ done
 ./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/wise1257/ --hcfix -W --overwrite
 ./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/wise1257/ --clean -W --overwrite
 
+./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/wise0148/ --hcfix -W --overwrite
+./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/wise0148/ --clean -W --overwrite
+
+./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/wise0458/ --hcfix -W --overwrite
+./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/wise0458/ --clean -W --overwrite
+
+./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/wise1217/ --hcfix -W --overwrite
+./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/wise1217/ --clean -W --overwrite
+
 # ----------------------------------------------------------------------- 
 
 # Rebuild collections of extended catalog files:
@@ -147,10 +220,20 @@ cd collections
 ./01_remake_collections.sh /home/rsiverd/ucd_project/ucd_targets/wise1828 --START
 ./01_remake_collections.sh /home/rsiverd/ucd_project/ucd_targets/wise1257 --START
 
+./01_remake_collections.sh /home/rsiverd/ucd_project/ucd_targets/wise0148 --START
+./01_remake_collections.sh /home/rsiverd/ucd_project/ucd_targets/pso043   --START
+./01_remake_collections.sh /home/rsiverd/ucd_project/ucd_targets/wise0410 --START
+./01_remake_collections.sh /home/rsiverd/ucd_project/ucd_targets/wise0458 --START
+./01_remake_collections.sh /home/rsiverd/ucd_project/ucd_targets/wise1217 --START
+
 ## After extraction, fix WCS zero-point errors in-place:
 ./08_inplace_fix_WCS_offsets.py -C collections/all_files_2m0415.txt -G csv/gaia_2m0415.csv
 ./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise1828.txt -G csv/gaia_wise1828.csv
 ./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise1257.txt -G csv/gaia_wise1257.csv
+
+./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise0148.txt -G csv/gaia_wise0148.csv
+./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise0458.txt -G csv/gaia_wise0458.csv
+./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise1217.txt -G csv/gaia_wise1217.csv
 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
@@ -166,6 +249,11 @@ cd collections
 
 ./10_make_master_source_list.py -C collections/wise1828_SPITZER_I1_clean_pcat.txt \
       -o process/wise1828_detections.txt
+
+./10_make_master_source_list.py -C collections/wise0148_SPITZER_I1_clean_pcat.txt \
+      -o process/wise0148_detections.txt
+./10_make_master_source_list.py -C collections/wise0458_SPITZER_I1_clean_pcat.txt \
+      -o process/wise0458_detections.txt
 
 
 # ----------------------------------------------------------------------- 
@@ -215,13 +303,35 @@ cd collections
       -D process/wise1257_detections.txt \
       -C collections/wise1257_SPITZER_I2_clean_pcat.txt -o process/wise1257_ch2_pcat.pickle
 
+
+
+# wise0148 pcat, both channels:
+%run ./11_match_and_group_sources.py -G csv/gaia_wise0148.csv -T targets/wise0148.par \
+      -D process/wise0148_detections.txt \
+      -C collections/wise0148_SPITZER_I1_clean_pcat.txt -o process/wise0148_ch1_pcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_wise0148.csv -T targets/wise0148.par \
+      -D process/wise0148_detections.txt \
+      -C collections/wise0148_SPITZER_I2_clean_pcat.txt -o process/wise0148_ch2_pcat.pickle
+
+# wise0458 pcat, both channels:
+%run ./11_match_and_group_sources.py -G csv/gaia_wise0458.csv -T targets/wise0458.par \
+      -D process/wise0458_detections.txt \
+      -C collections/wise0458_SPITZER_I1_clean_pcat.txt -o process/wise0458_ch1_pcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_wise0458.csv -T targets/wise0458.par \
+      -D process/wise0458_detections.txt \
+      -C collections/wise0458_SPITZER_I2_clean_pcat.txt -o process/wise0458_ch2_pcat.pickle
+
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
 
 # empirical noise model for ch1:
-./12_empirical_noise_model.py process/wise1828_ch1_pcat.pickle process/2m0415_ch1_pcat.pickle
+%run ./12_empirical_noise_model.py -i IRAC1 \
+    process/wise1828_ch1_pcat.pickle process/2m0415_ch1_pcat.pickle
 
+# empirical noise model for ch2:
+%run ./12_empirical_noise_model.py -i IRAC2 \
+    process/wise1828_ch2_pcat.pickle process/2m0415_ch2_pcat.pickle
 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
