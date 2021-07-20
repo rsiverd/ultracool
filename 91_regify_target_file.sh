@@ -4,8 +4,8 @@
 # targets_deg.txt.
 #
 # To run script, do (adjust file names as needed):
-# ./90_regify_target_file.sh targets_deg.txt    # inspect manually
-# ./90_regify_target_file.sh targets_deg.txt > targets.reg
+# ./91_regify_target_file.sh targets_deg.txt    # inspect manually
+# ./91_regify_target_file.sh targets_deg.txt > targets.reg
 
 if [ -z "$1" ]; then
    echo "Syntax: $0 targets_deg.txt"
