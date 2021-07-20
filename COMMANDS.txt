@@ -17,10 +17,8 @@
 
 ./fetch_sha_data.py -t targets/wise0148.txt -o ~/ucd_project/ucd_targets/wise0148 \
       -f manifest_wise0148.txt
-
 ./fetch_sha_data.py -t targets/pso043.txt -o ~/ucd_project/ucd_targets/pso043 \
       -f manifest_pso043.txt
-
 ./fetch_sha_data.py -t targets/wise0410.txt -o ~/ucd_project/ucd_targets/wise0410 \
       -f manifest_wise0410.txt
 ./fetch_sha_data.py -t targets/wise0458.txt -o ~/ucd_project/ucd_targets/wise0458 \
