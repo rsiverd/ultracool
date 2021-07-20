@@ -296,6 +296,17 @@ done
 ./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise0458.txt -G csv/gaia_wise0458.csv
 ./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise1217.txt -G csv/gaia_wise1217.csv
 
+## Ensure all WCS is adjusted:
+nudger="./08_inplace_fix_WCS_offsets.py"
+for cfile in `ls collections/all_files_*.txt`; do
+   echo "cfile: $cfile"
+   tname=$(echo $cfile | sed 's/^.*all_files_//' | cut -d. -f1)
+   echo "tname: $tname"
+   csv_file="csv/gaia_${tname}.csv"
+   echo "csv_file: $csv_file"
+   cmde "$nudger -C $cfile -G $csv_file" || break
+done
+
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
@@ -316,6 +327,13 @@ done
 ./10_make_master_source_list.py -C collections/wise0458_SPITZER_I1_clean_pcat.txt \
       -o process/wise0458_detections.txt
 
+script="./10_make_master_source_list.py"
+targ_list=( wise0148 pso043 wise0410 wise0458 ugps0722 2m0729 wise1217 ross458c )
+for ttt in ${targ_list[*]}; do
+   cfile="collections/${ttt}_SPITZER_I1_clean_pcat.txt"
+   dfile="process/${ttt}_detections.txt"
+   cmde "${script} -C ${cfile} -o ${dfile}" || break
+done
 
 # ----------------------------------------------------------------------- 
 
@@ -364,8 +382,6 @@ done
       -D process/wise1257_detections.txt \
       -C collections/wise1257_SPITZER_I2_clean_pcat.txt -o process/wise1257_ch2_pcat.pickle
 
-
-
 # wise0148 pcat, both channels:
 %run ./11_match_and_group_sources.py -G csv/gaia_wise0148.csv -T targets/wise0148.par \
       -D process/wise0148_detections.txt \
@@ -374,6 +390,22 @@ done
       -D process/wise0148_detections.txt \
       -C collections/wise0148_SPITZER_I2_clean_pcat.txt -o process/wise0148_ch2_pcat.pickle
 
+# pso043 pcat, both channels:
+%run ./11_match_and_group_sources.py -G csv/gaia_pso043.csv -T targets/pso043.par \
+      -D process/pso043_detections.txt \
+      -C collections/pso043_SPITZER_I1_clean_pcat.txt -o process/pso043_ch1_pcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_pso043.csv -T targets/pso043.par \
+      -D process/pso043_detections.txt \
+      -C collections/pso043_SPITZER_I2_clean_pcat.txt -o process/pso043_ch2_pcat.pickle
+
+# wise0410 pcat, both channels:
+%run ./11_match_and_group_sources.py -G csv/gaia_wise0410.csv -T targets/wise0410.par \
+      -D process/wise0410_detections.txt \
+      -C collections/wise0410_SPITZER_I1_clean_pcat.txt -o process/wise0410_ch1_pcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_wise0410.csv -T targets/wise0410.par \
+      -D process/wise0410_detections.txt \
+      -C collections/wise0410_SPITZER_I2_clean_pcat.txt -o process/wise0410_ch2_pcat.pickle
+
 # wise0458 pcat, both channels:
 %run ./11_match_and_group_sources.py -G csv/gaia_wise0458.csv -T targets/wise0458.par \
       -D process/wise0458_detections.txt \
@@ -381,6 +413,40 @@ done
 %run ./11_match_and_group_sources.py -G csv/gaia_wise0458.csv -T targets/wise0458.par \
       -D process/wise0458_detections.txt \
       -C collections/wise0458_SPITZER_I2_clean_pcat.txt -o process/wise0458_ch2_pcat.pickle
+
+# ugps0722 pcat, both channels:
+%run ./11_match_and_group_sources.py -G csv/gaia_ugps0722.csv -T targets/ugps0722.par \
+      -D process/ugps0722_detections.txt \
+      -C collections/ugps0722_SPITZER_I1_clean_pcat.txt -o process/ugps0722_ch1_pcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_ugps0722.csv -T targets/ugps0722.par \
+      -D process/ugps0722_detections.txt \
+      -C collections/ugps0722_SPITZER_I2_clean_pcat.txt -o process/ugps0722_ch2_pcat.pickle
+
+# 2m0729 pcat, both channels:
+%run ./11_match_and_group_sources.py -G csv/gaia_2m0729.csv -T targets/2m0729.par \
+      -D process/2m0729_detections.txt \
+      -C collections/2m0729_SPITZER_I1_clean_pcat.txt -o process/2m0729_ch1_pcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_2m0729.csv -T targets/2m0729.par \
+      -D process/2m0729_detections.txt \
+      -C collections/2m0729_SPITZER_I2_clean_pcat.txt -o process/2m0729_ch2_pcat.pickle
+
+# wise1217 pcat, both channels:
+%run ./11_match_and_group_sources.py -G csv/gaia_wise1217.csv -T targets/wise1217.par \
+      -D process/wise1217_detections.txt \
+      -C collections/wise1217_SPITZER_I1_clean_pcat.txt -o process/wise1217_ch1_pcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_wise1217.csv -T targets/wise1217.par \
+      -D process/wise1217_detections.txt \
+      -C collections/wise1217_SPITZER_I2_clean_pcat.txt -o process/wise1217_ch2_pcat.pickle
+
+# ross458c pcat, both channels:
+%run ./11_match_and_group_sources.py -G csv/gaia_ross458c.csv -T targets/ross458c.par \
+      -D process/ross458c_detections.txt \
+      -C collections/ross458c_SPITZER_I1_clean_pcat.txt -o process/ross458c_ch1_pcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_ross458c.csv -T targets/ross458c.par \
+      -D process/ross458c_detections.txt \
+      -C collections/ross458c_SPITZER_I2_clean_pcat.txt -o process/ross458c_ch2_pcat.pickle
+
+2m0729 wise1217 ross458c
 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
