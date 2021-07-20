@@ -1,0 +1,16 @@
+/home/rsiverd/ucd_project/ucd_targets/wise1257/r65978112/SPITZER_I1_65978112_0017_0000_1_clean.fits.fcat
+/home/rsiverd/ucd_project/ucd_targets/wise1257/r65978112/SPITZER_I1_65978112_0018_0000_1_clean.fits.fcat
+/home/rsiverd/ucd_project/ucd_targets/wise1257/r65978112/SPITZER_I1_65978112_0019_0000_1_clean.fits.fcat
+/home/rsiverd/ucd_project/ucd_targets/wise1257/r65978112/SPITZER_I1_65978112_0020_0000_1_clean.fits.fcat
+/home/rsiverd/ucd_project/ucd_targets/wise1257/r65978112/SPITZER_I1_65978112_0021_0000_1_clean.fits.fcat
+/home/rsiverd/ucd_project/ucd_targets/wise1257/r65978112/SPITZER_I1_65978112_0022_0000_1_clean.fits.fcat
+/home/rsiverd/ucd_project/ucd_targets/wise1257/r65978112/SPITZER_I1_65978112_0023_0000_1_clean.fits.fcat
+/home/rsiverd/ucd_project/ucd_targets/wise1257/r65978112/SPITZER_I1_65978112_0024_0000_1_clean.fits.fcat
+/home/rsiverd/ucd_project/ucd_targets/wise1257/r65978112/SPITZER_I1_65978112_0025_0000_1_clean.fits.fcat
+/home/rsiverd/ucd_project/ucd_targets/wise1257/r65978112/SPITZER_I1_65978112_0026_0000_1_clean.fits.fcat
+/home/rsiverd/ucd_project/ucd_targets/wise1257/r65978112/SPITZER_I1_65978112_0027_0000_1_clean.fits.fcat
+/home/rsiverd/ucd_project/ucd_targets/wise1257/r65978112/SPITZER_I1_65978112_0028_0000_1_clean.fits.fcat
+/home/rsiverd/ucd_project/ucd_targets/wise1257/r65978112/SPITZER_I1_65978112_0029_0000_1_clean.fits.fcat
+/home/rsiverd/ucd_project/ucd_targets/wise1257/r65978112/SPITZER_I1_65978112_0030_0000_1_clean.fits.fcat
+/home/rsiverd/ucd_project/ucd_targets/wise1257/r65978112/SPITZER_I1_65978112_0031_0000_1_clean.fits.fcat
+/home/rsiverd/ucd_project/ucd_targets/wise1257/r65978112/SPITZER_I1_65978112_0032_0000_1_clean.fits.fcat
