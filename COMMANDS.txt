@@ -281,6 +281,12 @@ cd collections
 ./01_remake_collections.sh /home/rsiverd/ucd_project/ucd_targets/wise0458 --START
 ./01_remake_collections.sh /home/rsiverd/ucd_project/ucd_targets/wise1217 --START
 
+## Rebuild all collections:
+for tdir in `find ~/ucd_project/ucd_targets/ -type d -mindepth 1 -maxdepth 1`; do
+   cmde "./01_remake_collections.sh $tdir --START"
+done
+
+
 ## After extraction, fix WCS zero-point errors in-place:
 ./08_inplace_fix_WCS_offsets.py -C collections/all_files_2m0415.txt -G csv/gaia_2m0415.csv
 ./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise1828.txt -G csv/gaia_wise1828.csv
