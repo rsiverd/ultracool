@@ -84,6 +84,26 @@
      -o  /home/rsiverd/ucd_project/ucd_targets/ross458c/sst_eph_ross458c.csv
 
 # ----------------------------------------------------------------------- 
+# ----------------------------------------------------------------------- 
+# ----------------------------------------------------------------------- 
+
+source ENVIRONMENT.sh
+img_root="/home/rsiverd/ucd_project/ucd_targets"
+targ_list=( wise0148 pso043 wise0410 wise0458 ugps0722 2m0729 wise1217 ross458c )
+fetcher="./01_get_SST_ephemeris.py"
+cleaner="./02_clean_all_spitzer.py"
+clnopts="-t targets.txt --ignore_off_target -W" # --overwrite
+for ttt in ${targ_list[*]}; do
+   targ_dir="${img_root}/${ttt}"
+   eph_file="${targ_dir}/sst_eph_${ttt}.csv"
+   cmde "${fetcher} -W -I ${targ_dir} -o ${eph_file}"
+   cmde "${cleaner} -I ${targ_dir} -E ${eph_file} ${clnopts}"
+done
+
+# ----------------------------------------------------------------------- 
+# ----------------------------------------------------------------------- 
+# ----------------------------------------------------------------------- 
+
 
 # clean images:
 cd ~/ucd_project/ultracool
@@ -108,6 +128,9 @@ done
 ./02_clean_all_spitzer.py -I /home/rsiverd/ucd_project/ucd_targets/wise1828/r46438912 \
       -t targets.txt --ignore_off_target \
       -E /home/rsiverd/ucd_project/ucd_targets/wise1828/sst_eph_wise1828.csv
+
+
+
 
 # ----------------------------------------------------------------------- 
 # Build master 'targets' file for simplicity:
@@ -137,8 +160,30 @@ cat targets/*.txt > targets.txt
       -E /home/rsiverd/ucd_project/ucd_targets/wise0458/sst_eph_wise0458.csv
 
 ./02_clean_all_spitzer.py -I /home/rsiverd/ucd_project/ucd_targets/wise1217 \
+      -t targets.txt --ignore_off_target -W \
+      -E /home/rsiverd/ucd_project/ucd_targets/wise1217/sst_eph_wise1217.csv
+
+./02_clean_all_spitzer.py -I /home/rsiverd/ucd_project/ucd_targets/wise1217 \
       -t targets.txt --ignore_off_target --overwrite -W \
       -E /home/rsiverd/ucd_project/ucd_targets/wise1217/sst_eph_wise1217.csv
+
+./02_clean_all_spitzer.py -I /home/rsiverd/ucd_project/ucd_targets/ross458c \
+      -t targets.txt --ignore_off_target --overwrite -W \
+      -E /home/rsiverd/ucd_project/ucd_targets/ross458c/sst_eph_ross458c.csv
+
+# ----------------------------------------------------------------------- 
+
+## Clean everything (no overwrite):
+img_root="/home/rsiverd/ucd_project/ucd_targets"
+targ_list=( wise0148 pso043 wise0410 wise0458 ugps0722 2m0729 wise1217 ross458c )
+cleaner="./02_clean_all_spitzer.py"
+#clnopts="-t targets.txt --ignore_off_target -W --overwrite"
+clnopts="-t targets.txt --ignore_off_target -W"
+for ttt in ${targ_list[*]}; do
+   targ_dir="${img_root}/${ttt}"
+   eph_file="${targ_dir}/sst_eph_${ttt}.csv"
+   cmde "${cleaner} -I ${targ_dir} -E ${eph_file} ${clnopts}"
+done
 
 
 # ----------------------------------------------------------------------- 
@@ -209,6 +254,18 @@ cat targets/*.txt > targets.txt
 
 ./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/wise1217/ --hcfix -W --overwrite
 ./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/wise1217/ --clean -W --overwrite
+
+## AOR-based extraction:
+img_root="/home/rsiverd/ucd_project/ucd_targets"
+targ_list=( wise0148 pso043 wise0410 wise0458 ugps0722 2m0729 wise1217 ross458c )
+extract="./07_spitzer_aor_extraction.py"
+#extopts="-W --overwrite"
+extopts="-W"
+for ttt in ${targ_list[*]}; do
+   targ_dir="${img_root}/${ttt}"
+   cmde "${extract} -I ${targ_dir} ${extopts} --hcfix"
+   cmde "${extract} -I ${targ_dir} ${extopts} --clean"
+done
 
 # ----------------------------------------------------------------------- 
 
