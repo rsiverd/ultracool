@@ -1,0 +1,14 @@
+
+# Make master lists of extended catalogs for each channel:
+cat collections/*_I1_clean_pcat.txt > all_extcat_ch1.txt
+cat collections/*_I2_clean_pcat.txt > all_extcat_ch2.txt
+
+# Illustrate the phase bias:
+source ENVIRONMENT.sh
+#./estimate_bias.py -c all_extcat_ch1.txt -o bias_ch1.png
+#./estimate_bias.py -c all_extcat_ch2.txt -o bias_ch2.png
+./estimate_bias.py -c all_extcat_ch1.txt -t ch1
+./estimate_bias.py -c all_extcat_ch2.txt -t ch2
+
+./estimate_bias.py -c all_extcat_ch1.txt -t ch1 --window
+./estimate_bias.py -c all_extcat_ch2.txt -t ch2 --window
