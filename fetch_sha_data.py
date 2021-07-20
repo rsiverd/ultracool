@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2019-08-27
-# Last modified: 2021-04-21
+# Last modified: 2021-07-20
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.4.5"
+__version__ = "0.4.6"
 
 ## Python version-agnostic module reloading:
 try:
@@ -314,8 +314,10 @@ def make_flavor_imname(item, suffix):
 
 ## Retrieve item+ancillary and save zip archive:
 def get_all_as_zip(item, save_path,
-        urlkey='accessWithAnc1Url', tpath='./.spitzer'):
+        urlkey='accessWithAnc1Url', tpath='./.spitzer', addpid=True):
     data_url = item[urlkey].strip()
+    if addpid:
+        tpath += str(os.getpid())
     _tmp_dir = os.path.dirname(tpath) + '/'
     _tmpfile = os.path.basename(tpath)
     _tmppath = tpath + '.zip'
@@ -337,7 +339,7 @@ def unzip_and_move_by_suffix(zfile, suffix, outdir):
 
 ## Driver routine to retrieve zip file and unpack desired flavors:
 def retrieve_anc_zip(item, suff_list, outdir):
-    tzpath = 'temp.zip'
+    tzpath = 'temp_%s.zip' % str(os.getpid())
     if not get_all_as_zip(item, tzpath):
         sys.stderr.write("retrieval error!!\n")
         return False
