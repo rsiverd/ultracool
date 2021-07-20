@@ -1,0 +1,10 @@
+{
+     'name'             : 'ugps0722',
+     'ra_deg'           : 110.61371,
+     'de_deg'           :  -5.67496,
+   'pmra_cosdec_asyr'   :  -0.893,      # pmRA * cos(dec)
+   'pmde_asyr'          :   0.349,
+   'parallax_as'        :   0.211,
+   'epoch_jdutc'        :   2455316.99,
+
+}
