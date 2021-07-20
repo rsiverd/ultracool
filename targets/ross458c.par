@@ -1,0 +1,10 @@
+{
+     'name'             : 'ross458c',
+     'ra_deg'           : 195.17351,
+     'de_deg'           :  12.35406,
+   'pmra_cosdec_asyr'   :  -0.649,      # pmRA * cos(dec)
+   'pmde_asyr'          :  -0.045,
+   'parallax_as'        :   0.062,
+   'epoch_jdutc'        :   2455269.37,
+
+}
