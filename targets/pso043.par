@@ -1,0 +1,10 @@
+{
+     'name'             :  'pso043',
+     'ra_deg'           :  43.53988,
+     'de_deg'           :  +2.39964,
+   'pmra_cosdec_asyr'   :   2.588,      # pmRA * cos(dec)
+   'pmde_asyr'          :   0.273,
+   'parallax_as'        :   0.135,
+   'epoch_jdutc'        :   2453024.56,
+
+}
