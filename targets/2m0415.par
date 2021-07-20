@@ -4,6 +4,7 @@
      'de_deg'           :  -9.58437,
    'pmra_cosdec_asyr'   :   2.204,      # pmRA * cos(dec)
    'pmde_asyr'          :   0.541,
+   'parallax_as'        :   0.167,
    'epoch_jdutc'        :   2453024.56,
 
 }
