@@ -94,11 +94,23 @@
      -o  /home/rsiverd/ucd_project/ucd_targets/ugps0722/sst_eph_ugps0722.csv
 ./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/2m0729/ \
      -o  /home/rsiverd/ucd_project/ucd_targets/2m0729/sst_eph_2m0729.csv
-
 ./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/wise1217/ \
      -o  /home/rsiverd/ucd_project/ucd_targets/wise1217/sst_eph_wise1217.csv
 ./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/ross458c/ \
      -o  /home/rsiverd/ucd_project/ucd_targets/ross458c/sst_eph_ross458c.csv
+
+./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/wise1405/ \
+     -o  /home/rsiverd/ucd_project/ucd_targets/wise1405/sst_eph_wise1405.csv
+./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/wise1541/ \
+     -o  /home/rsiverd/ucd_project/ucd_targets/wise1541/sst_eph_wise1541.csv
+./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/wise1738/ \
+     -o  /home/rsiverd/ucd_project/ucd_targets/wise1738/sst_eph_wise1738.csv
+./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/wise1741/ \
+     -o  /home/rsiverd/ucd_project/ucd_targets/wise1741/sst_eph_wise1741.csv
+./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/wise1804/ \
+     -o  /home/rsiverd/ucd_project/ucd_targets/wise1804/sst_eph_wise1804.csv
+./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/wise2056/ \
+     -o  /home/rsiverd/ucd_project/ucd_targets/wise2056/sst_eph_wise2056.csv
 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
