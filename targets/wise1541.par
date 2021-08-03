@@ -1,0 +1,10 @@
+{
+     'name'             :  'wise1541',
+     'ra_deg'           : 235.46470000,
+     'de_deg'           : -22.84053000,
+   'pmra_cosdec_asyr'   :  -0.870,      # pmRA * cos(dec)
+   'pmde_asyr'          :  -0.013,
+   'parallax_as'        :   0.074,
+   'epoch_jdutc'        :   2455665.42,
+
+}
