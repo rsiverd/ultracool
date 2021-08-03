@@ -31,7 +31,6 @@
       -f manifest_wise1217.txt
 ./fetch_sha_data.py -t targets/ross458c.txt -o ~/ucd_project/ucd_targets/ross458c \
       -f manifest_ross458c.txt
-
 ./fetch_sha_data.py -t targets/wise1405.txt -o ~/ucd_project/ucd_targets/wise1405 \
       -f manifest_wise1405.txt
 ./fetch_sha_data.py -t targets/wise1541.txt -o ~/ucd_project/ucd_targets/wise1541 \
@@ -40,7 +39,6 @@
       -f manifest_wise1738.txt
 ./fetch_sha_data.py -t targets/wise1741.txt -o ~/ucd_project/ucd_targets/wise1741 \
       -f manifest_wise1741.txt
-
 ./fetch_sha_data.py -t targets/wise1804.txt -o ~/ucd_project/ucd_targets/wise1804 \
       -f manifest_wise1804.txt
 ./fetch_sha_data.py -t targets/wise2056.txt -o ~/ucd_project/ucd_targets/wise2056 \
@@ -61,6 +59,12 @@
 ./fetch_gaia_nearby.py -R 0.3 112.24794000  -39.89626000 -o csv/gaia_2m0729.csv
 ./fetch_gaia_nearby.py -R 0.3 184.48726000  +16.44439000 -o csv/gaia_wise1217.csv
 ./fetch_gaia_nearby.py -R 0.3 195.17351000  +12.35406000 -o csv/gaia_ross458c.csv
+./fetch_gaia_nearby.py -R 0.3 211.32589000  +55.57258000 -o csv/gaia_wise1405.csv
+./fetch_gaia_nearby.py -R 0.3 235.46470000  -22.84053000 -o csv/gaia_wise1541.csv
+./fetch_gaia_nearby.py -R 0.3 264.64812000  +27.54967000 -o csv/gaia_wise1738.csv
+./fetch_gaia_nearby.py -R 0.3 265.35094000  +25.88859000 -o csv/gaia_wise1741.csv
+./fetch_gaia_nearby.py -R 0.3 271.14730000  +31.28515000 -o csv/gaia_wise1804.csv
+./fetch_gaia_nearby.py -R 0.3 314.12055000  +14.99824000 -o csv/gaia_wise2056.csv
 
 # ----------------------------------------------------------------------- 
 
