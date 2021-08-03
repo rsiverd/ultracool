@@ -32,6 +32,19 @@
 ./fetch_sha_data.py -t targets/ross458c.txt -o ~/ucd_project/ucd_targets/ross458c \
       -f manifest_ross458c.txt
 
+./fetch_sha_data.py -t targets/wise1405.txt -o ~/ucd_project/ucd_targets/wise1405 \
+      -f manifest_wise1405.txt
+./fetch_sha_data.py -t targets/wise1541.txt -o ~/ucd_project/ucd_targets/wise1541 \
+      -f manifest_wise1541.txt
+./fetch_sha_data.py -t targets/wise1738.txt -o ~/ucd_project/ucd_targets/wise1738 \
+      -f manifest_wise1738.txt
+./fetch_sha_data.py -t targets/wise1741.txt -o ~/ucd_project/ucd_targets/wise1741 \
+      -f manifest_wise1741.txt
+
+./fetch_sha_data.py -t targets/wise1804.txt -o ~/ucd_project/ucd_targets/wise1804 \
+      -f manifest_wise1804.txt
+./fetch_sha_data.py -t targets/wise2056.txt -o ~/ucd_project/ucd_targets/wise2056 \
+      -f manifest_wise2056.txt
 
 # ----------------------------------------------------------------------- 
 
