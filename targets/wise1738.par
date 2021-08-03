@@ -1,0 +1,10 @@
+{
+     'name'             :  'wise1738',
+     'ra_deg'           : 264.64812000,
+     'de_deg'           : +27.54967000,
+   'pmra_cosdec_asyr'   :   0.292,      # pmRA * cos(dec)
+   'pmde_asyr'          :  -0.396,
+   'parallax_as'        :   0.102,
+   'epoch_jdutc'        :   2455458.08,
+
+}
