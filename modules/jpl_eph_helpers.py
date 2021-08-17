@@ -8,13 +8,13 @@
 #
 # Rob Siverd
 # Created:       2021-03-16
-# Last modified: 2021-03-18
+# Last modified: 2021-08-17
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -62,6 +62,7 @@ class FetchHorizEphem(object):
         # Miscellany:
         self._vlevel = vlevel
         self._stream = sys.stderr
+        self._debug  = False
 
         # Query config:
         self._qmax = 50             # max data points per query batch
@@ -135,6 +136,8 @@ class FetchHorizEphem(object):
 
         # run query:
         hrz_ephem = self._do_query()
+        if self._debug:
+            self._raw_result = hrz_ephem.copy()
 
         # update and return table:
         return self._update_eph_table(hrz_ephem)
@@ -146,19 +149,32 @@ class FetchHorizEphem(object):
     # Perform batched HORIZONS query:
     def _do_query(self):
         _query_kw = {'location':self._location, **self._target}
+        _timing_tol_sec = 10.
 
         # query in batches to avoid 2000-char URL length limit:
         tik = time.time()
         nchunks = (self._timestamps.tdb.jd.size // self._qmax) + 1
         batches = np.array_split(self._timestamps.tdb.jd, nchunks)
+        if self._debug:
+            self._use_batches = [x.copy() for x in batches]
         results = []
         for ii,batch in enumerate(batches, 1):
             self._vlwrite(1, 99, "\rQuery batch %d of %d ... " % (ii, nchunks))
             hrz_query = Horizons(**_query_kw, epochs=batch.tolist())
             batch_eph = hrz_query.vectors(refplane=self._refplane)
+            # sanity check:
+            diffs_sec = 86400. * np.array(batch_eph['datetime_jd'] - batch)
+            if np.any(diffs_sec > _timing_tol_sec):
+                sys.stderr.write("\n" +
+                        "ERROR: timestamp problem in HORIZONS results\n\n")
+                sys.stderr.write("diffs_sec: %s\n" % str(diffs_sec))
+                sys.stderr.write("Input timestamps out-of-order???\n\n")
+                raise
             results.append(batch_eph)
         tok = time.time()
         self._vlwrite(1, 99, "done (took %.3f sec).\n" % (tok-tik))
+        if self._debug:
+            self._not_stacked = [x.copy() for x in results]
         # combine results:
         return apt.vstack(results)
 

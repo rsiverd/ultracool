@@ -7,7 +7,7 @@
 #
 # Rob Siverd
 # Created:       2021-03-16
-# Last modified: 2021-03-16
+# Last modified: 2021-08-17
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.5"
+__version__ = "0.2.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -295,6 +295,10 @@ exp_times  = [x['EXPTIME']  for x in all_cbcd_headers]
 timestamps = astt.Time(obs_dates, scale='utc', format='isot') \
                 + 0.5 * astt.TimeDelta(exp_times, format='sec')
 
+## Sort bases and timestamps by timestamp:
+order = np.argsort(timestamps.tdb.jd)
+timestamps = timestamps[order]
+img_bases = [img_bases[x] for x in order]
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
