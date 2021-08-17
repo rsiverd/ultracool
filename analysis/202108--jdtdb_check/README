@@ -1,0 +1,14 @@
+After some old fashioned visual inspection, it looks like timestamps may have
+been scrambled in the Spitzer data sets (for the targets in particular). The
+scripts in this folder are intended to retrieve header information from images
+that have been analyzed to provide 'ground truth' against which the train wreck
+of my analysis code can be compared.
+
+The trouble with JDTDB was tracked down to an issue with HORIZONS ephemeris
+retrieval. HORIZONS results are always sorted by time, even if the input epoch
+list is not. The not-zero-padded AOR in SST filenames led to a circumstance
+where requests included out-of-order timestamps. This caused the ephemeris
+tables to have incorrect timestamps. The issue has been fixed and a halting
+check has been added to ephemeris retrieval code to prevent this from happening
+in the future.
+
