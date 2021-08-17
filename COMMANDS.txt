@@ -117,10 +117,13 @@
 
 source ENVIRONMENT.sh
 img_root="/home/rsiverd/ucd_project/ucd_targets"
-targ_list=( wise0148 pso043 wise0410 wise0458 ugps0722 2m0729 wise1217 ross458c )
+targ_list=( 2m0415 2m0729 pso043 ross458c ugps0722 wise0148 wise0410 wise0458 )
+targ_list+=( wise1217 wise1257 wise1405 wise1541 wise1738 wise1741 wise1804 )
+targ_list+=( wise1828 wise2056 )
+#targ_list=( wise0148 pso043 wise0410 wise0458 ugps0722 2m0729 wise1217 ross458c )
 fetcher="./01_get_SST_ephemeris.py"
 cleaner="./02_clean_all_spitzer.py"
-clnopts="-t targets.txt --ignore_off_target -W" # --overwrite
+clnopts="-t targets.txt --ignore_off_target -W --overwrite"
 for ttt in ${targ_list[*]}; do
    targ_dir="${img_root}/${ttt}"
    eph_file="${targ_dir}/sst_eph_${ttt}.csv"
