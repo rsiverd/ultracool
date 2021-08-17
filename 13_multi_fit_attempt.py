@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2021-04-13
-# Last modified: 2021-04-15
+# Last modified: 2021-07-27
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -38,6 +38,7 @@ import argparse
 #import glob
 import gc
 import os
+import ast
 import sys
 import time
 import pickle
@@ -274,15 +275,30 @@ _ra_key, _de_key = centroid_colmap[centroid_method]
 
 ##--------------------------------------------------------------------------##
 ## Input data files:
+cat_type = 'pcat'
+cat_type = 'fcat'
 #tgt_name = '2m0415'
-#tgt_name = 'wise1828'
-tgt_name = 'wise0148'
-tgt_name = 'wise0458'
-ch1_file = 'process/%s_ch1_pcat.pickle' % tgt_name
-ch2_file = 'process/%s_ch2_pcat.pickle' % tgt_name
+#tgt_name = '2m0729'
+#tgt_name = 'pso043'
+#tgt_name = 'ross458c'
+#tgt_name = 'ugps0722'
+#tgt_name = 'wise0148'
+#tgt_name = 'wise0410'
+#tgt_name = 'wise0458'
+tgt_name = 'wise1828'
+ch1_file = 'process/%s_ch1_%s.pickle' % (tgt_name, cat_type)
+ch2_file = 'process/%s_ch2_%s.pickle' % (tgt_name, cat_type)
 #ch1_file = 'process/wise1828_ch1_pcat.pickle'
 #ch2_file = 'process/wise1828_ch2_pcat.pickle'
 pkl_files = {'ch1':ch1_file, 'ch2':ch2_file}
+
+## Load parameters file:
+par_file = 'targets/%s.par' % tgt_name
+if not os.path.isfile(par_file):
+    sys.stderr.write("Can't find parameter file: %s\n" % par_file)
+    sys.exit(1)
+with open(par_file, 'r') as ff:
+    prev_pars = ast.literal_eval(ff.read())
 
 ## Load data:
 tdata, sdata, gdata = {}, {}, {}
@@ -300,9 +316,14 @@ srcs_both = srcs_ch1.intersection(srcs_ch2)
 npts_ch1 = {x:len(sdata['ch1'][x]) for x in sdata['ch1'].keys()}
 npts_ch2 = {x:len(sdata['ch2'][x]) for x in sdata['ch2'].keys()}
 
-min_pts = 25
-large_ch1 = [ss for ss,nn in npts_ch1.items() if nn>min_pts]
-large_ch2 = [ss for ss,nn in npts_ch2.items() if nn>min_pts]
+nmax_ch1 = max(npts_ch1.values())
+nmax_ch2 = max(npts_ch2.values())
+
+#min_pts = 25
+min_pts_1 = nmax_ch1 // 2
+min_pts_2 = nmax_ch2 // 2
+large_ch1 = [ss for ss,nn in npts_ch1.items() if nn>min_pts_1]
+large_ch2 = [ss for ss,nn in npts_ch2.items() if nn>min_pts_2]
 
 every_ch1_iname = np.concatenate([sdata['ch1'][x]['iname'] for x in large_ch1])
 every_ch1_jdtdb = np.concatenate([sdata['ch1'][x]['jdtdb'] for x in large_ch1])
@@ -321,6 +342,7 @@ large_ch1_inames = [jd2im_ch1[x] for x in sorted(jd2im_ch1.keys())]
 large_ch2_inames = [jd2im_ch2[x] for x in sorted(jd2im_ch2.keys())]
 
 large_both = set(large_ch1).intersection(large_ch2)
+jd2im_both = {**jd2im_ch1, **jd2im_ch2}
 
 ##--------------------------------------------------------------------------##
 
@@ -470,6 +492,28 @@ scatter_time_ch2 = np.array(scatter_time_ch2)
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
+## Well-formatted printing of 4-par models:
+def nice_print_4par(model, stream=sys.stderr):
+    pmde_masyr = model['pmde_degyr'] * 3.6e6
+    pmra_masyr = model['pmra_degyr'] * 3.6e6
+    pmra_cosdec_masyr = pmra_masyr * np.cos(np.radians(model['de_deg']))
+    stream.write("Epoch (JDTDB):  %.1f\n" % model['epoch_jdtdb'])
+    stream.write("RA (degrees):   %12.6f\n" % model['ra_deg'])
+    stream.write("DE (degrees):   %12.6f\n" % model['de_deg'])
+    stream.write("pmRA  (mas/yr): %12.6f\n" % pmra_masyr)
+    stream.write("pmRA* (mas/yr): %12.6f\n" % pmra_cosdec_masyr)
+    stream.write("pmDE  (mas/yr): %12.6f\n" % pmde_masyr)
+    return
+
+def nice_print_prev(params, stream=sys.stderr):
+    pmra_cosdec_masyr = 1e3 * params['pmra_cosdec_asyr']
+    pmde_masyr = 1e3 * params['pmde_asyr']
+    prlx_mas = 1e3 * params['parallax_as']
+    stream.write("pmRA* (mas/yr): %9.3f\n" % pmra_cosdec_masyr)
+    stream.write("pmDE  (mas/yr): %9.3f\n" % pmde_masyr)
+    stream.write("prlx  (mas):    %9.3f\n" % prlx_mas)
+    return
+
 ## 5-parameter fit to target:
 order_ch1 = np.argsort(tdata['ch1']['jdtdb'])
 order_ch2 = np.argsort(tdata['ch2']['jdtdb'])
@@ -483,9 +527,10 @@ tmodel_4par = {cc:fit_4par(dd) for cc,dd in tdata.items()}
 tmodel_4par['both'] = fit_4par(tgt_both)
 
 ## Compute parallax factors (dRA*cos(DE), dDE):
-use_dataset = tgt_both
-use_dataset = tgt_ch2
-use_dataset = tgt_ch1
+have_datasets = {'both':tgt_both, 'ch1':tgt_ch1, 'ch2':tgt_ch2}
+dwhich = 'ch1'
+dwhich = 'ch2'
+use_dataset = have_datasets[dwhich]
 ts_fit_4par = fit_4par(use_dataset)
 m4ra, m4de = eval_4par(use_dataset, ts_fit_4par)
 nom_ra_deg = np.average(m4ra)
@@ -502,35 +547,79 @@ de_resids_deg = use_dataset['dde'] - m4de       # ==> prlx * pfde
 ra_resids_mas = 3.6e6 * ra_resids_deg
 de_resids_mas = 3.6e6 * de_resids_deg
 
-ra_plxval = 3600. * ra_resids_deg / pfra
-de_plxval = 3600. * de_resids_deg / pfde
+ra_plxval = 3.6e6 * ra_resids_deg / pfra
+de_plxval = 3.6e6 * de_resids_deg / pfde
 all_plxval = np.hstack((ra_plxval, de_plxval))
+
+## Various parallax estimations:
+fulldiv = 80 * '-'
+sys.stderr.write("\n%s\n" % fulldiv)
+sys.stderr.write("Target: %s (%s, %s)\n" % (tgt_name, dwhich, cat_type))
+nice_print_4par(ts_fit_4par)
+sys.stderr.write("\n")
+sys.stderr.write("Median plxval: %8.3f\n" % np.median(all_plxval))
+sys.stderr.write("plxval (RA-based, med): %8.3f\n" % np.median(ra_plxval))
+sys.stderr.write("plxval (RA-based, avg): %8.3f\n" % np.average(ra_plxval))
+sys.stderr.write("plxval (DE-based, med): %8.3f\n" % np.median(de_plxval))
+sys.stderr.write("plxval (DE-based, avg): %8.3f\n" % np.average(de_plxval))
+sys.stderr.write("\nPrev:\n")
+nice_print_prev(prev_pars)
 
 ## isolate troublesome dates (ch2):
 trouble_jds = use_dataset['jdtdb'][(ra_resids_mas > 800)] 
-trouble_imgs = [jd2im_ch2[x] for x in trouble_jds]
+trouble_imgs = [jd2im_both[x] for x in trouble_jds]
 
-
-
+## timestamp for plots:
 plot_time = use_dataset['jdtdb'] - ref_time
 
-#fig_dims = (10, 10)
-#fig = plt.figure(12, figsize=fig_dims)
-#fig.clf()
-#ax1 = fig.add_subplot(211)
-#ax2 = fig.add_subplot(212, sharex=ax1, sharey=ax1)
-#ax1.grid(True)
-#ax1.scatter(plot_time, ra_resids_mas, lw=0)
-#ax1.set_ylabel('RA Residual * cos(Dec) (mas)')
-#ax1.set_title('Target: %s' % tgt_name)
-#
-#ax2.grid(True)
-#ax2.scatter(plot_time, de_resids_mas, lw=0)
-#ax2.set_ylabel('DE Residual (mas)')
-#ax2.set_xlabel('Time (~days)')
-#fig.tight_layout()
-#pname = '%s_tgt_4par_resid_ch1.png' % tgt_name
-#fig.savefig(pname)
+## Get/save list of AORs and AOR-specific stats:
+aor_savefile = 'aor_data_%s_%s.csv' % (tgt_name, dwhich)
+targ_aors = np.int_([x.split('_')[2] for x in tdata['ch2']['iname']])
+with open(aor_savefile, 'w') as af:
+    af.write("aor,avgjd,ra_resid,ra_resid_std,de_resid,de_resid_std\n")
+    for this_aor in np.unique(targ_aors):
+        sys.stderr.write("\n--------------------------\n")
+        sys.stderr.write("this_aor: %d\n" % this_aor)
+        which = (targ_aors == this_aor)
+        avg_tt = np.average(plot_time[which])
+        avg_jd = np.average(use_dataset['jdtdb'][which])
+        avg_ra_miss = np.average(ra_resids_mas[which])
+        avg_de_miss = np.average(de_resids_mas[which])
+        std_ra_miss = np.std(ra_resids_mas[which])
+        std_de_miss = np.std(de_resids_mas[which])
+        sys.stderr.write("Time point: %f\n" % avg_tt) 
+        sys.stderr.write("AOR JDTDB: %f\n" % avg_jd) 
+        sys.stderr.write("RA errors: %.2f (%.2f)\n" % (avg_ra_miss, std_ra_miss))
+        sys.stderr.write("DE errors: %.2f (%.2f)\n" % (avg_de_miss, std_de_miss))
+        af.write("%d,%f,%f,%f,%f,%f\n" % (this_aor, avg_jd, 
+            avg_ra_miss, std_ra_miss, avg_de_miss, std_de_miss))
+        pass
+
+## Get/save list of image-specific residuals and data:
+res_savefile = 'res_data_%s_%s.csv' % (tgt_name, dwhich)
+for stuff in zip(use_dataset['iname'], ra_resids_mas, de_resids_mas):
+    pass
+
+#sys.exit(0)
+
+fig_dims = (10, 10)
+fig = plt.figure(12, figsize=fig_dims)
+fig.clf()
+ax1 = fig.add_subplot(211)
+ax2 = fig.add_subplot(212, sharex=ax1, sharey=ax1)
+ax1.grid(True)
+ax1.scatter(plot_time, ra_resids_mas, lw=0)
+ax1.set_ylabel('RA Residual * cos(Dec) (mas)')
+ax1.set_title('Target: %s' % tgt_name)
+
+ax2.grid(True)
+ax2.scatter(plot_time, de_resids_mas, lw=0)
+ax2.set_ylabel('DE Residual (mas)')
+ax2.set_xlabel('Time (~days)')
+fig.tight_layout()
+pname = '%s_tgt_4par_resid_%s_%s.png' % (tgt_name, dwhich, cat_type)
+fig.savefig(pname)
+sys.exit(0)
 #
 ## 277.1377951+26.8662544
 ##
@@ -637,7 +726,7 @@ fig.savefig('prmot_diff_vs_prmot.png')
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
-plot_tag = '%s_%s' % (centroid_method, tgt_name)
+plot_tag = '%s_%s_%s' % (centroid_method, tgt_name, cat_type)
 
 fig_dims = (10, 11)
 

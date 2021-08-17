@@ -98,7 +98,6 @@
      -o  /home/rsiverd/ucd_project/ucd_targets/wise1217/sst_eph_wise1217.csv
 ./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/ross458c/ \
      -o  /home/rsiverd/ucd_project/ucd_targets/ross458c/sst_eph_ross458c.csv
-
 ./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/wise1405/ \
      -o  /home/rsiverd/ucd_project/ucd_targets/wise1405/sst_eph_wise1405.csv
 ./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/wise1541/ \
@@ -205,6 +204,7 @@ cat targets/*.txt > targets.txt
 ## Clean everything (no overwrite):
 img_root="/home/rsiverd/ucd_project/ucd_targets"
 targ_list=( wise0148 pso043 wise0410 wise0458 ugps0722 2m0729 wise1217 ross458c )
+targ_list=( wise1405 wise1541 wise1738 wise1741 wise1804 wise2056 )
 cleaner="./02_clean_all_spitzer.py"
 #clnopts="-t targets.txt --ignore_off_target -W --overwrite"
 clnopts="-t targets.txt --ignore_off_target -W"
@@ -394,13 +394,21 @@ done
       -D process/wise1828_detections.txt \
       -C collections/wise1828_SPITZER_I2_clean_pcat.txt -o process/wise1828_ch2_pcat.pickle
 
-# wise1828, fcat/mcat, ch1:
+# wise1828, fcat, both channels:
 %run ./11_match_and_group_sources.py -G csv/gaia_wise1828.csv -T targets/wise1828.par \
       -D process/wise1828_detections.txt \
       -C collections/wise1828_SPITZER_I1_clean_fcat.txt -o process/wise1828_ch1_fcat.pickle
 %run ./11_match_and_group_sources.py -G csv/gaia_wise1828.csv -T targets/wise1828.par \
       -D process/wise1828_detections.txt \
+      -C collections/wise1828_SPITZER_I2_clean_fcat.txt -o process/wise1828_ch2_fcat.pickle
+
+# wise1828, mcat, both channels:
+%run ./11_match_and_group_sources.py -G csv/gaia_wise1828.csv -T targets/wise1828.par \
+      -D process/wise1828_detections.txt \
       -C collections/wise1828_SPITZER_I1_clean_mcat.txt -o process/wise1828_ch1_mcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_wise1828.csv -T targets/wise1828.par \
+      -D process/wise1828_detections.txt \
+      -C collections/wise1828_SPITZER_I2_clean_mcat.txt -o process/wise1828_ch2_mcat.pickle
 
 
 # wise1257 pcat, both channels:
