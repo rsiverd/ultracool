@@ -1,0 +1,27 @@
+
+## Get/save list of AORs and AOR-specific stats:
+aor_savefile = 'aor_data_%s_%s.csv' % (tgt_name, dwhich)
+targ_aors = np.int_([x.split('_')[2] for x in tdata['ch2']['iname']])
+with open(aor_savefile, 'w') as af:
+    af.write("aor,avgjd,ra_resid,ra_resid_std,de_resid,de_resid_std\n")
+    for this_aor in np.unique(targ_aors):
+        sys.stderr.write("\n--------------------------\n")
+        sys.stderr.write("this_aor: %d\n" % this_aor)
+        which = (targ_aors == this_aor)
+        avg_tt = np.average(plot_time[which])
+        avg_jd = np.average(use_dataset['jdtdb'][which])
+        avg_ra_miss = np.average(ra_resids_mas[which])
+        avg_de_miss = np.average(de_resids_mas[which])
+        std_ra_miss = np.std(ra_resids_mas[which])
+        std_de_miss = np.std(de_resids_mas[which])
+        sys.stderr.write("Time point: %f\n" % avg_tt) 
+        sys.stderr.write("AOR JDTDB: %f\n" % avg_jd) 
+        sys.stderr.write("RA errors: %.2f (%.2f)\n" % (avg_ra_miss, std_ra_miss))
+        sys.stderr.write("DE errors: %.2f (%.2f)\n" % (avg_de_miss, std_de_miss))
+        af.write("%d,%f,%f,%f,%f,%f\n" % (this_aor, avg_jd,
+            avg_ra_miss, std_ra_miss, avg_de_miss, std_de_miss))
+        pass
+
+
+mv ../../aor_data_wise1828_ch2.csv .
+

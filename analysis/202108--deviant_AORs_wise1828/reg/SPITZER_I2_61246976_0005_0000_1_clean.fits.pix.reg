@@ -1,0 +1,2 @@
+image; circle(112.501, 139.019, 1.0) # color=red
+image; circle(112.501, 139.019, 3.0) # color=red

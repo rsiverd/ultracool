@@ -1,0 +1,14 @@
+
+tdata['ch2']
+
+t2n = tdata['ch2']['iname']
+t2r = tdata['ch2']['dra']
+t2d = tdata['ch2']['dde']
+t2x = tdata['ch2']['x']
+t2y = tdata['ch2']['y']
+
+with open('wise1828_dump.txt', 'w') as ff:
+    for vals in zip(t2n, t2x, t2y, t2r, t2d):
+       ff.write("%s %7.3f %7.3f %9.6f %9.6f\n" % vals)
+
+

@@ -1,0 +1,4 @@
+
+#make-region-overlay --rdeg=0.0004 --Jmax=20 --sfrac=2.0 dupe_imgs/SPITZER_I2_61245440_0001_0000_1_clean.fits -o nearby.reg
+
+make-region-overlay --rdeg=0.0010 --Jmax=20 --sfrac=2.0 dupe_imgs/SPITZER_I2_61245440_0001_0000_1_clean.fits -o nearby.reg
