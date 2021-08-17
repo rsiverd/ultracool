@@ -291,11 +291,11 @@ done
 img_root="/home/rsiverd/ucd_project/ucd_targets"
 targ_list=( wise0148 pso043 wise0410 wise0458 ugps0722 2m0729 wise1217 ross458c )
 extract="./07_spitzer_aor_extraction.py"
-#extopts="-W --overwrite"
+extopts="-W --overwrite"
 extopts="-W"
 for ttt in ${targ_list[*]}; do
    targ_dir="${img_root}/${ttt}"
-   cmde "${extract} -I ${targ_dir} ${extopts} --hcfix"
+   #cmde "${extract} -I ${targ_dir} ${extopts} --hcfix"
    cmde "${extract} -I ${targ_dir} ${extopts} --clean"
 done
 
@@ -314,7 +314,7 @@ cd collections
 ./01_remake_collections.sh /home/rsiverd/ucd_project/ucd_targets/wise1217 --START
 
 ## Rebuild all collections:
-for tdir in `find ~/ucd_project/ucd_targets/ -type d -mindepth 1 -maxdepth 1`; do
+for tdir in `find ~/ucd_project/ucd_targets/ -mindepth 1 -maxdepth 1 -type d`; do
    cmde "./01_remake_collections.sh $tdir --START"
 done
 
@@ -370,22 +370,22 @@ done
 # ----------------------------------------------------------------------- 
 
 # 2m0415, ch1 variants:
-%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
+./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
       -D process/2m0415_detections.txt \
       -C collections/2m0415_SPITZER_I1_clean_fcat.txt -o process/2m0415_ch1_fcat.pickle
-%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
+./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
       -D process/2m0415_detections.txt \
       -C collections/2m0415_SPITZER_I1_clean_pcat.txt -o process/2m0415_ch1_pcat.pickle
-%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
+./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
       -D process/2m0415_detections.txt \
       -C collections/2m0415_SPITZER_I1_clean_mcat.txt -o process/2m0415_ch1_mcat.pickle
-%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
+./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
       -D process/2m0415_detections.txt \
       -C collections/2m0415_SPITZER_I2_clean_fcat.txt -o process/2m0415_ch2_fcat.pickle
-%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
+./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
       -D process/2m0415_detections.txt \
       -C collections/2m0415_SPITZER_I2_clean_pcat.txt -o process/2m0415_ch2_pcat.pickle
-%run ./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
+./11_match_and_group_sources.py -G csv/gaia_2m0415.csv -T targets/2m0415.par \
       -D process/2m0415_detections.txt \
       -C collections/2m0415_SPITZER_I2_clean_mcat.txt -o process/2m0415_ch2_mcat.pickle
 
