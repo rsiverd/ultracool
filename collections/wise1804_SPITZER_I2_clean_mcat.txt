@@ -1,0 +1,7 @@
+/home/rsiverd/ucd_project/ucd_targets/wise1804/r40836352/SPITZER_I2_40836352_0001_0000_2_clean.fits.mcat
+/home/rsiverd/ucd_project/ucd_targets/wise1804/r40836352/SPITZER_I2_40836352_0002_0000_2_clean.fits.mcat
+/home/rsiverd/ucd_project/ucd_targets/wise1804/r40836352/SPITZER_I2_40836352_0003_0000_2_clean.fits.mcat
+/home/rsiverd/ucd_project/ucd_targets/wise1804/r40836352/SPITZER_I2_40836352_0004_0000_2_clean.fits.mcat
+/home/rsiverd/ucd_project/ucd_targets/wise1804/r40836352/SPITZER_I2_40836352_0005_0000_2_clean.fits.mcat
+/home/rsiverd/ucd_project/ucd_targets/wise1804/r41565696/SPITZER_I2_41565696_0001_0000_2_clean.fits.mcat
+/home/rsiverd/ucd_project/ucd_targets/wise1804/r41565696/SPITZER_I2_41565696_0002_0000_2_clean.fits.mcat

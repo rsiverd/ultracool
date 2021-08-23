@@ -1,7 +1,0 @@
-/home/rsiverd/ucd_project/ucd_targets/J0212/r68556032/SPITZER_I1_68556032_0008_0000_1_hcfix.fits.mcat
-/home/rsiverd/ucd_project/ucd_targets/J0212/r68556032/SPITZER_I1_68556032_0009_0000_1_hcfix.fits.mcat
-/home/rsiverd/ucd_project/ucd_targets/J0212/r68556032/SPITZER_I1_68556032_0010_0000_1_hcfix.fits.mcat
-/home/rsiverd/ucd_project/ucd_targets/J0212/r68556032/SPITZER_I1_68556032_0011_0000_1_hcfix.fits.mcat
-/home/rsiverd/ucd_project/ucd_targets/J0212/r68556032/SPITZER_I1_68556032_0012_0000_1_hcfix.fits.mcat
-/home/rsiverd/ucd_project/ucd_targets/J0212/r68556032/SPITZER_I1_68556032_0013_0000_1_hcfix.fits.mcat
-/home/rsiverd/ucd_project/ucd_targets/J0212/r68556032/SPITZER_I1_68556032_0014_0000_1_hcfix.fits.mcat
