@@ -55,6 +55,20 @@ import numpy as np
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
 ##--------------------------------------------------------------------------##
+## Disable buffering on stdout/stderr:
+class Unbuffered(object):
+   def __init__(self, stream):
+       self.stream = stream
+   def write(self, data):
+       self.stream.write(data)
+       self.stream.flush()
+   def __getattr__(self, attr):
+       return getattr(self.stream, attr)
+
+sys.stdout = Unbuffered(sys.stdout)
+sys.stderr = Unbuffered(sys.stderr)
+
+##--------------------------------------------------------------------------##
 ## Spitzer pipeline filesystem helpers:
 try:
     import spitz_fs_helpers
@@ -125,20 +139,6 @@ def qsave(iname, idata, header=None, **kwargs):
     sys.stderr.write("Writing to '%s' ... " % iname)
     fitsio.write(iname, idata, clobber=True, header=header, **kwargs)
     sys.stderr.write("done.\n")
-
-##--------------------------------------------------------------------------##
-## Disable buffering on stdout/stderr:
-class Unbuffered(object):
-   def __init__(self, stream):
-       self.stream = stream
-   def write(self, data):
-       self.stream.write(data)
-       self.stream.flush()
-   def __getattr__(self, attr):
-       return getattr(self.stream, attr)
-
-sys.stdout = Unbuffered(sys.stdout)
-sys.stderr = Unbuffered(sys.stderr)
 
 ##--------------------------------------------------------------------------##
 ##------------------         Parse Command Line             ----------------##
