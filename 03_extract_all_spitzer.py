@@ -127,6 +127,8 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
     iogroup = parser.add_argument_group('File I/O')
+    iogroup.add_argument('--overwrite', required=False, dest='skip_existing',
+            action='store_false', help='overwrite existing catalogs')
     iogroup.add_argument('-I', '--input_folder', default=None, required=True,
             help='where to find input images', type=str)
     iogroup.add_argument('-O', '--output_folder', default=None, required=False,
@@ -210,9 +212,10 @@ for ii,img_ipath in enumerate(img_files, 1):
     cat_fbase = img_ibase + '.fcat'
     cat_fpath = os.path.join(save_dir, cat_fbase)
     sys.stderr.write("Catalog %s ... " % cat_fpath)
-    if os.path.isfile(cat_fpath):
-        sys.stderr.write("exists!  Skipping ... \n")
-        continue
+    if not context.overwrite:
+        if os.path.isfile(cat_fpath):
+            sys.stderr.write("exists!  Skipping ... \n")
+            continue
 
     # perform extraction:
     nproc += 1
