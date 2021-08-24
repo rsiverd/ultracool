@@ -212,14 +212,16 @@ for ii,img_ipath in enumerate(img_files, 1):
     cat_fbase = img_ibase + '.fcat'
     cat_fpath = os.path.join(save_dir, cat_fbase)
     sys.stderr.write("Catalog %s ... " % cat_fpath)
-    if not context.overwrite:
+    if context.skip_existing:
         if os.path.isfile(cat_fpath):
             sys.stderr.write("exists!  Skipping ... \n")
             continue
+        sys.stderr.write("not found ... creating ...\n")
+    else:
+        sys.stderr.write("creating ... \n")
 
     # perform extraction:
     nproc += 1
-    sys.stderr.write("not found ... creating ...\n")
     spf.use_images(ipath=img_ipath, upath=unc_ipath)
     result = spf.find_stars(context.sigthresh)
     result.save_as_fits(cat_fpath, overwrite=True)
