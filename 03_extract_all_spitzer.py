@@ -208,10 +208,10 @@ for ii,img_ipath in enumerate(img_files, 1):
         save_dir = os.path.dirname(img_ipath)
 
     # set output paths:
-    cat_ibase = img_ibase.replace(context.imtype, 'fcat')
-    cat_ipath = os.path.join(save_dir, cat_ibase)
-    sys.stderr.write("Catalog %s ... " % cat_ipath)
-    if os.path.isfile(cat_ipath):
+    cat_fbase = img_ibase + '.fcat'
+    cat_fpath = os.path.join(save_dir, cat_fbase)
+    sys.stderr.write("Catalog %s ... " % cat_fpath)
+    if os.path.isfile(cat_fpath):
         sys.stderr.write("exists!  Skipping ... \n")
         continue
 
@@ -220,7 +220,7 @@ for ii,img_ipath in enumerate(img_files, 1):
     sys.stderr.write("not found ... creating ...\n")
     spf.use_images(ipath=img_ipath, upath=unc_ipath)
     result = spf.find_stars(context.sigthresh)
-    result.save_as_fits(cat_ipath, overwrite=True)
+    result.save_as_fits(cat_fpath, overwrite=True)
     if (ntodo > 0) and (nproc >= ntodo):
         break
 
