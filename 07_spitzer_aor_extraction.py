@@ -194,6 +194,8 @@ if __name__ == '__main__':
             help='where to find input images', type=str)
     iogroup.add_argument('-O', '--output_folder', default=None, required=False,
             help='where to save extended catalog outputs', type=str)
+    iogroup.add_argument('-W', '--walk', default=False, action='store_true',
+            help='recursively walk subfolders to find CBCD images')
     imtype = iogroup.add_mutually_exclusive_group()
     #imtype.add_argument('--cbcd', required=False, action='store_const',
     #        dest='imtype', const='cbcd', help='use cbcd images')
@@ -201,8 +203,6 @@ if __name__ == '__main__':
             dest='imtype', const='hcfix', help='use hcfix images')
     imtype.add_argument('--clean', required=False, action='store_const',
             dest='imtype', const='clean', help='use clean images')
-    iogroup.add_argument('-W', '--walk', default=False, action='store_true',
-            help='recursively walk subfolders to find CBCD images')
     #iogroup.add_argument('-R', '--ref_image', default=None, required=True,
     #        help='KELT image with WCS')
     # ------------------------------------------------------------------
