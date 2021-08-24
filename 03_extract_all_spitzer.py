@@ -130,7 +130,7 @@ if __name__ == '__main__':
     iogroup = parser.add_argument_group('File I/O')
     iogroup.add_argument('-I', '--input_folder', default=None, required=True,
             help='where to find input images', type=str)
-    iogroup.add_argument('-O', '--output_folder', default=None, required=True,
+    iogroup.add_argument('-O', '--output_folder', default=None, required=False,
             help='where to save extended catalog outputs', type=str)
     imtype = iogroup.add_mutually_exclusive_group()
     imtype.add_argument('--cbcd', required=False, action='store_const',
