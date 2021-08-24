@@ -164,15 +164,6 @@ if __name__ == '__main__':
 ##--------------------------------------------------------------------------##
 
 sys.stderr.write("Listing %s frames ... " % context.imtype) 
-#im_wildpath = 'SPITZ*%s.fits' % context.imtype
-#im_wildcard = os.path.join(context.input_folder, 'SPIT*'
-#_img_types = ['cbcd', 'clean', 'cbunc']
-#_type_suff = dict([(x, x+'.fits') for x in _im_types])
-#img_list = {}
-#for imsuff in suffixes:
-#    wpath = '%s/SPITZ*%s.fits' % (context.input_folder, imsuff)
-#    img_list[imsuff] = sorted(glob.glob(os.path.join(context.
-#img_files = sorted(glob.glob(os.path.join(context.input_folder, im_wildpath)))
 
 if context.walk:
     img_files = sfh.get_files_walk(context.input_folder, flavor=context.imtype)
@@ -188,29 +179,9 @@ if not img_files:
 
 n_images = len(img_files)
 
-## List of uncertainty frames (warn if any missing):
-#unc_files = [x.replace(context.imtype, 'cbunc') for x in img_files]
-#sys.stderr.write("Checking error-images ... ") 
-#have_unc = [os.path.isfile(x) for x in unc_files]
-#if not all(have_unc):
-#    sys.stderr.write("WARNING: some uncertainty frames missing!\n")
-#else:
-#    sys.stderr.write("done.\n") 
-
-##--------------------------------------------------------------------------##
-##------------------         Make Output File List          ----------------##
-##--------------------------------------------------------------------------##
-
-## Assemble path:
-#cat_list =
-## Check for existing output frames:
-#sys.stderr.write("Checking for existing output ... ")
-#cat_list = 
-
 ##--------------------------------------------------------------------------##
 ##------------------           Process All Images           ----------------##
 ##--------------------------------------------------------------------------##
-
 
 ntodo = 0
 nproc = 0
