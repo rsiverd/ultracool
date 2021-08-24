@@ -53,26 +53,6 @@ import numpy as np
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
 ##--------------------------------------------------------------------------##
-## Spitzer pipeline filesystem helpers:
-try:
-    import spitz_fs_helpers
-    reload(spitz_fs_helpers)
-except ImportError:
-    logger.error("failed to import spitz_fs_helpers module!")
-    sys.exit(1)
-sfh = spitz_fs_helpers
-
-
-## Spitzer star detection routine:
-try:
-    import spitz_extract
-    reload(spitz_extract)
-    spf = spitz_extract.SpitzFind()
-except ImportError:
-    logger.error("spitz_extract module not found!")
-    sys.exit(1)
-
-##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
 class Unbuffered(object):
    def __init__(self, stream):
@@ -85,6 +65,25 @@ class Unbuffered(object):
 
 sys.stdout = Unbuffered(sys.stdout)
 sys.stderr = Unbuffered(sys.stderr)
+
+##--------------------------------------------------------------------------##
+## Spitzer pipeline filesystem helpers:
+try:
+    import spitz_fs_helpers
+    reload(spitz_fs_helpers)
+except ImportError:
+    logger.error("failed to import spitz_fs_helpers module!")
+    sys.exit(1)
+sfh = spitz_fs_helpers
+
+## Spitzer star detection routine:
+try:
+    import spitz_extract
+    reload(spitz_extract)
+    spf = spitz_extract.SpitzFind()
+except ImportError:
+    logger.error("spitz_extract module not found!")
+    sys.exit(1)
 
 ##--------------------------------------------------------------------------##
 ##------------------         Parse Command Line             ----------------##
