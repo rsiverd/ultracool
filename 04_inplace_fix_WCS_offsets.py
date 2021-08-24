@@ -11,7 +11,7 @@
 #
 # Rob Siverd
 # Created:       2021-03-31
-# Last modified: 2021-04-01
+# Last modified: 2021-08-24
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 ## Python version-agnostic module reloading:
 try:
@@ -330,10 +330,10 @@ for cfile in cat_files:
 ##--------------------------------------------------------------------------##
 
 ######################################################################
-# CHANGELOG (08_inplace_fix_WCS_offsets.py):
+# CHANGELOG (04_inplace_fix_WCS_offsets.py):
 #---------------------------------------------------------------------
 #
 #  2021-03-31:
 #     -- Increased __version__ to 0.1.0.
-#     -- First created 08_inplace_fix_WCS_offsets.py.
+#     -- First created 04_inplace_fix_WCS_offsets.py.
 #
