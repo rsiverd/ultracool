@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2021-02-01
-# Last modified: 2019-10-29
+# Last modified: 2021-08-24
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -36,7 +36,7 @@ import argparse
 #import shutil
 #import resource
 #import signal
-import glob
+#import glob
 #import gc
 import os
 import sys
@@ -119,8 +119,8 @@ if __name__ == '__main__':
     parser = MyParser(prog=prog_name, description=descr_txt)
                           #formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
-    parser.set_defaults(imtype='cbcd') #'clean')
-    parser.set_defaults(sigthresh=3.0)
+    parser.set_defaults(imtype=None) # 'cbcd', 'clean')
+    parser.set_defaults(sigthresh=2.0)
     # ------------------------------------------------------------------
     #parser.add_argument('firstpos', help='first positional argument')
     #parser.add_argument('-w', '--whatever', required=False, default=5.0,
@@ -135,6 +135,8 @@ if __name__ == '__main__':
     imtype = iogroup.add_mutually_exclusive_group()
     imtype.add_argument('--cbcd', required=False, action='store_const',
             dest='imtype', const='cbcd', help='use cbcd images')
+    imtype.add_argument('--hcfix', required=False, action='store_const',
+            dest='imtype', const='hcfix', help='use clean images')
     imtype.add_argument('--clean', required=False, action='store_const',
             dest='imtype', const='clean', help='use clean images')
     #iogroup.add_argument('-R', '--ref_image', default=None, required=True,
