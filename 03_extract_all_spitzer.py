@@ -201,12 +201,21 @@ for ii,img_ipath in enumerate(img_files, 1):
         sys.stderr.write("WARNING: file not found:\n--> %s\n" % unc_ipath)
         continue
     img_ibase = os.path.basename(img_ipath)
+
+    # set output folder:
+    save_dir = context.output_folder
+    if context.walk:
+        save_dir = os.path.dirname(img_ipath)
+
+    # set output paths:
     cat_ibase = img_ibase.replace(context.imtype, 'fcat')
-    cat_ipath = os.path.join(context.output_folder, cat_ibase)
+    cat_ipath = os.path.join(save_dir, cat_ibase)
     sys.stderr.write("Catalog %s ... " % cat_ipath)
     if os.path.isfile(cat_ipath):
         sys.stderr.write("exists!  Skipping ... \n")
         continue
+
+    # perform extraction:
     nproc += 1
     sys.stderr.write("not found ... creating ...\n")
     spf.use_images(ipath=img_ipath, upath=unc_ipath)
