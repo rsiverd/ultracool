@@ -8,7 +8,7 @@
 #
 # Rob Siverd
 # Created:       2021-02-02
-# Last modified: 2021-03-18
+# Last modified: 2021-08-24
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.3.0"
+__version__ = "0.3.5"
 
 ## Python version-agnostic module reloading:
 try:
@@ -203,6 +203,8 @@ if __name__ == '__main__':
             dest='imtype', const='hcfix', help='use hcfix images')
     imtype.add_argument('--clean', required=False, action='store_const',
             dest='imtype', const='clean', help='use clean images')
+    imtype.add_argument('--nudge', required=False, action='store_const',
+            dest='imtype', const='nudge', help='use nudge images')
     #iogroup.add_argument('-R', '--ref_image', default=None, required=True,
     #        help='KELT image with WCS')
     # ------------------------------------------------------------------
