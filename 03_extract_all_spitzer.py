@@ -164,7 +164,7 @@ if __name__ == '__main__':
 ##--------------------------------------------------------------------------##
 
 sys.stderr.write("Listing %s frames ... " % context.imtype) 
-im_wildpath = 'SPITZ*%s.fits' % context.imtype
+#im_wildpath = 'SPITZ*%s.fits' % context.imtype
 #im_wildcard = os.path.join(context.input_folder, 'SPIT*'
 #_img_types = ['cbcd', 'clean', 'cbunc']
 #_type_suff = dict([(x, x+'.fits') for x in _im_types])
@@ -172,8 +172,21 @@ im_wildpath = 'SPITZ*%s.fits' % context.imtype
 #for imsuff in suffixes:
 #    wpath = '%s/SPITZ*%s.fits' % (context.input_folder, imsuff)
 #    img_list[imsuff] = sorted(glob.glob(os.path.join(context.
-img_files = sorted(glob.glob(os.path.join(context.input_folder, im_wildpath)))
+#img_files = sorted(glob.glob(os.path.join(context.input_folder, im_wildpath)))
+
+if context.walk:
+    img_files = sfh.get_files_walk(context.input_folder, flavor=context.imtype)
+else:
+    img_files = sfh.get_files_single(context.input_folder, flavor=context.imtype)
 sys.stderr.write("done.\n")
+
+## Abort in case of no input:
+if not img_files:
+    sys.stderr.write("No input (%s) files found in folder:\n" % context.imtype)
+    sys.stderr.write("--> %s\n\n" % context.input_folder)
+    sys.exit(1)
+
+n_images = len(img_files)
 
 ## List of uncertainty frames (warn if any missing):
 #unc_files = [x.replace(context.imtype, 'cbunc') for x in img_files]
@@ -198,9 +211,6 @@ sys.stderr.write("done.\n")
 ##------------------           Process All Images           ----------------##
 ##--------------------------------------------------------------------------##
 
-ntotal = len(img_files)
-#for ii,(ipath,upath) in enumerate(zip(img_list, unc_list), 1):
-#    sys.stderr.write("\rImage %d of %d ... \n" % (ii, ntotal))
 
 ntodo = 0
 nproc = 0
@@ -224,40 +234,6 @@ for ii,img_ipath in enumerate(img_files, 1):
     result.save_as_fits(cat_ipath, overwrite=True)
     if (ntodo > 0) and (nproc >= ntodo):
         break
-
-
-
-##--------------------------------------------------------------------------##
-## Process images in order:
-
-##--------------------------------------------------------------------------##
-## Process images in order:
-##--------------------------------------------------------------------------##
-## Quick ASCII I/O:
-#data_file = 'data.txt'
-#gftkw = {'encoding':None} if (_have_np_vers >= 1.14) else {}
-#gftkw.update({'names':True, 'autostrip':True})
-#gftkw.update({'delimiter':'|', 'comments':'%0%0%0%0'})
-#gftkw.update({'loose':True, 'invalid_raise':False})
-#all_data = np.genfromtxt(data_file, dtype=None, **gftkw)
-#all_data = aia.read(data_file)
-
-#all_data = pd.read_csv(data_file)
-#all_data = pd.read_table(data_file, delim_whitespace=True)
-#all_data = pd.read_table(data_file, sep='|')
-#fields = all_data.dtype.names
-#if not fields:
-#    x = all_data[:, 0]
-#    y = all_data[:, 1]
-#else:
-#    x = all_data[fields[0]]
-#    y = all_data[fields[1]]
-
-#vot_file = 'neato.xml'
-#vot_data = av.parse_single_table(vot_file)
-#vot_data = av.parse_single_table(vot_file).to_table()
-
-
 
 
 ######################################################################
