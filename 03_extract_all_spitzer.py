@@ -139,6 +139,8 @@ if __name__ == '__main__':
             dest='imtype', const='hcfix', help='use clean images')
     imtype.add_argument('--clean', required=False, action='store_const',
             dest='imtype', const='clean', help='use clean images')
+    iogroup.add_argument('-W', '--walk', default=False, action='store_true',
+            help='recursively walk subfolders to find CBCD images')
     #iogroup.add_argument('-R', '--ref_image', default=None, required=True,
     #        help='KELT image with WCS')
     # ------------------------------------------------------------------
