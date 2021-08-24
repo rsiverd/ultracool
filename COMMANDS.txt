@@ -50,7 +50,6 @@
 ./fetch_gaia_nearby.py -R 0.3  63.83208333   -9.58497222 -o csv/gaia_2mass0415.csv
 ./fetch_gaia_nearby.py -R 0.3  33.18145833   +5.52977778 -o csv/gaia_J02124355.csv
 ./fetch_gaia_nearby.py -R 0.3 278.03308333  -54.16202778 -o csv/gaia_J18320794.csv
-
 ./fetch_gaia_nearby.py -R 0.3 194.33754167  +71.89702778 -o csv/gaia_wise1257.csv
 ./fetch_gaia_nearby.py -R 0.3  27.03049000  -72.04965000 -o csv/gaia_wise0148.csv
 ./fetch_gaia_nearby.py -R 0.3  43.53988000   +2.39964000 -o csv/gaia_pso043.csv
