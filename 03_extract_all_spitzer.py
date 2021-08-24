@@ -226,10 +226,10 @@ for ii,img_ipath in enumerate(img_files, 1):
 
 
 ######################################################################
-# CHANGELOG (05_extract_all_spitzer.py):
+# CHANGELOG (03_extract_all_spitzer.py):
 #---------------------------------------------------------------------
 #
 #  2019-10-29:
 #     -- Increased __version__ to 0.1.0.
-#     -- First created 05_extract_all_spitzer.py.
+#     -- First created 03_extract_all_spitzer.py.
 #
