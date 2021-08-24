@@ -159,6 +159,15 @@ if __name__ == '__main__':
     context.vlevel = 99 if context.debug else (context.verbose-context.quiet)
     context.prog_name = prog_name
 
+    # Unless otherwise specified, output goes into input folder:
+    if not context.output_folder:
+        context.output_folder = context.input_folder
+
+    # Ensure an image type is selected:
+    if not context.imtype:
+        sys.stderr.write("\nNo image type selected!\n\n")
+        sys.exit(1)
+
 ##--------------------------------------------------------------------------##
 ##------------------         Make Input Image List          ----------------##
 ##--------------------------------------------------------------------------##
