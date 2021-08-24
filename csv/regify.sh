@@ -20,7 +20,7 @@ BEGIN {
    mcname = "phot_g_mean_mag"
 
    # magnitude limit for region file:
-   max_mag = 20.0
+   max_mag = 22.0
    
    # region file annulus size:
    pxscale = 1.2                 # arcsec  per pixel (IRAC)
