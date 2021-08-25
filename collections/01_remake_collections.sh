@@ -83,8 +83,8 @@ targ_dir="$1"
 ##--------------------------------------------------------------------------##
 
 ## Permutation config:
-cat_suffixes=( fcat pcat mcat )
-image_flavors=( clean hcfix )
+cat_suffixes=( pcat ) #fcat pcat mcat )
+image_flavors=( nudge ) #clean hcfix )
 irac_channels=( 1 2 )
 
 targname=`basename $targ_dir`
