@@ -10,7 +10,7 @@
 #
 # Rob Siverd
 # Created:       2021-03-09
-# Last modified: 2021-04-13
+# Last modified: 2021-09-19
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.2.0"
+__version__ = "0.2.5"
 
 ## Python version-agnostic module reloading:
 try:
@@ -253,6 +253,7 @@ if __name__ == '__main__':
     parser.set_defaults(min_src_hits=3)
     parser.set_defaults(gaia_tol_arcsec=2.0)
     parser.set_defaults(target_param_files=[])
+    parser.set_defaults(min_detections=10)
     # ------------------------------------------------------------------
     #parser.add_argument('firstpos', help='first positional argument')
     #parser.add_argument('-w', '--whatever', required=False, default=5.0,
@@ -383,11 +384,28 @@ def corrected_targpos(tpars, obstime):
 ##------------------       load master detections list      ----------------##
 ##--------------------------------------------------------------------------##
 
+if not os.path.isfile(context.det_list):
+    logger.error("File not found: %s" % context.det_list)
+    sys.exit(1)
+
 sys.stderr.write("Loading detections list ... ")
 gftkw = {'encoding':None} if (_have_np_vers >= 1.14) else {}
 gftkw.update({'names':True, 'autostrip':True})
-det_data = np.genfromtxt(context.det_list, dtype=None, **gftkw)
+try:
+    det_data = np.genfromtxt(context.det_list, dtype=None, **gftkw)
+except:
+    sys.stderr.write("FAILED!\n")
+    sys.stderr.write("Missing or empty file?\n")
+    sys.stderr.write("--> %s\n" % context.det_list)
+    sys.exit(1)
 sys.stderr.write("done.\n")
+
+## Ensure sufficient length:
+if (len(det_data) < context.min_detections):
+    sys.stderr.write("Insufficient detections loaded!\n")
+    sys.stderr.write("min_detections: %d\n" % context.min_detections)
+    sys.stderr.write("Loaded targets: %d\n" % len(det_data))
+    sys.exit(1)
 
 ##--------------------------------------------------------------------------##
 ##------------------          catalog config (FIXME)        ----------------##
