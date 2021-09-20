@@ -345,6 +345,7 @@ for tdir in `find ~/ucd_project/ucd_targets/ -mindepth 1 -maxdepth 1 -type d`; d
    cmde "./01_remake_collections.sh $tdir --START"
 done
 
+## Count sources to assist master detection list creation:
 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
@@ -366,14 +367,27 @@ done
 ./10_make_master_source_list.py -C collections/wise0458_SPITZER_I1_clean_pcat.txt \
       -o process/wise0458_detections.txt
 
+./10_make_master_source_list.py -C collections/wise1405_SPITZER_I1_nudge_pcat.txt \
+      -o process/wise1405_detections.txt
+
+./10_make_master_source_list.py -C collections/wise1541_SPITZER_I1_nudge_pcat.txt \
+      -o process/wise1541_detections.txt
+
+./10_make_master_source_list.py -C collections/wise1738_SPITZER_I1_nudge_pcat.txt \
+      -o process/wise1738_detections.txt
+
 ./10_make_master_source_list.py -C collections/wise1741_SPITZER_I1_nudge_pcat.txt \
       -o process/wise1741_detections.txt
+
+./10_make_master_source_list.py -C collections/wise1804_SPITZER_I1_nudge_pcat.txt \
+      -o process/wise1804_detections.txt
 
 ./10_make_master_source_list.py -C collections/wise2056_SPITZER_I1_nudge_pcat.txt \
       -o process/wise2056_detections.txt
 
 #script="./10_make_master_source_list.py"
 #targ_list=( wise0148 pso043 wise0410 wise0458 ugps0722 2m0729 wise1217 ross458c )
+targ_list=( wise1405 wise1541 wise1738 wise1804 )
 for ttt in ${targ_list[*]}; do
    #cfile="collections/${ttt}_SPITZER_I1_clean_pcat.txt"
    cfile="collections/${ttt}_SPITZER_I1_nudge_pcat.txt"
@@ -441,16 +455,16 @@ targ_list=( 2m0415 2m0729 pso043 ross458c ugps0722 wise0148 wise0410 wise0458 )
 targ_list+=( wise1217 wise1257 wise1405 wise1541 wise1738 wise1741 wise1804 )
 targ_list+=( wise1828 wise2056 )
 
-targ_list=( 2m0415 wise1828 wise0148 )
-targ_list=( 2m0415 2m0729 ross458c ugps0722 wise0148 pso043 wise0148 wise0410 wise0458 wise1217 )
-matcher="./11_match_and_group_sources.py"
+#targ_list=( 2m0415 wise1828 wise0148 )
+#targ_list=( 2m0415 2m0729 ross458c ugps0722 wise0148 pso043 wise0148 wise0410 wise0458 wise1217 )
+cat_types=( pcat ) # fcat
 for ttt in ${targ_list[*]}; do
    args="-G csv/gaia_${ttt}.csv -T targets/${ttt}.par -D process/${ttt}_detections.txt"
    for chan in 1 2; do
-      for ctype in fcat pcat; do
+      for ctype in ${cat_types[*]}; do
          coll_file="collections/${ttt}_SPITZER_I${chan}_nudge_${ctype}.txt"
          pick_file="process/${ttt}_ch${chan}_${ctype}.pickle"
-         cmde "$matcher $args -C $coll_file -o $pick_file"
+         echo "./11_match_and_group_sources.py $args -C $coll_file -o $pick_file"
       done
    done
 done
