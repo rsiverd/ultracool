@@ -69,6 +69,16 @@ _ARCSEC_PER_RADIAN = 180. * 3600.0 / np.pi
 _MAS_PER_RADIAN = _ARCSEC_PER_RADIAN * 1e3
 class AstFit(object):
 
+    """
+    This module provides astrometric fitting capability. Internally, a
+    5-parameter model is maintained in a numpy array. Its contents are:
+        * RA (radians) at reference epoch
+        * DE (radians) at reference epoch
+        * pmRA (radians / yr). [this is pmRA* / cos(dec)]
+        * pmDE (radians / yr)
+        * parallax (radians)
+    """
+
     _need_eph_keys = ['jdtdb', 'x', 'y', 'z']
     _need_data_keys = ['jdtdb', 'dra', 'dde', 'obs_x', 'obs_y', 'obs_z']
     _asec_per_rad  = _ARCSEC_PER_RADIAN
@@ -83,6 +93,7 @@ class AstFit(object):
         self.rweight = None
         self._is_set = False
         self._chiexp = 2
+        self._can_iterate = False
         return
 
     def set_exponent(self, exponent=2):
@@ -142,7 +153,7 @@ class AstFit(object):
             sys.stderr.write("WARNING: RA_err not given, using estimated\n")
             self._need_resid_errors = True
         if not isinstance(DE_err, np.ndarray):
-            sys.stderr.write("WARNING: RA_err not given, using estimated\n")
+            sys.stderr.write("WARNING: DE_err not given, using estimated\n")
             self._need_resid_errors = True
         
         #if isinstance(RA_err, np.ndarray):
@@ -155,14 +166,8 @@ class AstFit(object):
         #    self._DE_err = self._DE_MAD
         #self._DE_err = np.radians(DE_err) if DE_err else self._DE_MAD
         self._is_set = True
+        self._can_iterate = False
         return True
-
-    #@staticmethod
-    #def _augmented_eph(obs_eph):
-    #    twopi = 2.0 * np.pi
-    #    anom = np.arctan2(obs_eph['y'], obs_eph['x']) % twopi
-    #    return append_fields(obs_eph, 'anom', anom, usemask=False)
-
 
     #def set_ref_time(self, t_ref):
     #    self.ref_time = t_ref
@@ -170,6 +175,9 @@ class AstFit(object):
 
     @staticmethod
     def _calc_parallax_factors(RA_rad, DE_rad, X_au, Y_au, Z_au):
+        """Compute parallax factors in arcseconds. The RA component has 
+        been divided by cos(dec) so that it can be used directly for
+        residual minimization."""
         sinRA, cosRA = np.sin(RA_rad), np.cos(RA_rad)
         sinDE, cosDE = np.sin(DE_rad), np.cos(DE_rad)
         ra_factor = (X_au * sinRA - Y_au * cosRA) / cosDE
@@ -214,13 +222,15 @@ class AstFit(object):
         return (rra + delta_ra, rde + delta_de)
 
     def eval_model(self, params):
-        rra, rde, pmra, pmde, prlx = params
-        pfra, pfde = self._calc_parallax_factors(rra, rde,
-                self.dataset['obs_x'], self.dataset['obs_y'],
-                self.dataset['obs_z'])
-        delta_ra = self._dt_yrs * pmra + prlx * pfra
-        delta_de = self._dt_yrs * pmde + prlx * pfde
-        return (rra + delta_ra, rde + delta_de)
+        return self._solver_eval(params)
+    #def eval_model(self, params):
+    #    rra, rde, pmra, pmde, prlx = params
+    #    pfra, pfde = self._calc_parallax_factors(rra, rde,
+    #            self.dataset['obs_x'], self.dataset['obs_y'],
+    #            self.dataset['obs_z'])
+    #    delta_ra = self._dt_yrs * pmra + prlx * pfra
+    #    delta_de = self._dt_yrs * pmde + prlx * pfde
+    #    return (rra + delta_ra, rde + delta_de)
 
     def _solver_eval(self, params):
         rra, rde, pmra, pmde, prlx = params
@@ -229,6 +239,8 @@ class AstFit(object):
                 self.dataset['obs_z'])
         delta_ra = self._dt_yrs * pmra + prlx * pfra
         delta_de = self._dt_yrs * pmde + prlx * pfde
+        #delta_ra = self._dt_yrs * pmra - prlx * pfra
+        #delta_de = self._dt_yrs * pmde - prlx * pfde
         return (rra + delta_ra, rde + delta_de)
 
     def _calc_radec_residuals(self, params):
@@ -237,8 +249,10 @@ class AstFit(object):
 
     def _calc_radec_residuals_sigma(self, params):
         model_RA, model_DE = self._solver_eval(params)
-        rsigs_RA = (self._RA_rad - model_RA) / self._RA_err
-        rsigs_DE = (self._DE_rad - model_DE) / self._DE_err
+        #rsigs_RA = (self._RA_rad - model_RA) / self._RA_err
+        #rsigs_DE = (self._DE_rad - model_DE) / self._DE_err
+        rsigs_RA = (self._RA_rad - model_RA) / self._use_RA_err
+        rsigs_DE = (self._DE_rad - model_DE) / self._use_DE_err
         return rsigs_RA, rsigs_DE
 
     def _calc_total_residuals_sigma(self, params):
@@ -252,10 +266,14 @@ class AstFit(object):
         resid_de = (self._DE_rad - model_de)
         #resid_ra = (model_ra - self._RA_rad) / self._RA_err
         #resid_de = (model_de - self._DE_rad) / self._DE_err
-        if isinstance(self._RA_err, np.ndarray):
-            resid_ra /= self._RA_err
-        if isinstance(self._DE_err, np.ndarray):
-            resid_de /= self._DE_err
+        #if isinstance(self._RA_err, np.ndarray):
+        #    resid_ra /= self._RA_err
+        #if isinstance(self._DE_err, np.ndarray):
+        #    resid_de /= self._DE_err
+        if isinstance(self._use_RA_err, np.ndarray):
+            resid_ra /= self._use_RA_err
+        if isinstance(self._use_DE_err, np.ndarray):
+            resid_de /= self._use_DE_err
         #return np.sum(np.hypot(resid_ra, resid_de))
         #return np.sum(np.hypot(resid_ra, resid_de)**2)
         resid_tot = np.hypot(resid_ra, resid_de)[self.inliers]
@@ -264,6 +282,21 @@ class AstFit(object):
         return np.sum(resid_tot**self._chiexp)
         #return np.sum(np.hypot(resid_ra, resid_de)**self._chiexp)
         #return np.sum(np.abs(resid_ra * resid_de)**self._chiexp)
+
+    def _calc_initial_parallax(self, params):
+        rra_resid, rde_resid = self._calc_radec_residuals(params)
+        mar_ra_rad = calc_MAR(rra_resid)
+        mar_ra_mas = _MAS_PER_RADIAN * mar_ra_rad
+        sys.stderr.write("mar_ra_rad: %f\n" % mar_ra_rad)
+        sys.stderr.write("mar_ra_mas: %f\n" % mar_ra_mas)
+        pfra, pfde = self._calc_parallax_factors(
+                self._RA_rad, self._DE_rad, self.dataset['obs_x'],
+                self.dataset['obs_y'], self.dataset['obs_z'])
+        #sys.stderr.write("pfra_arcsec: %s\n" % str(pfra_arcsec))
+        #pfra_rad   = pfra_arcsec / _ARCSEC_PER_RADIAN
+        adjustment_arcsec = ts.linefit(pfra, _ARCSEC_PER_RADIAN * rra_resid)
+        sys.stderr.write("adjustment (arcsec): %s\n" % str(adjustment_arcsec))
+        return adjustment_arcsec
 
     # Driver routine for 5-parameter astrometric fitting:
     def fit_bestpars(self, sigcut=5):
@@ -284,6 +317,15 @@ class AstFit(object):
         sys.stderr.write("==> %s\n" % str(self.nice_units(wguess)))
         sys.stderr.write("\n")
         guess = uguess  # adopt unweighted for now
+        #guess[4] = 1000. / _MAS_PER_RADIAN
+
+        # initial crack at parallax and zero-point:
+        woohoo = self._calc_initial_parallax(guess)
+        sys.stderr.write("woohoo: %s\n" % str(woohoo))
+        self.woohoo = woohoo
+        ra_nudge_rad, plx_rad = woohoo / _ARCSEC_PER_RADIAN
+        guess[0] += ra_nudge_rad
+        guess[4] = plx_rad
 
         # estimate RA,Dec uncertainty from residuals if not known a prior:
         if self._need_resid_errors:
@@ -300,6 +342,8 @@ class AstFit(object):
             sys.stderr.write("mde_scatter: %10.5f (mas)\n" % mde_scatter)
             self._RA_err = np.ones_like(self._RA_rad) * rra_scatter
             self._DE_err = np.ones_like(self._DE_rad) * rde_scatter
+        self._use_RA_err = np.copy(self._RA_err)
+        self._use_DE_err = np.copy(self._DE_err)
 
         # check whether anything looks really bad:
         self._par_guess = guess
@@ -320,14 +364,67 @@ class AstFit(object):
  
 
         # find minimum:
-        self.result = opti.fmin(self._calc_chi_square, guess, 
+        self.full_result = opti.fmin(self._calc_chi_square, guess, 
                 xtol=1e-7, ftol=1e-7, full_output=True)
                 #xtol=1e-9, ftol=1e-9, full_output=True)
+        self.result = self.full_result[0]
+
+        # brute-force minimum:
+        #ra_fudge = np.median(self._RA_err)
+        #de_fudge = np.median(self._DE_err)
+        #pm_fudge = 0.2
+        #px_fudge = 4.0
+        #ranges = [(guess[0] - ra_fudge, guess[0] + ra_fudge),   # RA
+        #          (guess[1] - de_fudge, guess[1] + de_fudge),   # DE
+        #          (guess[2] / pm_fudge, guess[2] * pm_fudge),   # pmRA
+        #          (guess[3] / pm_fudge, guess[3] * pm_fudge),   # pmRA
+        #          (guess[4] / px_fudge, guess[3] * px_fudge),   # parallax
+        #          ]
+        #npts = 10
+        #self.result = opti.brute(self._calc_chi_square, ranges, Ns=npts)
 
         sys.stderr.write("Found minimum:\n")
-        sys.stderr.write("==> %s\n" % str(self.nice_units(self.result[0])))
-        return self.result[0]
+        sys.stderr.write("==> %s\n" % str(self.nice_units(self.result)))
+        self._can_iterate = True
+        return self.result
+ 
+    # ----------------------------------------------------------------------- 
+    def _calc_huber_rweights(self, residuals, sigma):
+        _k_sig = 1.34 * sigma
+        res_devs = np.abs(residuals / _k_sig)
+        rweights = np.ones_like(res_devs)
+        distants = (res_devs > 1.0)
+        rweights[distants] = 1.0 / res_devs[distants]
+        return rweights
 
+    def iter_update_bestpars(self, params):
+        """Perform an IRLS iteration."""
+
+        # calculate residuals:
+        rra_resid, rde_resid = self._calc_radec_residuals(params)
+        #sys.stderr.write("rra_resid: %s\n" % str(rra_resid))
+        #sys.stderr.write("rde_resid: %s\n" % str(rde_resid))
+        rra_scatter = calc_MAR(rra_resid)
+        rde_scatter = calc_MAR(rde_resid)
+        #sys.stderr.write("rra_scatter: %e (rad)\n" % rra_scatter)
+        #sys.stderr.write("rde_scatter: %e (rad)\n" % rde_scatter)
+
+        ra_rweights = self._calc_huber_rweights(rra_resid, rra_scatter)
+        self._use_RA_err = ra_rweights * self._RA_err
+        de_rweights = self._calc_huber_rweights(rde_resid, rde_scatter)
+        self._use_DE_err = de_rweights * self._DE_err
+
+        # find minimum:
+        self.iresult = opti.fmin(self._calc_chi_square, params ,
+                xtol=1e-7, ftol=1e-7, full_output=True)
+
+        sys.stderr.write("Found IRLS minimum:\n")
+        sys.stderr.write("==> %s\n" % str(self.nice_units(self.iresult[0])))
+        self._can_iterate = True
+        return self.iresult[0]
+
+
+    # ----------------------------------------------------------------------- 
     def nice_units(self, params):
         result = np.degrees(params)
         result[2:5] *= 3.6e6                # into milliarcsec

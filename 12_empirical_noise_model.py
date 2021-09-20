@@ -52,7 +52,7 @@ import numpy as np
 #import scipy.linalg as sla
 #import scipy.signal as ssig
 #import scipy.ndimage as ndi
-#import scipy.optimize as opti
+import scipy.optimize as opti
 #import scipy.interpolate as stp
 #import scipy.spatial.distance as ssd
 import matplotlib.pyplot as plt
@@ -306,7 +306,7 @@ centroid_colmap = {
         }
 
 centroid_method = 'simple'
-centroid_method = 'window'
+#centroid_method = 'window'
 #centroid_method = 'pp_fix'
 _ra_key, _de_key = centroid_colmap[centroid_method]
 
@@ -385,6 +385,7 @@ for tag in context.data_files:
         lookie_snr[tag].append((med_flux, med_fwhm, npoints,
             snr_scale[0], med_resd))
         inspection[tag].extend(list(zip(delta_tot_mas[non_neg],
+            np.abs(delta_ra_mas[non_neg]), np.abs(delta_de_mas[non_neg]),
             stmp['flux'][non_neg], (stmp['flux']*stmp['exptime'])[non_neg])))
         sys.stderr.write("approx_fwhm: %s\n" % str(approx_fwhm))
 
@@ -476,6 +477,13 @@ def kmag(adu, zeropt=25.0):
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
+## Conversion factors:
+fluxconv = 0.1257       # IRAC ch1
+fluxconv = 0.1447       # IRAC ch2
+sst_gain = 3.71
+
+def signal2counts(signal, fluxconv=0.1447, gain=3.71):
+    return signal * sst_gain / fluxconv
 
 fig_dims = (10, 7)
 
@@ -489,8 +497,11 @@ instmag = kmag(counts)
 
 #inspection_comb = np.array(inspection_comb)
 
-every_delta_mas, every_flux, every_signal = np.array(inspection_comb).T
-every_instmag = kmag(every_signal)
+every_delta_mas, every_ra_delta_mas, every_de_delta_mas, \
+        every_flux, every_signal = np.array(inspection_comb).T
+#every_instmag = kmag(every_signal * sst_gain / fluxconv)
+every_counts  = signal2counts(every_signal)
+every_instmag = kmag(every_counts)
 
 #sys.stderr.write("Performing quantile fits ... ") 
 ##fdata = pd.DataFrame(data=np.vstack((np.log10(msnr), np.log10(mresd))).T,
@@ -549,6 +560,86 @@ ax1.legend(loc='upper left')
 
 fig.tight_layout()
 plt.draw()
+
+##--------------------------------------------------------------------------##
+
+## RMS model evaluator:
+def trialrms(star_counts, fwhm, noise_floor=0, eff_gain=1.00):
+    star_ele = star_counts * eff_gain
+    star_snr = np.sqrt(star_ele)
+    star_rms = fwhm / star_snr
+    return np.sqrt(star_rms**2 + noise_floor**2)
+
+def ra_rms_fitme(params):
+    fwhm, nfloor = params
+    calc_rms_mas = trialrms(every_counts, fwhm, noise_floor=nfloor)
+    residuals = every_ra_delta_mas - calc_rms_mas
+    #residuals = np.log10(every_ra_delta_mas / calc_rms_mas)
+    return np.sum(residuals*residuals)
+
+def de_rms_fitme(params):
+    fwhm, nfloor = params
+    calc_rms_mas = trialrms(every_counts, fwhm, noise_floor=nfloor)
+    residuals = every_de_delta_mas - calc_rms_mas
+    #residuals = np.log10(every_de_delta_mas / calc_rms_mas)
+    return np.sum(residuals*residuals)
+
+ra_guess = np.array([1000, 30])
+best_ra_pars = opti.fmin(ra_rms_fitme, ra_guess)
+sys.stderr.write("best_ra_pars: %s\n" % str(best_ra_pars))
+
+de_guess = np.array([1000, 30])
+best_de_pars = opti.fmin(de_rms_fitme, de_guess)
+sys.stderr.write("best_de_pars: %s\n" % str(best_de_pars))
+
+use_pars = 0.5 * (best_ra_pars + best_de_pars)
+
+
+guess_imag = np.linspace(10, 20)
+guess_iele = kadu(guess_imag)
+#guess_rms = trialrms(guess_iele, 5000., noise_floor=30)
+#guess_rms = trialrms(guess_iele, use_pars[0], noise_floor=use_pars[1])
+guess_rms = trialrms(guess_iele, 3000, noise_floor=50)
+
+## Best-fit parameters:
+
+
+## RMS in RA:
+ptopts = {'lw':0, 's':1}
+rmslims = (5, 2500)
+
+rfig = plt.figure(4, figsize=fig_dims)
+rfig.clf()
+rax  = rfig.add_subplot(111)
+rax.grid(True)
+rax.set_yscale('log')
+rax.scatter(every_instmag, every_ra_delta_mas, **ptopts)
+rax.plot(guess_imag, guess_rms, c='r')
+rax.set_xlabel('Instrumental Mag')
+rax.set_ylabel('RA scatter (mas)')
+rax.set_ylim(*rmslims)
+
+rfig.tight_layout()
+plt.draw()
+rplot_file = 'RMS_RA_%s.png' % context.instrument
+rfig.savefig(rplot_file)
+
+## RMS in DE:
+dfig = plt.figure(5, figsize=fig_dims)
+dfig.clf()
+dax  = dfig.add_subplot(111)
+dax.grid(True)
+dax.set_yscale('log')
+dax.scatter(every_instmag, every_de_delta_mas, **ptopts)
+dax.plot(guess_imag, guess_rms, c='r')
+dax.set_xlabel('Instrumental Mag')
+dax.set_ylabel('DE scatter (mas)')
+dax.set_ylim(*rmslims)
+
+dfig.tight_layout()
+plt.draw()
+dplot_file = 'RMS_DE_%s.png' % context.instrument
+dfig.savefig(dplot_file)
 
 sys.exit(0)
 

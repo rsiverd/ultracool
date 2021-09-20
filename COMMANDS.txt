@@ -1,4 +1,12 @@
 
+# Master image location and target list:
+img_root="/home/rsiverd/ucd_project/ucd_targets"
+targ_list=( 2m0415 2m0729 pso043 ross458c ugps0722 wise0148 wise0410 wise0458 )
+targ_list+=( wise1217 wise1257 wise1405 wise1541 wise1738 wise1741 wise1804 )
+targ_list+=( wise1828 wise2056 )
+
+# ----------------------------------------------------------------------- 
+
 %run ./fetch_sha_data.py -t targets.txt -o ~/ucd_project/ucd_sha_data
 %run ./fetch_CFHT_data.py -t etc/WIRCam/calib_fields.txt \
       -o ~/ucd_project/ucd_cfh_data
@@ -207,7 +215,7 @@ cat targets/*.txt > targets.txt
 ## Clean everything (no overwrite):
 img_root="/home/rsiverd/ucd_project/ucd_targets"
 targ_list=( wise0148 pso043 wise0410 wise0458 ugps0722 2m0729 wise1217 ross458c )
-targ_list=( wise1405 wise1541 wise1738 wise1741 wise1804 wise2056 )
+targ_list+=( wise1405 wise1541 wise1738 wise1741 wise1804 wise2056 )
 cleaner="./02_clean_all_spitzer.py"
 #clnopts="-t targets.txt --ignore_off_target -W --overwrite"
 clnopts="-t targets.txt --ignore_off_target -W"
@@ -217,6 +225,22 @@ for ttt in ${targ_list[*]}; do
    cmde "${cleaner} -I ${targ_dir} -E ${eph_file} ${clnopts}"
 done
 
+
+# ----------------------------------------------------------------------- 
+# Perform initial fcat extraction and perform in-place catalog nudges:
+
+for ttt in ${targ_list[*]}; do
+   targ_dir="${img_root}/${ttt}"
+   cmde "./03_extract_all_spitzer.py -W --clean -I ${targ_dir}"
+
+   col_file="collections/clean_fcat_${ttt}.txt"
+   find $targ_dir -type f -name "SPITZ*clean.fits.fcat" | sort > $col_file
+
+   csv_file="csv/gaia_${ttt}.csv"
+   cmde "./04_inplace_fix_WCS_offsets.py -C $col_file -G $csv_file"
+
+   cmde "./05_nudge_image_WCS.py -W -I $targ_dir"
+done
 
 # ----------------------------------------------------------------------- 
 
@@ -270,6 +294,9 @@ done
 # rerun all AOR extraction:
 ./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/ --hcfix -W --overwrite
 ./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/ --clean -W --overwrite
+./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/ --nudge -W --overwrite
+
+
 
 ./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/wise1828/ --hcfix -W --overwrite
 ./07_spitzer_aor_extraction.py -I /home/rsiverd/ucd_project/ucd_targets/wise1828/ --clean -W --overwrite
@@ -290,13 +317,13 @@ done
 ## AOR-based extraction:
 img_root="/home/rsiverd/ucd_project/ucd_targets"
 targ_list=( wise0148 pso043 wise0410 wise0458 ugps0722 2m0729 wise1217 ross458c )
-extract="./07_spitzer_aor_extraction.py"
 extopts="-W --overwrite"
 extopts="-W"
 for ttt in ${targ_list[*]}; do
    targ_dir="${img_root}/${ttt}"
-   #cmde "${extract} -I ${targ_dir} ${extopts} --hcfix"
-   cmde "${extract} -I ${targ_dir} ${extopts} --clean"
+   #cmde "./07_spitzer_aor_extraction.py -I ${targ_dir} ${extopts} --hcfix"
+   #cmde "./07_spitzer_aor_extraction.py -I ${targ_dir} ${extopts} --clean"
+   cmde "./07_spitzer_aor_extraction.py -I ${targ_dir} ${extopts} --nudge" || break
 done
 
 # ----------------------------------------------------------------------- 
@@ -319,25 +346,25 @@ for tdir in `find ~/ucd_project/ucd_targets/ -mindepth 1 -maxdepth 1 -type d`; d
 done
 
 
-## After extraction, fix WCS zero-point errors in-place:
-./08_inplace_fix_WCS_offsets.py -C collections/all_files_2m0415.txt -G csv/gaia_2m0415.csv
-./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise1828.txt -G csv/gaia_wise1828.csv
-./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise1257.txt -G csv/gaia_wise1257.csv
-
-./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise0148.txt -G csv/gaia_wise0148.csv
-./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise0458.txt -G csv/gaia_wise0458.csv
-./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise1217.txt -G csv/gaia_wise1217.csv
-
-## Ensure all WCS is adjusted:
-nudger="./08_inplace_fix_WCS_offsets.py"
-for cfile in `ls collections/all_files_*.txt`; do
-   echo "cfile: $cfile"
-   tname=$(echo $cfile | sed 's/^.*all_files_//' | cut -d. -f1)
-   echo "tname: $tname"
-   csv_file="csv/gaia_${tname}.csv"
-   echo "csv_file: $csv_file"
-   cmde "$nudger -C $cfile -G $csv_file" || break
-done
+### After extraction, fix WCS zero-point errors in-place:
+#./08_inplace_fix_WCS_offsets.py -C collections/all_files_2m0415.txt -G csv/gaia_2m0415.csv
+#./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise1828.txt -G csv/gaia_wise1828.csv
+#./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise1257.txt -G csv/gaia_wise1257.csv
+#
+#./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise0148.txt -G csv/gaia_wise0148.csv
+#./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise0458.txt -G csv/gaia_wise0458.csv
+#./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise1217.txt -G csv/gaia_wise1217.csv
+#
+### Ensure all WCS is adjusted:
+#nudger="./08_inplace_fix_WCS_offsets.py"
+#for cfile in `ls collections/all_files_*.txt`; do
+#   echo "cfile: $cfile"
+#   tname=$(echo $cfile | sed 's/^.*all_files_//' | cut -d. -f1)
+#   echo "tname: $tname"
+#   csv_file="csv/gaia_${tname}.csv"
+#   echo "csv_file: $csv_file"
+#   cmde "$nudger -C $cfile -G $csv_file" || break
+#done
 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
@@ -359,12 +386,19 @@ done
 ./10_make_master_source_list.py -C collections/wise0458_SPITZER_I1_clean_pcat.txt \
       -o process/wise0458_detections.txt
 
-script="./10_make_master_source_list.py"
-targ_list=( wise0148 pso043 wise0410 wise0458 ugps0722 2m0729 wise1217 ross458c )
+./10_make_master_source_list.py -C collections/wise1741_SPITZER_I1_nudge_pcat.txt \
+      -o process/wise1741_detections.txt
+
+./10_make_master_source_list.py -C collections/wise2056_SPITZER_I1_nudge_pcat.txt \
+      -o process/wise2056_detections.txt
+
+#script="./10_make_master_source_list.py"
+#targ_list=( wise0148 pso043 wise0410 wise0458 ugps0722 2m0729 wise1217 ross458c )
 for ttt in ${targ_list[*]}; do
-   cfile="collections/${ttt}_SPITZER_I1_clean_pcat.txt"
+   #cfile="collections/${ttt}_SPITZER_I1_clean_pcat.txt"
+   cfile="collections/${ttt}_SPITZER_I1_nudge_pcat.txt"
    dfile="process/${ttt}_detections.txt"
-   cmde "${script} -C ${cfile} -o ${dfile}" || break
+   cmde "./10_make_master_source_list.py -C ${cfile} -o ${dfile}" || break
 done
 
 # ----------------------------------------------------------------------- 
@@ -434,7 +468,7 @@ for ttt in ${targ_list[*]}; do
    args="-G csv/gaia_${ttt}.csv -T targets/${ttt}.par -D process/${ttt}_detections.txt"
    for chan in 1 2; do
       for ctype in fcat pcat; do
-         coll_file="collections/${ttt}_SPITZER_I${chan}_clean_${ctype}.txt"
+         coll_file="collections/${ttt}_SPITZER_I${chan}_nudge_${ctype}.txt"
          pick_file="process/${ttt}_ch${chan}_${ctype}.pickle"
          cmde "$matcher $args -C $coll_file -o $pick_file"
       done
@@ -513,6 +547,14 @@ done
       -D process/ross458c_detections.txt \
       -C collections/ross458c_SPITZER_I2_clean_pcat.txt -o process/ross458c_ch2_pcat.pickle
 
+# wise2056 pcat, both channels:
+%run ./11_match_and_group_sources.py -G csv/gaia_wise2056.csv -T targets/wise2056.par \
+      -D process/wise2056_detections.txt \
+      -C collections/wise2056_SPITZER_I1_clean_pcat.txt -o process/wise2056_ch1_pcat.pickle
+%run ./11_match_and_group_sources.py -G csv/gaia_wise2056.csv -T targets/wise2056.par \
+      -D process/wise2056_detections.txt \
+      -C collections/wise2056_SPITZER_I2_clean_pcat.txt -o process/wise2056_ch2_pcat.pickle
+
 2m0729 wise1217 ross458c
 
 # ----------------------------------------------------------------------- 
@@ -526,6 +568,9 @@ done
 # empirical noise model for ch2:
 %run ./12_empirical_noise_model.py -i IRAC2 \
     process/wise1828_ch2_pcat.pickle process/2m0415_ch2_pcat.pickle
+
+ls process/*_ch1_pcat.pickle
+ls process/*_ch2_pcat.pickle
 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 

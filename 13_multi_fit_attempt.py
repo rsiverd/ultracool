@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2021-04-13
-# Last modified: 2021-07-27
+# Last modified: 2021-08-30
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -66,7 +66,7 @@ import matplotlib.colors as mplcolors
 #from collections.abc import Iterable
 #import multiprocessing as mp
 #np.set_printoptions(suppress=True, linewidth=160)
-#import pandas as pd
+import pandas as pd
 import statsmodels.api as sm
 #import statsmodels.formula.api as smf
 #from statsmodels.regression.quantile_regression import QuantReg
@@ -74,6 +74,20 @@ import theil_sen as ts
 #import window_filter as wf
 #import itertools as itt
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
+
+## Astrometry fitting module:
+import astrom_test_2
+reload(astrom_test_2)
+at2 = astrom_test_2
+af = at2.AstFit()
+
+## Cartesian rotations (testing):
+import fov_rotation
+reload(fov_rotation)
+rfov = fov_rotation.RotateFOV()
+r3d  = fov_rotation.Rotate3D()
+
+
 
 ##--------------------------------------------------------------------------##
 ## Projections with cartopy:
@@ -189,6 +203,37 @@ def recarray_from_dicts(list_of_dicts, use_keys=None):
     data = [np.array([d[k] for d in list_of_dicts]) for k in keys]
     return np.core.records.fromarrays(data, names=','.join(keys))
 
+##--------------------------------------------------------------------------##
+##------------------         Terminal Fanciness             ----------------##
+##--------------------------------------------------------------------------##
+
+## Colors for fancy terminal output:
+NRED    = '\033[0;31m'   ;  BRED    = '\033[1;31m'
+NGREEN  = '\033[0;32m'   ;  BGREEN  = '\033[1;32m'
+NYELLOW = '\033[0;33m'   ;  BYELLOW = '\033[1;33m'
+NBLUE   = '\033[0;34m'   ;  BBLUE   = '\033[1;34m'
+NMAG    = '\033[0;35m'   ;  BMAG    = '\033[1;35m'
+NCYAN   = '\033[0;36m'   ;  BCYAN   = '\033[1;36m'
+NWHITE  = '\033[0;37m'   ;  BWHITE  = '\033[1;37m'
+ENDC    = '\033[0m'
+
+## Suppress colors in cron jobs:
+if (os.getenv('FUNCDEF') == '--nocolors'):
+    NRED    = ''   ;  BRED    = ''
+    NGREEN  = ''   ;  BGREEN  = ''
+    NYELLOW = ''   ;  BYELLOW = ''
+    NBLUE   = ''   ;  BBLUE   = ''
+    NMAG    = ''   ;  BMAG    = ''
+    NCYAN   = ''   ;  BCYAN   = ''
+    NWHITE  = ''   ;  BWHITE  = ''
+    ENDC    = ''
+
+## Fancy text:
+degree_sign = u'\N{DEGREE SIGN}'
+
+## Dividers:
+halfdiv = '-' * 40
+fulldiv = '-' * 80
 
 ##--------------------------------------------------------------------------##
 ##------------------         Parse Command Line             ----------------##
@@ -293,6 +338,8 @@ ch2_file = 'process/%s_ch2_%s.pickle' % (tgt_name, cat_type)
 #ch2_file = 'process/wise1828_ch2_pcat.pickle'
 pkl_files = {'ch1':ch1_file, 'ch2':ch2_file}
 
+plot_tag = '%s_%s_%s' % (centroid_method, tgt_name, cat_type)
+
 ## Load parameters file:
 par_file = 'targets/%s.par' % tgt_name
 if not os.path.isfile(par_file):
@@ -374,6 +421,7 @@ def eval_4par(data, model, debug=False):
 
 
 def radec_plx_factors(RA_rad, DE_rad, X_au, Y_au, Z_au):
+    """Compute parallax factors in arcseconds."""
     sinRA, cosRA = np.sin(RA_rad), np.cos(RA_rad)
     sinDE, cosDE = np.sin(DE_rad), np.cos(DE_rad)
     ra_factor = (X_au * sinRA - Y_au * cosRA) / cosDE
@@ -382,6 +430,36 @@ def radec_plx_factors(RA_rad, DE_rad, X_au, Y_au, Z_au):
               -  Z_au * cosDE
     return ra_factor, de_factor
 
+#def theilsen_fit_5par(data):
+#    model = 
+
+##--------------------------------------------------------------------------##
+##------------------          parallax factor drawing       ----------------##
+##--------------------------------------------------------------------------##
+
+eph_file = 'ephemerides/sst_eph_dense.csv'
+full_eph = pd.read_csv(eph_file, low_memory=False)
+
+def calc_full_plxf(ra_deg, de_deg, plx_mas):
+    rra, rde = np.radians(ra_deg), np.radians(de_deg)
+    plxr, plxd = radec_plx_factors(rra, rde,
+            full_eph['obs_x'], full_eph['obs_y'], full_eph['obs_z'])
+    return full_eph['jdtdb'], plx_mas*plxr, plx_mas*plxd
+
+
+ssbx = full_eph.obs_x.values
+ssby = full_eph.obs_y.values
+ssbz = full_eph.obs_z.values
+
+ssbpos = np.vstack((ssbx, ssby, ssbz))
+
+tilt = np.average(np.arctan(ssbz / ssby))
+
+flatpos = np.array(r3d.xrot(-tilt, ssbpos))
+
+new_z = flatpos
+
+#sys.exit(0)
 
 ##--------------------------------------------------------------------------##
 ## Results for channels 1/2:
@@ -571,6 +649,8 @@ nom_de_rad = np.radians(nom_de_deg)
 pfra, pfde = radec_plx_factors(np.radians(nom_ra_deg), np.radians(nom_ra_rad),
         use_dataset['obs_x'], use_dataset['obs_y'], use_dataset['obs_z'])
 
+#sys.stderr.write("out here, pfra: %s\n" % str(pfra))
+
 ra_resids_deg = use_dataset['dra'] - m4ra       # ==> prlx * pfra
 ra_resids_deg *= np.cos(nom_de_rad)
 de_resids_deg = use_dataset['dde'] - m4de       # ==> prlx * pfde
@@ -581,6 +661,59 @@ de_resids_mas = 3.6e6 * de_resids_deg
 ra_plxval = 3.6e6 * ra_resids_deg / pfra
 de_plxval = 3.6e6 * de_resids_deg / pfde
 all_plxval = np.hstack((ra_plxval, de_plxval))
+
+## TESTING -- get parallax and zero-point correction from linear fit:
+adj_raw_ra_resids_as = 3600. * (use_dataset['dra'] - m4ra)
+adj_raw_de_resids_as = 3600. * (use_dataset['dde'] - m4de)
+ts_ra_adjustment = ts.linefit(pfra, adj_raw_ra_resids_as)
+ts_de_adjustment = ts.linefit(pfde, adj_raw_de_resids_as)
+    #years = (data['jdtdb'] - j2000_epoch.tdb.jd) / 365.25
+    #ts_ra_model = ts.linefit(years, data[_ra_key])
+    #ts_de_model = ts.linefit(years, data[_de_key])
+    #if debug:
+    #    sys.stderr.write("fit_4par --> years:\n\n--> %s\n" % str(years))
+    #return {'epoch_jdtdb'  :   j2000_epoch.tdb.jd,
+    #             'ra_deg'  :   ts_ra_model[0],
+    #             'de_deg'  :   ts_de_model[0],
+    #         'pmra_degyr'  :   ts_ra_model[1],
+    #         'pmde_degyr'  :   ts_de_model[1],
+    #        }
+
+## Get me the pmRA/pmDE in mas:
+def gimme_pm_mas(model):
+    cos_dec = np.cos(np.radians(model['de_deg']))
+    pmra_mas = 3.6e6 * model['pmra_degyr']
+    pmde_mas = 3.6e6 * model['pmde_degyr']
+    return pmra_mas*cos_dec, pmde_mas
+
+## Zero-point agnostic parallax estimate:
+which_ra_lower = (pfra < 0.0)
+which_ra_upper = (pfra > 0.0)
+which_de_lower = (pfde < 0.0)
+which_de_upper = (pfde > 0.0)
+avg_pfra_lower = np.average(pfra[which_ra_lower])
+avg_pfra_upper = np.average(pfra[which_ra_upper])
+avg_pfde_lower = np.average(pfde[which_de_lower])
+avg_pfde_upper = np.average(pfde[which_de_upper])
+med_rres_lower = np.median(ra_resids_mas[which_ra_lower])
+med_rres_upper = np.median(ra_resids_mas[which_ra_upper])
+med_dres_lower = np.median(de_resids_mas[which_de_lower])
+med_dres_upper = np.median(de_resids_mas[which_de_upper])
+
+pfra_plx_guess = \
+        (med_rres_upper - med_rres_lower) / (avg_pfra_upper - avg_pfra_lower)
+pfde_plx_guess = \
+        (med_dres_upper - med_dres_lower) / (avg_pfde_upper - avg_pfde_lower)
+
+ts_fit_ra_lower = fit_4par(use_dataset[which_ra_lower])
+ts_fit_ra_upper = fit_4par(use_dataset[which_ra_upper])
+pmra_guess_lower = gimme_pm_mas(ts_fit_ra_lower)[0]
+pmra_guess_upper = gimme_pm_mas(ts_fit_ra_upper)[0]
+
+ts_fit_de_lower = fit_4par(use_dataset[which_de_lower])
+ts_fit_de_upper = fit_4par(use_dataset[which_de_upper])
+pmde_guess_lower = gimme_pm_mas(ts_fit_de_lower)[1]
+pmde_guess_upper = gimme_pm_mas(ts_fit_de_upper)[1]
 
 ## Various parallax estimations:
 fulldiv = 80 * '-'
@@ -595,7 +728,81 @@ sys.stderr.write("plxval (DE-based, med): %8.3f\n" % np.median(de_plxval))
 sys.stderr.write("plxval (DE-based, avg): %8.3f\n" % np.average(de_plxval))
 sys.stderr.write("\nPrev:\n")
 nice_print_prev(prev_pars)
+
 sys.stderr.write("\n%s\n" % fulldiv)
+sys.stderr.write("pmra_guess_lower: %8.3f\n" % pmra_guess_lower)
+sys.stderr.write("pmra_guess_upper: %8.3f\n" % pmra_guess_upper)
+sys.stderr.write("\n")
+sys.stderr.write("pmde_guess_lower: %8.3f\n" % pmde_guess_lower)
+sys.stderr.write("pmde_guess_upper: %8.3f\n" % pmde_guess_upper)
+sys.stderr.write("\n")
+sys.stderr.write("pfra_plx_guess:   %8.3f\n" % pfra_plx_guess)
+sys.stderr.write("pfde_plx_guess:   %8.3f\n" % pfde_plx_guess)
+sys.stderr.write("\n%s\n" % fulldiv)
+
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
+
+## Try out fitting now:
+sigcut = 5
+af.setup(use_dataset)
+bestpars = af.fit_bestpars(sigcut=sigcut)
+
+## Best-fit parameters in sane units:
+use_cos_dec = np.cos(bestpars[1])
+best_dra = np.degrees(bestpars[0])
+best_dde = np.degrees(bestpars[1])
+
+## Inspect residuals:
+raw_res_ra, raw_res_de = af._calc_radec_residuals(bestpars)
+raw_res_ra_mas = 3.6e6 * np.degrees(raw_res_ra) * use_cos_dec
+raw_res_de_mas = 3.6e6 * np.degrees(raw_res_de)
+
+#ra_resids, de_resids = af._calc_radec_residuals_sigma(bestpars)
+iterpars = af.iter_update_bestpars(bestpars)
+iterpars = af.iter_update_bestpars(iterpars)
+iterpars = af.iter_update_bestpars(iterpars)
+sys.exit(0)
+
+sys.stderr.write("\n%s\n" % halfdiv)
+# old mra_scatter: 296.15471
+# old mde_scatter:  57.61126
+old_mra_scatter = 296.15471
+old_mde_scatter =  57.61126
+sys.stderr.write("old_mra_scatter: %10.5f\n" % old_mra_scatter)
+sys.stderr.write("old_mde_scatter: %10.5f\n" % old_mde_scatter)
+sys.stderr.write("\n")
+
+new_rra_scatter = at2.calc_MAR(raw_res_ra)
+new_rde_scatter = at2.calc_MAR(raw_res_de)
+new_mra_scatter = at2._MAS_PER_RADIAN * new_rra_scatter
+new_mde_scatter = at2._MAS_PER_RADIAN * new_rde_scatter
+new_mra_fairdev = new_mra_scatter * use_cos_dec
+sys.stderr.write("new_mra_scatter: %10.5f\n" % new_mra_scatter)
+sys.stderr.write("new_mra_fairdev: %10.5f\n" % new_mra_fairdev)
+sys.stderr.write("new_mde_scatter: %10.5f\n" % new_mde_scatter)
+sys.stderr.write("%s\n" % halfdiv)
+
+## Chi-square estimate:
+chi2 = af._calc_chi_square(bestpars)
+pts_used = np.sum(af.inliers)
+chi2_dof = chi2 / float(pts_used)
+chi2_dof_tru = chi2_dof / np.sqrt(2.)
+sys.stderr.write("total chi2 (hypot): %10.5f\n" % chi2)
+sys.stderr.write("chi2 / dof (hypot): %10.5f\n" % chi2_dof)
+sys.stderr.write("chi2 / dof (coord): %10.5f\n" % chi2_dof_tru)
+sys.stderr.write("%s\n" % halfdiv)
+
+## Re-fit with plx-savvy scatter:
+savvy_ra_errs = np.ones(len(use_dataset)) * new_rra_scatter
+savvy_de_errs = np.ones(len(use_dataset)) * new_rde_scatter
+af.setup(use_dataset, RA_err=savvy_ra_errs, DE_err=savvy_de_errs)
+savvy_pars = af.fit_bestpars(sigcut=sigcut)
+
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
 
 ## isolate troublesome dates (ch2):
 trouble_jds = use_dataset['jdtdb'][(ra_resids_mas > 800)] 
@@ -635,59 +842,150 @@ plot_time = use_dataset['jdtdb'] - ref_time
 
 #sys.exit(0)
 
-fig_dims = (10, 10)
+solved_plx_mas = bestpars[4]*at2._MAS_PER_RADIAN
+prev_plx_mas = 1e3 * prev_pars['parallax_as']
+#eph_jdtdb, eph_plxra, eph_plxde = calc_full_plxf(63.832226, -9.585037, 167.)
+eph_jdtdb, eph_plxra, eph_plxde = calc_full_plxf(nom_ra_deg, nom_de_deg, 1.)
+eph_ptime = eph_jdtdb - ref_time
+
+## A text blurb about object position:
+coords_lab = 'RA, DE = %10.5f, %10.5f' \
+        % (prev_pars['ra_deg'], prev_pars['de_deg'])
+
+# trim to span available data:
+padding = 0.1
+data_duration = plot_time.max() - plot_time.min()
+trim_lower = plot_time.min() - padding * data_duration
+trim_upper = plot_time.max() + padding * data_duration
+trim = (trim_lower <= eph_ptime) & (eph_ptime <= trim_upper)
+
+
+fig_dims = (14, 10)
 fig = plt.figure(12, figsize=fig_dims)
 fig.clf()
-ax1 = fig.add_subplot(211)
-ax2 = fig.add_subplot(212, sharex=ax1, sharey=ax1)
-ax1.grid(True)
-ax1.scatter(plot_time, ra_resids_mas, lw=0)
+#fig, axs = plt.subplots(2, 2, sharex=True, sharey=True, figsize=fig_dims, num=12)
+ax1 = fig.add_subplot(221)
+ax2 = fig.add_subplot(222, sharex=ax1, sharey=ax1)
+ax3 = fig.add_subplot(223, sharex=ax1, sharey=ax1)
+ax4 = fig.add_subplot(224, sharex=ax1, sharey=ax1)
+every_ax = [ax1, ax2, ax3, ax4]
+for aa in every_ax:
+    aa.grid(True)
+
+mar_4par_ra = at2.calc_MAR(ra_resids_mas)
+mar_5par_ra = at2.calc_MAR(raw_res_ra_mas)
+lab_4par_ra = '4par res: %.2f mas' % mar_4par_ra
+lab_5par_ra = '5par res: %.2f mas' % mar_5par_ra
+
+ax1.scatter(plot_time, ra_resids_mas, c='g', lw=0, label=lab_4par_ra)
+ax1.plot(eph_ptime[trim], prev_plx_mas*eph_plxra[trim], c='r',
+        label='previous sln (%.2f mas)'%prev_plx_mas)
+ax1.plot(eph_ptime[trim], solved_plx_mas*eph_plxra[trim], c='b',
+        label='solved plx (%.2f mas)'%solved_plx_mas)
 ax1.set_ylabel('RA Residual * cos(Dec) (mas)')
 ax1.set_title('Target: %s' % tgt_name)
+ax2.scatter(plot_time, raw_res_ra_mas, c='b', lw=0, label=lab_5par_ra)
+ax2.set_title(coords_lab)
 
-ax2.grid(True)
-ax2.scatter(plot_time, de_resids_mas, lw=0)
-ax2.set_ylabel('DE Residual (mas)')
-ax2.set_xlabel('Time (~days)')
+mar_4par_de = at2.calc_MAR(de_resids_mas)
+mar_5par_de = at2.calc_MAR(raw_res_de_mas)
+lab_4par_de = '4par res: %.2f mas' % mar_4par_de
+lab_5par_de = '5par res: %.2f mas' % mar_5par_de
+ax3.scatter(plot_time, de_resids_mas, c='g', lw=0, label=lab_4par_de)
+ax3.plot(eph_ptime[trim], prev_plx_mas*eph_plxde[trim], c='r',
+        label='previous sln (%.2f mas)'%prev_plx_mas)
+ax3.plot(eph_ptime[trim], solved_plx_mas*eph_plxde[trim], c='b',
+        label='solved plx (%.2f mas)'%solved_plx_mas)
+ax3.set_ylabel('DE Residual (mas)')
+ax3.set_xlabel('Time (~days)')
+ax4.set_xlabel('Time (~days)')
+ax3.set_ylim(-500, 500)
+#ax3.legend(loc='upper right')
+ax4.scatter(plot_time, raw_res_de_mas, c='b', lw=0, label=lab_5par_de)
+
+for aa in every_ax:
+    aa.grid(True)
+    aa.legend(loc='upper left')
+
 fig.tight_layout()
 pname = '%s_tgt_4par_resid_%s_%s.png' % (tgt_name, dwhich, cat_type)
 fig.savefig(pname)
 
-#
-## 277.1377951+26.8662544
+
+## Draw observation locations in SSB:
+def ssb_lims(ax, lower=-1.10, upper=1.10):
+    ax.grid(True)
+    ax.set_xlim(lower, upper)
+    ax.set_ylim(lower, upper)
+
+fig = plt.figure(14, figsize=fig_dims)
+fig.clf()
+axy = fig.add_subplot(221, aspect='equal')
+ssb_lims(axy)
+axy.scatter(use_dataset['obs_x'], use_dataset['obs_y'], lw=0)
+axy.set_xlabel('X (au)')
+axy.set_ylabel('Y (au)')
+
+axz = fig.add_subplot(222, aspect='equal')
+ssb_lims(axz)
+axz.scatter(use_dataset['obs_x'], use_dataset['obs_z'], lw=0)
+axz.set_xlabel('X (au)')
+axz.set_ylabel('Z (au)')
+
+ayz = fig.add_subplot(223, aspect='equal')
+ayz.scatter(use_dataset['obs_y'], use_dataset['obs_z'], lw=0)
+ssb_lims(ayz)
+ayz.set_xlabel('Y (au)')
+ayz.set_ylabel('Z (au)')
+fig.tight_layout()
+
+
+### For reference, let's see histograms of RA/DE parallax factors:
+#hopts = {'range':(-1.1, 1.1), 'bins':22}
+#fig = plt.figure(15, figsize=fig_dims)
+#fig.clf()
+#ax1 = fig.add_subplot(211)
+#ax1.hist(pfra, **hopts)
+#ax2 = fig.add_subplot(212)
+#ax2.hist(pfde, **hopts)
+
+
+
 ##
-## neighbors / other stars ...
-#nei_data = scatter_time_ch2
-nei_data = scatter_time_ch1
-ntime, nra_res, nde_res = nei_data.T
-#ntime, nra_res, nde_res = src_resids_ch2['277.1377951+26.8662544']
-#ntime, nra_res, nde_res = src_resids_ch2['277.1407216+26.8323065']
-#ntime, nra_res, nde_res = src_resids_ch2['277.1416760+26.8399335']
-#ntime, nra_res, nde_res = src_resids_ch2['277.1474782+26.8489036']
-#ntime, nra_res, nde_res = src_resids_ch2['277.1476409+26.8547661']
-#ntime, nra_res, nde_res = src_resids_ch2['277.1527917+26.8247245']
-#ntime, nra_res, nde_res = src_resids_ch2['277.1613947+26.8283669']
-ntime, nra_res, nde_res = src_resids_ch2['277.1377510+26.8663015']
-nfg = plt.figure(13, figsize=fig_dims)
-nfg.clf()
-ax1 = nfg.add_subplot(211)
-ax2 = nfg.add_subplot(212, sharex=ax1, sharey=ax1)
-ax1.grid(True)
-#ax1.scatter(ntime, nra_res, lw=0, s=2)
-ax1.scatter(ntime, nra_res, lw=0)
-ax1.set_ylabel('RA Residual * cos(Dec) (mas)')
-ax1.set_title('Other stars with data ...')
-ax2.grid(True)
-#ax2.scatter(ntime, nde_res, lw=0, s=2)
-ax2.scatter(ntime, nde_res, lw=0)
-ax2.set_ylabel('DE Residual (mas)')
-ax2.set_xlabel('Time (~days)')
-
-
-nfg.tight_layout()
-pname = '%s_nei_4par_resid_ch2_%s.png' % (tgt_name, plot_tag)
-nfg.savefig(pname)
-#sys.exit(0)
+### 277.1377951+26.8662544
+###
+### neighbors / other stars ...
+##nei_data = scatter_time_ch2
+#nei_data = scatter_time_ch1
+#ntime, nra_res, nde_res = nei_data.T
+##ntime, nra_res, nde_res = src_resids_ch2['277.1377951+26.8662544']
+##ntime, nra_res, nde_res = src_resids_ch2['277.1407216+26.8323065']
+##ntime, nra_res, nde_res = src_resids_ch2['277.1416760+26.8399335']
+##ntime, nra_res, nde_res = src_resids_ch2['277.1474782+26.8489036']
+##ntime, nra_res, nde_res = src_resids_ch2['277.1476409+26.8547661']
+##ntime, nra_res, nde_res = src_resids_ch2['277.1527917+26.8247245']
+##ntime, nra_res, nde_res = src_resids_ch2['277.1613947+26.8283669']
+#ntime, nra_res, nde_res = src_resids_ch2['277.1377510+26.8663015']
+#nfg = plt.figure(13, figsize=fig_dims)
+#nfg.clf()
+#ax1 = nfg.add_subplot(211)
+#ax2 = nfg.add_subplot(212, sharex=ax1, sharey=ax1)
+#ax1.grid(True)
+##ax1.scatter(ntime, nra_res, lw=0, s=2)
+#ax1.scatter(ntime, nra_res, lw=0)
+#ax1.set_ylabel('RA Residual * cos(Dec) (mas)')
+#ax1.set_title('Other stars with data ...')
+#ax2.grid(True)
+##ax2.scatter(ntime, nde_res, lw=0, s=2)
+#ax2.scatter(ntime, nde_res, lw=0)
+#ax2.set_ylabel('DE Residual (mas)')
+#ax2.set_xlabel('Time (~days)')
+#
+#
+#nfg.tight_layout()
+#pname = '%s_nei_4par_resid_ch2_%s.png' % (tgt_name, plot_tag)
+#nfg.savefig(pname)
+##sys.exit(0)
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
@@ -760,7 +1058,6 @@ fig.savefig('prmot_diff_vs_prmot.png')
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
-plot_tag = '%s_%s_%s' % (centroid_method, tgt_name, cat_type)
 
 fig_dims = (10, 11)
 
