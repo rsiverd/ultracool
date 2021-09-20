@@ -107,10 +107,10 @@ for suff in ${cat_suffixes[*]}; do
    done
 done
 
-## Make an 'everything' file:
-everything="all_files_${targname}.txt"
-cat ${targname}_*.txt | sort -u > $everything
-cmde "wc -l $everything"
+### Make an 'everything' file:
+#everything="all_files_${targname}.txt"
+#cat ${targname}_*.txt | sort -u > $everything
+#cmde "wc -l $everything"
 
 ##--------------------------------------------------------------------------##
 ## Clean up:
