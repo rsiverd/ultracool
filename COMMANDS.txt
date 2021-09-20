@@ -346,26 +346,6 @@ for tdir in `find ~/ucd_project/ucd_targets/ -mindepth 1 -maxdepth 1 -type d`; d
 done
 
 
-### After extraction, fix WCS zero-point errors in-place:
-#./08_inplace_fix_WCS_offsets.py -C collections/all_files_2m0415.txt -G csv/gaia_2m0415.csv
-#./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise1828.txt -G csv/gaia_wise1828.csv
-#./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise1257.txt -G csv/gaia_wise1257.csv
-#
-#./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise0148.txt -G csv/gaia_wise0148.csv
-#./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise0458.txt -G csv/gaia_wise0458.csv
-#./08_inplace_fix_WCS_offsets.py -C collections/all_files_wise1217.txt -G csv/gaia_wise1217.csv
-#
-### Ensure all WCS is adjusted:
-#nudger="./08_inplace_fix_WCS_offsets.py"
-#for cfile in `ls collections/all_files_*.txt`; do
-#   echo "cfile: $cfile"
-#   tname=$(echo $cfile | sed 's/^.*all_files_//' | cut -d. -f1)
-#   echo "tname: $tname"
-#   csv_file="csv/gaia_${tname}.csv"
-#   echo "csv_file: $csv_file"
-#   cmde "$nudger -C $cfile -G $csv_file" || break
-#done
-
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
