@@ -513,6 +513,11 @@ gc.collect()
 #tok = time.time()
 #sys.stderr.write("Each-against-all took %.3f sec\n" % (tok-tik))
 
+## Track down source of run-time warnings:
+#import warnings
+#with warnings.catch_warnings():
+#    warnings.simplefilter('error')
+
 ## In first pass, count matches to each ID:
 sys.stderr.write("Checking which master list sources are used ...\n")
 tik = time.time()
@@ -520,6 +525,11 @@ n_detect = len(det_data)
 scounter = {x:0 for x in det_data['srcid']}
 for ii,sdata in enumerate(det_data, 1):
     sys.stderr.write("\rChecking detection %d of %d ... " % (ii, n_detect))
+    #with warnings.catch_warnings():
+    #    warnings.simplefilter('error')
+    #    sep_sec = 3600. * angle.dAngSep(sdata['dra'], sdata['dde'],
+    #                                            every_dra, every_dde)
+    #    scounter[sdata['srcid']] += np.sum(sep_sec <= context.gaia_tol_arcsec)
     sep_sec = 3600. * angle.dAngSep(sdata['dra'], sdata['dde'],
                                             every_dra, every_dde)
     scounter[sdata['srcid']] += np.sum(sep_sec <= context.gaia_tol_arcsec)
