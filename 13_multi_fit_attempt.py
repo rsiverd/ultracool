@@ -342,7 +342,7 @@ tgt_name = 'wise1738'
 tgt_name = 'wise1741'
 tgt_name = 'wise1804'
 tgt_name = 'wise1828'
-#tgt_name = 'wise2056'
+tgt_name = 'wise2056'
 ch1_file = 'process/%s_ch1_%s.pickle' % (tgt_name, cat_type)
 ch2_file = 'process/%s_ch2_%s.pickle' % (tgt_name, cat_type)
 #ch1_file = 'process/wise1828_ch1_pcat.pickle'
@@ -455,6 +455,7 @@ def calc_full_plxf(ra_deg, de_deg, plx_mas):
     rra, rde = np.radians(ra_deg), np.radians(de_deg)
     plxr, plxd = radec_plx_factors(rra, rde,
             full_eph['obs_x'], full_eph['obs_y'], full_eph['obs_z'])
+    plxr *= np.cos(np.radians(de_deg))
     return full_eph['jdtdb'], plx_mas*plxr, plx_mas*plxd
 
 
@@ -769,6 +770,7 @@ sigcut = 5
 #af.setup(use_dataset)
 af.setup(use_dataset, RA_err=ra_rad_errs, DE_err=de_rad_errs)
 bestpars = af.fit_bestpars(sigcut=sigcut)
+firstpars = bestpars.copy()
 
 ## Iterate a bunch to better solution:
 iterpars = af.iter_update_bestpars(bestpars)
@@ -843,6 +845,8 @@ sys.stderr.write("%s\n" % halfdiv)
 ## -----------------         MCMC Attempt (emcee)           --------------
 ## -----------------------------------------------------------------------
 
+_PERFORM_MCMC = False
+
 def lnprior(params):
     #rra, rde, pmra, pmde, prlx = params
     #if prlx < 0:
@@ -870,37 +874,38 @@ use_rde_err = de_rad_errs[af.inliers]
 
 arglist = (use_rra, use_rde, use_rra_err, use_rde_err)
 
-initial = iterpars.copy()
-ndim = len(initial)
-nwalkers = 32
-p0 = [np.array(initial) + 1e-6*initial*np.random.randn(5) \
-        for i in range(nwalkers)]
-sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=arglist)
+if _PERFORM_MCMC:
+    initial = iterpars.copy()
+    ndim = len(initial)
+    nwalkers = 32
+    p0 = [np.array(initial) + 1e-6*initial*np.random.randn(5) \
+            for i in range(nwalkers)]
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=arglist)
 
-sys.stderr.write("Running burn-in ... ")
-p0, _, _ = sampler.run_mcmc(p0, 200)
-sys.stderr.write("done.\n")
-sampler.reset()
+    sys.stderr.write("Running burn-in ... ")
+    p0, _, _ = sampler.run_mcmc(p0, 200)
+    sys.stderr.write("done.\n")
+    sampler.reset()
 
-sys.stderr.write("Running full MCMC ... ")
-niter = 4000
-pos, prob, state = sampler.run_mcmc(p0, niter)
-sys.stderr.write("done.\n")
+    sys.stderr.write("Running full MCMC ... ")
+    niter = 4000
+    pos, prob, state = sampler.run_mcmc(p0, niter)
+    sys.stderr.write("done.\n")
 
-ra_chain, de_chain, pmra_chain, pmde_chain, prlx_chain = sampler.flatchain.T
-
-prlx_chain_mas = 3.6e6 * np.degrees(prlx_chain)
-
-cfig = plt.figure(22)
-cfig.clf()
-plxax = cfig.add_subplot(111)
-plxax.grid(True)
-plxax.hist(prlx_chain_mas, bins=50)
-plxax.set_xlabel("Parallax (mas)")
-cfig.tight_layout()
-plt.draw()
-save_plot = 'plx_posterior_%s.png' % plot_tag
-cfig.savefig(save_plot) #, bbox='tight')
+    ra_chain, de_chain, pmra_chain, pmde_chain, prlx_chain = sampler.flatchain.T
+    
+    prlx_chain_mas = 3.6e6 * np.degrees(prlx_chain)
+    
+    cfig = plt.figure(22)
+    cfig.clf()
+    plxax = cfig.add_subplot(111)
+    plxax.grid(True)
+    plxax.hist(prlx_chain_mas, bins=50)
+    plxax.set_xlabel("Parallax (mas)")
+    cfig.tight_layout()
+    plt.draw()
+    save_plot = 'plx_posterior_%s.png' % plot_tag
+    cfig.savefig(save_plot) #, bbox='tight')
 
 
 ## -----------------------------------------------------------------------
@@ -1012,6 +1017,7 @@ for aa in every_ax:
 
 fig.tight_layout()
 pname = '%s_tgt_4par_resid_%s_%s.png' % (tgt_name, dwhich, cat_type)
+#pname = '%s_tgt_4par_resid_%s_%s.pdf' % (tgt_name, dwhich, cat_type)
 fig.savefig(pname)
 
 
