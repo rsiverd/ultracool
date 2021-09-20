@@ -386,6 +386,7 @@ def corrected_targpos(tpars, obstime):
 
 if not os.path.isfile(context.det_list):
     logger.error("File not found: %s" % context.det_list)
+    sys.stderr.write("Master detection list not found!\n\n")
     sys.exit(1)
 
 sys.stderr.write("Loading detections list ... ")
