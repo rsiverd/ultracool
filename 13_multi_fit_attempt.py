@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2021-04-13
-# Last modified: 2021-08-30
+# Last modified: 2021-09-20
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -43,7 +43,7 @@ import sys
 import time
 import pickle
 import numpy as np
-#from numpy.lib.recfunctions import append_fields
+from numpy.lib.recfunctions import append_fields
 #import datetime as dt
 #from dateutil import parser as dtp
 #import scipy.linalg as sla
@@ -87,7 +87,13 @@ reload(fov_rotation)
 rfov = fov_rotation.RotateFOV()
 r3d  = fov_rotation.Rotate3D()
 
+## Spitzer error model:
+import spitz_error_model
+reload(spitz_error_model)
+sem = spitz_error_model.SpitzErrorModel()
 
+## MCMC sampler:
+import emcee
 
 ##--------------------------------------------------------------------------##
 ## Projections with cartopy:
@@ -322,16 +328,21 @@ _ra_key, _de_key = centroid_colmap[centroid_method]
 ## Input data files:
 cat_type = 'pcat'
 #cat_type = 'fcat'
-#tgt_name = '2m0415'
-#tgt_name = '2m0729'
-#tgt_name = 'pso043'
-#tgt_name = 'ross458c'
-#tgt_name = 'ugps0722'
-#tgt_name = 'wise0148'
-#tgt_name = 'wise0410'
-#tgt_name = 'wise0458'
-#tgt_name = 'wise1741'  # DOES NOT EXIST YET
+tgt_name = '2m0415'
+tgt_name = '2m0729'
+tgt_name = 'pso043'
+tgt_name = 'ross458c'
+tgt_name = 'ugps0722'
+tgt_name = 'wise0148'
+tgt_name = 'wise0410'
+tgt_name = 'wise0458'
+tgt_name = 'wise1405'
+tgt_name = 'wise1541'
+tgt_name = 'wise1738'
+tgt_name = 'wise1741'
+tgt_name = 'wise1804'
 tgt_name = 'wise1828'
+#tgt_name = 'wise2056'
 ch1_file = 'process/%s_ch1_%s.pickle' % (tgt_name, cat_type)
 ch2_file = 'process/%s_ch2_%s.pickle' % (tgt_name, cat_type)
 #ch1_file = 'process/wise1828_ch1_pcat.pickle'
@@ -617,7 +628,20 @@ def less_first(data):
 #tgt_ch2 = tdata['ch2'][order_ch2]
 tgt_ch1 = tdata['ch1']
 tgt_ch2 = tdata['ch2']
-tgt_both = np.concatenate((tdata['ch1'], tdata['ch2']))
+if not ('ra_err_mas' in tgt_ch1.dtype.names):
+    sys.stderr.write("No errors, adding empirical ones!\n")
+    signal_ch1 = tgt_ch1['flux'] * tgt_ch1['exptime']
+    asterr_ch1 = sem.signal2error(signal_ch1, 1)
+    signal_ch2 = tgt_ch2['flux'] * tgt_ch2['exptime']
+    asterr_ch2 = sem.signal2error(signal_ch2, 2)
+    tgt_ch1 = append_fields(tgt_ch1, 'ra_err_mas', asterr_ch1, usemask=False)
+    tgt_ch1 = append_fields(tgt_ch1, 'de_err_mas', asterr_ch1, usemask=False)
+    tgt_ch2 = append_fields(tgt_ch2, 'ra_err_mas', asterr_ch2, usemask=False)
+    tgt_ch2 = append_fields(tgt_ch2, 'de_err_mas', asterr_ch2, usemask=False)
+else:
+    sys.stderr.write("Empirical errors already exist!\n")
+
+tgt_both = np.concatenate((tgt_ch1, tgt_ch2))
 ref_time = np.median(tgt_both['jdtdb'])
 #del order_ch1, order_ch2
 
@@ -662,92 +686,95 @@ ra_plxval = 3.6e6 * ra_resids_deg / pfra
 de_plxval = 3.6e6 * de_resids_deg / pfde
 all_plxval = np.hstack((ra_plxval, de_plxval))
 
-## TESTING -- get parallax and zero-point correction from linear fit:
-adj_raw_ra_resids_as = 3600. * (use_dataset['dra'] - m4ra)
-adj_raw_de_resids_as = 3600. * (use_dataset['dde'] - m4de)
-ts_ra_adjustment = ts.linefit(pfra, adj_raw_ra_resids_as)
-ts_de_adjustment = ts.linefit(pfde, adj_raw_de_resids_as)
-    #years = (data['jdtdb'] - j2000_epoch.tdb.jd) / 365.25
-    #ts_ra_model = ts.linefit(years, data[_ra_key])
-    #ts_de_model = ts.linefit(years, data[_de_key])
-    #if debug:
-    #    sys.stderr.write("fit_4par --> years:\n\n--> %s\n" % str(years))
-    #return {'epoch_jdtdb'  :   j2000_epoch.tdb.jd,
-    #             'ra_deg'  :   ts_ra_model[0],
-    #             'de_deg'  :   ts_de_model[0],
-    #         'pmra_degyr'  :   ts_ra_model[1],
-    #         'pmde_degyr'  :   ts_de_model[1],
-    #        }
-
-## Get me the pmRA/pmDE in mas:
-def gimme_pm_mas(model):
-    cos_dec = np.cos(np.radians(model['de_deg']))
-    pmra_mas = 3.6e6 * model['pmra_degyr']
-    pmde_mas = 3.6e6 * model['pmde_degyr']
-    return pmra_mas*cos_dec, pmde_mas
-
-## Zero-point agnostic parallax estimate:
-which_ra_lower = (pfra < 0.0)
-which_ra_upper = (pfra > 0.0)
-which_de_lower = (pfde < 0.0)
-which_de_upper = (pfde > 0.0)
-avg_pfra_lower = np.average(pfra[which_ra_lower])
-avg_pfra_upper = np.average(pfra[which_ra_upper])
-avg_pfde_lower = np.average(pfde[which_de_lower])
-avg_pfde_upper = np.average(pfde[which_de_upper])
-med_rres_lower = np.median(ra_resids_mas[which_ra_lower])
-med_rres_upper = np.median(ra_resids_mas[which_ra_upper])
-med_dres_lower = np.median(de_resids_mas[which_de_lower])
-med_dres_upper = np.median(de_resids_mas[which_de_upper])
-
-pfra_plx_guess = \
-        (med_rres_upper - med_rres_lower) / (avg_pfra_upper - avg_pfra_lower)
-pfde_plx_guess = \
-        (med_dres_upper - med_dres_lower) / (avg_pfde_upper - avg_pfde_lower)
-
-ts_fit_ra_lower = fit_4par(use_dataset[which_ra_lower])
-ts_fit_ra_upper = fit_4par(use_dataset[which_ra_upper])
-pmra_guess_lower = gimme_pm_mas(ts_fit_ra_lower)[0]
-pmra_guess_upper = gimme_pm_mas(ts_fit_ra_upper)[0]
-
-ts_fit_de_lower = fit_4par(use_dataset[which_de_lower])
-ts_fit_de_upper = fit_4par(use_dataset[which_de_upper])
-pmde_guess_lower = gimme_pm_mas(ts_fit_de_lower)[1]
-pmde_guess_upper = gimme_pm_mas(ts_fit_de_upper)[1]
-
-## Various parallax estimations:
-fulldiv = 80 * '-'
-sys.stderr.write("\n%s\n" % fulldiv)
-sys.stderr.write("Target: %s (%s, %s)\n" % (tgt_name, dwhich, cat_type))
-nice_print_4par(ts_fit_4par)
-sys.stderr.write("\n")
-sys.stderr.write("Median plxval: %8.3f\n" % np.median(all_plxval))
-sys.stderr.write("plxval (RA-based, med): %8.3f\n" % np.median(ra_plxval))
-sys.stderr.write("plxval (RA-based, avg): %8.3f\n" % np.average(ra_plxval))
-sys.stderr.write("plxval (DE-based, med): %8.3f\n" % np.median(de_plxval))
-sys.stderr.write("plxval (DE-based, avg): %8.3f\n" % np.average(de_plxval))
-sys.stderr.write("\nPrev:\n")
-nice_print_prev(prev_pars)
-
-sys.stderr.write("\n%s\n" % fulldiv)
-sys.stderr.write("pmra_guess_lower: %8.3f\n" % pmra_guess_lower)
-sys.stderr.write("pmra_guess_upper: %8.3f\n" % pmra_guess_upper)
-sys.stderr.write("\n")
-sys.stderr.write("pmde_guess_lower: %8.3f\n" % pmde_guess_lower)
-sys.stderr.write("pmde_guess_upper: %8.3f\n" % pmde_guess_upper)
-sys.stderr.write("\n")
-sys.stderr.write("pfra_plx_guess:   %8.3f\n" % pfra_plx_guess)
-sys.stderr.write("pfde_plx_guess:   %8.3f\n" % pfde_plx_guess)
-sys.stderr.write("\n%s\n" % fulldiv)
+### TESTING -- get parallax and zero-point correction from linear fit:
+#adj_raw_ra_resids_as = 3600. * (use_dataset['dra'] - m4ra)
+#adj_raw_de_resids_as = 3600. * (use_dataset['dde'] - m4de)
+#ts_ra_adjustment = ts.linefit(pfra, adj_raw_ra_resids_as)
+#ts_de_adjustment = ts.linefit(pfde, adj_raw_de_resids_as)
+#
+### Get me the pmRA/pmDE in mas:
+#def gimme_pm_mas(model):
+#    cos_dec = np.cos(np.radians(model['de_deg']))
+#    pmra_mas = 3.6e6 * model['pmra_degyr']
+#    pmde_mas = 3.6e6 * model['pmde_degyr']
+#    return pmra_mas*cos_dec, pmde_mas
+#
+### Zero-point agnostic parallax estimate:
+#which_ra_lower = (pfra < 0.0)
+#which_ra_upper = (pfra > 0.0)
+#which_de_lower = (pfde < 0.0)
+#which_de_upper = (pfde > 0.0)
+#avg_pfra_lower = np.average(pfra[which_ra_lower])
+#avg_pfra_upper = np.average(pfra[which_ra_upper])
+#avg_pfde_lower = np.average(pfde[which_de_lower])
+#avg_pfde_upper = np.average(pfde[which_de_upper])
+#med_rres_lower = np.median(ra_resids_mas[which_ra_lower])
+#med_rres_upper = np.median(ra_resids_mas[which_ra_upper])
+#med_dres_lower = np.median(de_resids_mas[which_de_lower])
+#med_dres_upper = np.median(de_resids_mas[which_de_upper])
+#
+#pfra_plx_guess = \
+#        (med_rres_upper - med_rres_lower) / (avg_pfra_upper - avg_pfra_lower)
+#pfde_plx_guess = \
+#        (med_dres_upper - med_dres_lower) / (avg_pfde_upper - avg_pfde_lower)
+#
+#ts_fit_ra_lower = fit_4par(use_dataset[which_ra_lower])
+#ts_fit_ra_upper = fit_4par(use_dataset[which_ra_upper])
+#pmra_guess_lower = gimme_pm_mas(ts_fit_ra_lower)[0]
+#pmra_guess_upper = gimme_pm_mas(ts_fit_ra_upper)[0]
+#
+#ts_fit_de_lower = fit_4par(use_dataset[which_de_lower])
+#ts_fit_de_upper = fit_4par(use_dataset[which_de_upper])
+#pmde_guess_lower = gimme_pm_mas(ts_fit_de_lower)[1]
+#pmde_guess_upper = gimme_pm_mas(ts_fit_de_upper)[1]
+#
+### Various parallax estimations:
+#fulldiv = 80 * '-'
+#sys.stderr.write("\n%s\n" % fulldiv)
+#sys.stderr.write("Target: %s (%s, %s)\n" % (tgt_name, dwhich, cat_type))
+#nice_print_4par(ts_fit_4par)
+#sys.stderr.write("\n")
+#sys.stderr.write("Median plxval: %8.3f\n" % np.median(all_plxval))
+#sys.stderr.write("plxval (RA-based, med): %8.3f\n" % np.median(ra_plxval))
+#sys.stderr.write("plxval (RA-based, avg): %8.3f\n" % np.average(ra_plxval))
+#sys.stderr.write("plxval (DE-based, med): %8.3f\n" % np.median(de_plxval))
+#sys.stderr.write("plxval (DE-based, avg): %8.3f\n" % np.average(de_plxval))
+#sys.stderr.write("\nPrev:\n")
+#nice_print_prev(prev_pars)
+#
+#sys.stderr.write("\n%s\n" % fulldiv)
+#sys.stderr.write("pmra_guess_lower: %8.3f\n" % pmra_guess_lower)
+#sys.stderr.write("pmra_guess_upper: %8.3f\n" % pmra_guess_upper)
+#sys.stderr.write("\n")
+#sys.stderr.write("pmde_guess_lower: %8.3f\n" % pmde_guess_lower)
+#sys.stderr.write("pmde_guess_upper: %8.3f\n" % pmde_guess_upper)
+#sys.stderr.write("\n")
+#sys.stderr.write("pfra_plx_guess:   %8.3f\n" % pfra_plx_guess)
+#sys.stderr.write("pfde_plx_guess:   %8.3f\n" % pfde_plx_guess)
+#sys.stderr.write("\n%s\n" % fulldiv)
 
 ## -----------------------------------------------------------------------
 ## -----------------------------------------------------------------------
 ## -----------------------------------------------------------------------
+
+## Errors to use in fitting:
+median_cosdec = np.median(np.cos(np.radians(use_dataset['dde'])))
+ra_deg_errs = use_dataset['ra_err_mas'] / 3.6e6 / median_cosdec
+de_deg_errs = use_dataset['de_err_mas'] / 3.6e6
+ra_rad_errs = np.radians(ra_deg_errs)
+de_rad_errs = np.radians(de_deg_errs)
 
 ## Try out fitting now:
 sigcut = 5
-af.setup(use_dataset)
+#af.setup(use_dataset)
+af.setup(use_dataset, RA_err=ra_rad_errs, DE_err=de_rad_errs)
 bestpars = af.fit_bestpars(sigcut=sigcut)
+
+## Iterate a bunch to better solution:
+iterpars = af.iter_update_bestpars(bestpars)
+for i in range(30):
+    iterpars = af.iter_update_bestpars(iterpars)
+bestpars = iterpars
 
 ## Best-fit parameters in sane units:
 use_cos_dec = np.cos(bestpars[1])
@@ -760,10 +787,22 @@ raw_res_ra_mas = 3.6e6 * np.degrees(raw_res_ra) * use_cos_dec
 raw_res_de_mas = 3.6e6 * np.degrees(raw_res_de)
 
 #ra_resids, de_resids = af._calc_radec_residuals_sigma(bestpars)
-iterpars = af.iter_update_bestpars(bestpars)
-iterpars = af.iter_update_bestpars(iterpars)
-iterpars = af.iter_update_bestpars(iterpars)
-sys.exit(0)
+#sys.exit(0)
+
+## Get residuals from 4-parameter fit for plotting:
+iter4par = iterpars.copy()
+iter4par[4] = 0.0
+ra_4p_res_rad, de_4p_res_rad = af._calc_radec_residuals(iter4par)
+cosdec = np.cos(iter4par[1])
+ra_resids_deg = np.degrees(ra_4p_res_rad) * cosdec
+de_resids_deg = np.degrees(de_4p_res_rad)
+#ra_resids_deg = use_dataset['dra'] - m4ra       # ==> prlx * pfra
+#ra_resids_deg *= np.cos(nom_de_rad)
+#de_resids_deg = use_dataset['dde'] - m4de       # ==> prlx * pfde
+
+ra_resids_mas = 3.6e6 * ra_resids_deg
+de_resids_mas = 3.6e6 * de_resids_deg
+
 
 sys.stderr.write("\n%s\n" % halfdiv)
 # old mra_scatter: 296.15471
@@ -794,11 +833,75 @@ sys.stderr.write("chi2 / dof (hypot): %10.5f\n" % chi2_dof)
 sys.stderr.write("chi2 / dof (coord): %10.5f\n" % chi2_dof_tru)
 sys.stderr.write("%s\n" % halfdiv)
 
-## Re-fit with plx-savvy scatter:
-savvy_ra_errs = np.ones(len(use_dataset)) * new_rra_scatter
-savvy_de_errs = np.ones(len(use_dataset)) * new_rde_scatter
-af.setup(use_dataset, RA_err=savvy_ra_errs, DE_err=savvy_de_errs)
-savvy_pars = af.fit_bestpars(sigcut=sigcut)
+### Re-fit with plx-savvy scatter:
+#savvy_ra_errs = np.ones(len(use_dataset)) * new_rra_scatter
+#savvy_de_errs = np.ones(len(use_dataset)) * new_rde_scatter
+#af.setup(use_dataset, RA_err=savvy_ra_errs, DE_err=savvy_de_errs)
+#savvy_pars = af.fit_bestpars(sigcut=sigcut)
+
+## -----------------------------------------------------------------------
+## -----------------         MCMC Attempt (emcee)           --------------
+## -----------------------------------------------------------------------
+
+def lnprior(params):
+    #rra, rde, pmra, pmde, prlx = params
+    #if prlx < 0:
+    #    return -np.inf
+    return 0
+
+def lnlike(params, rra, rde, rra_err, rde_err):
+    mrra, mrde = af.eval_model(params)
+    delta_ra = (mrra[af.inliers] - rra) / rra_err
+    delta_de = (mrde[af.inliers] - rde) / rde_err
+    delta_tot = delta_ra**2 + delta_de**2
+    return -0.5*np.sum(delta_tot)
+
+def lnprob(params, rra, rde, rra_err, rde_err):
+    lp = lnprior(params)
+    if not np.isfinite(lp):
+        return -np.inf
+    return lp + lnlike(params, rra, rde, rra_err, rde_err)
+
+## Identify useful data points:
+use_rra = np.radians(use_dataset['dra'][af.inliers])
+use_rde = np.radians(use_dataset['dde'][af.inliers])
+use_rra_err = ra_rad_errs[af.inliers]
+use_rde_err = de_rad_errs[af.inliers]
+
+arglist = (use_rra, use_rde, use_rra_err, use_rde_err)
+
+initial = iterpars.copy()
+ndim = len(initial)
+nwalkers = 32
+p0 = [np.array(initial) + 1e-6*initial*np.random.randn(5) \
+        for i in range(nwalkers)]
+sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=arglist)
+
+sys.stderr.write("Running burn-in ... ")
+p0, _, _ = sampler.run_mcmc(p0, 200)
+sys.stderr.write("done.\n")
+sampler.reset()
+
+sys.stderr.write("Running full MCMC ... ")
+niter = 4000
+pos, prob, state = sampler.run_mcmc(p0, niter)
+sys.stderr.write("done.\n")
+
+ra_chain, de_chain, pmra_chain, pmde_chain, prlx_chain = sampler.flatchain.T
+
+prlx_chain_mas = 3.6e6 * np.degrees(prlx_chain)
+
+cfig = plt.figure(22)
+cfig.clf()
+plxax = cfig.add_subplot(111)
+plxax.grid(True)
+plxax.hist(prlx_chain_mas, bins=50)
+plxax.set_xlabel("Parallax (mas)")
+cfig.tight_layout()
+plt.draw()
+save_plot = 'plx_posterior_%s.png' % plot_tag
+cfig.savefig(save_plot) #, bbox='tight')
+
 
 ## -----------------------------------------------------------------------
 ## -----------------------------------------------------------------------
