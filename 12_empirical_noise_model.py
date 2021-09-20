@@ -475,15 +475,27 @@ def kmag(adu, zeropt=25.0):
     return (zeropt - 2.5 * np.log10(adu))
 
 
+import spitz_error_model
+reload(spitz_error_model)
+sem = spitz_error_model.SpitzErrorModel()
+
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 ## Conversion factors:
 fluxconv = 0.1257       # IRAC ch1
 fluxconv = 0.1447       # IRAC ch2
 sst_gain = 3.71
+fluxconv = {'IRAC1':0.1257, 'IRAC2':0.1447}
+sst_gain = {'IRAC1':3.70,   'IRAC2':3.71}
 
-def signal2counts(signal, fluxconv=0.1447, gain=3.71):
-    return signal * sst_gain / fluxconv
+if not (context.instrument in fluxconv.keys()):
+    sys.stderr.write("Instrument %s not recognized!\n" % context.instrument)
+    sys.stderr.write("Cannot proceed with noise model creation.\n")
+    sys.exit(1)
+
+#def signal2counts(signal, fluxconv=0.1447, gain=3.71):
+def signal2counts(signal):
+    return signal * sst_gain[context.instrument] / fluxconv[context.instrument]
 
 fig_dims = (10, 7)
 
@@ -503,22 +515,44 @@ every_delta_mas, every_ra_delta_mas, every_de_delta_mas, \
 every_counts  = signal2counts(every_signal)
 every_instmag = kmag(every_counts)
 
-#sys.stderr.write("Performing quantile fits ... ") 
-##fdata = pd.DataFrame(data=np.vstack((np.log10(msnr), np.log10(mresd))).T,
-##        columns=["lmsnr", "lmresd"])
-#fdata = pd.DataFrame(data=np.vstack((instmag, np.log10(mresd))).T,
-#        columns=["fmag", "lrms"])
-fdata = pd.DataFrame(data=np.vstack((every_instmag, 
-                        np.log10(every_delta_mas))).T,
-                        columns=["fmag", "lrms"])
-mod = smf.quantreg('lrms ~ fmag + I(fmag**2)', fdata)
-qlist = [0.25, 0.5, 0.75]
-qmods = {}
-for qq in qlist:
-    sys.stderr.write("\rFitting q=%.2f ... " % qq)
-    res = mod.fit(q=qq)
-    qmods[qq] = res.params.values
-sys.stderr.write("done.\n")
+## Binned values for plotting:
+imag_limits = {'IRAC1':(11.0, 18.0), 'IRAC2':(12.0, 19.0)}
+nbins = 14
+#imag_lower = {'IRAC1':11.0, 'IRAC2':12.0}
+#imag_upper = {'IRAC1':18.0, 'IRAC2':19.0}
+imag_lower, imag_upper = imag_limits[context.instrument]
+#imag_lower, imag_upper = 11.0, 19.0
+bwidth = (imag_upper - imag_lower) / float(nbins)
+binned_imag, binned_delta_ra_mas, binned_delta_de_mas = [], [], []
+for ii in range(nbins):
+    b_lo = imag_lower + ii * bwidth
+    b_hi = imag_lower + (ii+1) * bwidth
+    bmid = 0.5 * (b_lo + b_hi)
+    which = (b_lo < every_instmag) & (every_instmag <= b_hi)
+    #sys.stderr.write("b_lo, b_hi: %.2f, %.2f\n" % (b_lo, b_hi))
+    binned_imag.append(bmid)
+    binned_delta_ra_mas.append(np.median(every_ra_delta_mas[which]))
+    binned_delta_de_mas.append(np.median(every_de_delta_mas[which]))
+
+binned_imag = np.array(binned_imag)
+binned_counts = kadu(binned_imag)
+binned_delta_ra_mas = np.array(binned_delta_ra_mas)
+binned_delta_de_mas = np.array(binned_delta_de_mas)
+
+do_quantile_fits = False
+
+if do_quantile_fits:
+    fdata = pd.DataFrame(data=np.vstack((every_instmag, 
+                            np.log10(every_delta_mas))).T,
+                            columns=["fmag", "lrms"])
+    mod = smf.quantreg('lrms ~ fmag + I(fmag**2)', fdata)
+    qlist = [0.25, 0.5, 0.75]
+    qmods = {}
+    for qq in qlist:
+        sys.stderr.write("\rFitting q=%.2f ... " % qq)
+        res = mod.fit(q=qq)
+        qmods[qq] = res.params.values
+    #sys.stderr.write("done.\n")
 
 use_imag = True
 
@@ -549,19 +583,34 @@ scm.set_array([])
 cbar = fig.colorbar(scm, orientation='vertical')
 
 ## overplot quantile fits:
-#fmval = np.linspace(3, 200)
-fmval = np.linspace(12, 23)
-for qq,params in qmods.items():
-    qlabel = 'q=%.2f quantile' % qq
-    #qrmsd = polyval(np.log10(fmval), params)
-    qrmsd = 10.**polyval(fmval, params)
-    ax1.plot(fmval, qrmsd, label=qlabel)
-ax1.legend(loc='upper left')
+if do_quantile_fits:
+    #fmval = np.linspace(3, 200)
+    fmval = np.linspace(12, 23)
+    for qq,params in qmods.items():
+        qlabel = 'q=%.2f quantile' % qq
+        #qrmsd = polyval(np.log10(fmval), params)
+        qrmsd = 10.**polyval(fmval, params)
+        ax1.plot(fmval, qrmsd, label=qlabel)
+    ax1.legend(loc='upper left')
 
 fig.tight_layout()
 plt.draw()
 
 ##--------------------------------------------------------------------------##
+## Use these to fit raw data:
+fittable_counts = every_counts
+fittable_delta_ra = every_ra_delta_mas
+fittable_delta_de = every_de_delta_mas
+
+## Use these to fit binned data:
+fittable_counts = binned_counts
+fittable_delta_ra = binned_delta_ra_mas
+fittable_delta_de = binned_delta_de_mas
+
+### Use these to fit binned data jointly:
+#fittable_counts = np.concatenate((binned_counts, binned_counts))
+#fittable_delta_ra = np.concatenate((binned_delta_ra_mas, binned_delta_de_mas))
+#fittable_delta_de = fittable_delta_ra
 
 ## RMS model evaluator:
 def trialrms(star_counts, fwhm, noise_floor=0, eff_gain=1.00):
@@ -572,16 +621,16 @@ def trialrms(star_counts, fwhm, noise_floor=0, eff_gain=1.00):
 
 def ra_rms_fitme(params):
     fwhm, nfloor = params
-    calc_rms_mas = trialrms(every_counts, fwhm, noise_floor=nfloor)
-    residuals = every_ra_delta_mas - calc_rms_mas
-    #residuals = np.log10(every_ra_delta_mas / calc_rms_mas)
+    calc_rms_mas = trialrms(fittable_counts, fwhm, noise_floor=nfloor)
+    #residuals = fittable_delta_ra - calc_rms_mas
+    residuals = np.log10(fittable_delta_ra / calc_rms_mas)
     return np.sum(residuals*residuals)
 
 def de_rms_fitme(params):
     fwhm, nfloor = params
-    calc_rms_mas = trialrms(every_counts, fwhm, noise_floor=nfloor)
-    residuals = every_de_delta_mas - calc_rms_mas
-    #residuals = np.log10(every_de_delta_mas / calc_rms_mas)
+    calc_rms_mas = trialrms(fittable_counts, fwhm, noise_floor=nfloor)
+    #residuals = fittable_delta_de - calc_rms_mas
+    residuals = np.log10(fittable_delta_de / calc_rms_mas)
     return np.sum(residuals*residuals)
 
 ra_guess = np.array([1000, 30])
@@ -594,14 +643,18 @@ sys.stderr.write("best_de_pars: %s\n" % str(best_de_pars))
 
 use_pars = 0.5 * (best_ra_pars + best_de_pars)
 
+sys.stderr.write("use_pars (%s): %s\n" % (context.instrument, str(use_pars)))
 
 guess_imag = np.linspace(10, 20)
 guess_iele = kadu(guess_imag)
 #guess_rms = trialrms(guess_iele, 5000., noise_floor=30)
-#guess_rms = trialrms(guess_iele, use_pars[0], noise_floor=use_pars[1])
-guess_rms = trialrms(guess_iele, 3000, noise_floor=50)
+guess_rms = trialrms(guess_iele, use_pars[0], noise_floor=use_pars[1])
+#guess_rms = trialrms(guess_iele, 3000, noise_floor=50)
 
-## Best-fit parameters:
+## To get an error bar from flux:
+
+
+
 
 
 ## RMS in RA:
@@ -614,7 +667,8 @@ rax  = rfig.add_subplot(111)
 rax.grid(True)
 rax.set_yscale('log')
 rax.scatter(every_instmag, every_ra_delta_mas, **ptopts)
-rax.plot(guess_imag, guess_rms, c='r')
+rax.scatter(binned_imag, binned_delta_ra_mas, c='r')
+rax.plot(guess_imag, guess_rms, c='k')
 rax.set_xlabel('Instrumental Mag')
 rax.set_ylabel('RA scatter (mas)')
 rax.set_ylim(*rmslims)
@@ -631,7 +685,8 @@ dax  = dfig.add_subplot(111)
 dax.grid(True)
 dax.set_yscale('log')
 dax.scatter(every_instmag, every_de_delta_mas, **ptopts)
-dax.plot(guess_imag, guess_rms, c='r')
+dax.scatter(binned_imag, binned_delta_de_mas, c='r')
+dax.plot(guess_imag, guess_rms, c='k')
 dax.set_xlabel('Instrumental Mag')
 dax.set_ylabel('DE scatter (mas)')
 dax.set_ylim(*rmslims)
