@@ -1,0 +1,4 @@
+The goal of this analysis/research task is to determine the relationship
+between the PA header keyword (position angle) and the +X, +Y directions on
+the CCD. Once this relationship is known, the PA values of individual images
+can be used to separate RA,Dec residuals into their X,Y components on CCD.
