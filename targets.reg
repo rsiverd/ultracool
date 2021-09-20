@@ -8,4 +8,10 @@ fk5; annulus( 62.59494000d,  15.04641000d, 0.0015d, 0.0005d) # color=red text={w
 fk5; annulus( 74.72478000d,  64.58131000d, 0.0015d, 0.0005d) # color=red text={wise0458}
 fk5; annulus(184.48726000d,  16.44439000d, 0.0015d, 0.0005d) # color=red text={wise1217}
 fk5; annulus(194.33754167d,  71.89702778d, 0.0015d, 0.0005d) # color=red text={wise1257}
+fk5; annulus(211.32589000d,  55.57258000d, 0.0015d, 0.0005d) # color=red text={wise1405}
+fk5; annulus(235.46470000d, -22.84053000d, 0.0015d, 0.0005d) # color=red text={wise1541}
+fk5; annulus(264.64812000d,  27.54967000d, 0.0015d, 0.0005d) # color=red text={wise1738}
+fk5; annulus(265.35094000d,  25.88859000d, 0.0015d, 0.0005d) # color=red text={wise1741}
+fk5; annulus(271.14730000d,  31.28515000d, 0.0015d, 0.0005d) # color=red text={wise1804}
 fk5; annulus(277.12958333d,  26.84383056d, 0.0015d, 0.0005d) # color=red text={wise1828}
+fk5; annulus(314.12055000d,  14.99824000d, 0.0015d, 0.0005d) # color=red text={wise2056}
