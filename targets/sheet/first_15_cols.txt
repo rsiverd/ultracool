@@ -1,0 +1,15 @@
+col row_1,row_2
+1 name,ULAS J000010.43+113602.2
+2 ref_discovery,Card15
+3 flag,photSpT
+4 ref_flag,Card15
+5 exoplanet,N
+6 multiple_unresolved_in_this_table,N
+7 multiple_resolved_in_this_table,N
+8 has_higher_mass_companion,N
+9 sep_companion,NaN
+10 Best20b_vollim_sample,N
+11 ra_j2000_formula,0.0434
+12 dec_j2000_formula,11.6020
+13 source_j2000_formula,AllWISE
+14 designation_P1_formula,null
