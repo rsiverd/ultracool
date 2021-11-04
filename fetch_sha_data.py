@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2019-08-27
-# Last modified: 2021-07-20
+# Last modified: 2021-11-03
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.4.6"
+__version__ = "0.4.7"
 
 ## Python version-agnostic module reloading:
 try:
@@ -374,7 +374,11 @@ for nn,targ in enumerate(targets, 1):
 
     # retrieve query results
     sys.stderr.write("Querying SHA database ... ")
-    hits = sha.query(coord=targ, size=context.search_rad_deg, dataset=1)
+    try:
+        hits = sha.query(coord=targ, size=context.search_rad_deg, dataset=1)
+    except IndexError:
+        sys.stderr.write("query failed (probably no matches).\n")
+        sys.exit(0)
     sys.stderr.write("done.\n")
 
     # Added value and sanity checking:
