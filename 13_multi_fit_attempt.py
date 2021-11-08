@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2021-04-13
-# Last modified: 2021-11-05
+# Last modified: 2021-11-08
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.2.2"
+__version__ = "0.2.5"
 
 ## Python version-agnostic module reloading:
 try:
@@ -343,7 +343,7 @@ _ra_key, _de_key = centroid_colmap[centroid_method]
 cat_type = 'pcat'
 #cat_type = 'fcat'
 tgt_name = '2m0415'
-#tgt_name = '2m0729'
+tgt_name = '2m0729'
 #tgt_name = 'pso043'
 #tgt_name = 'ross458c'
 #tgt_name = 'ugps0722'
@@ -862,8 +862,8 @@ acfde.set_xlabel('DE Residual (mas)')
 acfde.legend(loc='upper left')
 acfig.tight_layout()
 plt.draw()
-pname = 'residual_hist_%s.png' % plot_tag
-pname = 'residual_hist_%s.pdf' % plot_tag
+pname = 'plots/residual_hist_%s.png' % plot_tag
+pname = 'plots/residual_hist_%s.pdf' % plot_tag
 acfig.savefig(pname)
 
 #ra_resids, de_resids = af._calc_radec_residuals_sigma(bestpars)
@@ -990,7 +990,7 @@ if _PERFORM_MCMC:
     plxax.set_xlabel("Parallax (mas)")
     cfig.tight_layout()
     plt.draw()
-    save_plot = 'plx_posterior_%s.png' % plot_tag
+    save_plot = 'plots/plx_posterior_%s.png' % plot_tag
     cfig.savefig(save_plot) #, bbox='tight')
 
     corn_file = 'corner_plot_%s.pdf' % plot_tag
@@ -1110,7 +1110,7 @@ for aa in every_ax:
     aa.legend(loc='upper left')
 
 fig.tight_layout()
-pname = '%s_tgt_4par_resid_%s_%s.png' % (tgt_name, dwhich, cat_type)
+pname = 'plots/%s_tgt_4par_resid_%s_%s.png' % (tgt_name, dwhich, cat_type)
 #pname = '%s_tgt_4par_resid_%s_%s.pdf' % (tgt_name, dwhich, cat_type)
 fig.savefig(pname)
 
@@ -1224,37 +1224,38 @@ for sid in large_both:
 prmot = recarray_from_dicts(many_things)
 
 
-fig_dims = (10, 10)
-fig = plt.figure(2, figsize=fig_dims)
-fig.clf()
-ax1 = fig.add_subplot(211); ax1.grid(True)
-ax2 = fig.add_subplot(212); ax2.grid(True)
-pmra_diff = prmot['pmra_ch1']-prmot['pmra_ch2']
-pmde_diff = prmot['pmde_ch1']-prmot['pmde_ch2']
-ax1.hist(pmra_diff, range=(-200, 200), bins=11)
-ax1.set_title('pmRA (CH1) - pmRA (CH2)')
-ax1.set_xlabel('delta pmRA (mas)')
+## EARLY diagnostic plots, uncomment to reproduce
+#fig_dims = (10, 10)
+#fig = plt.figure(2, figsize=fig_dims)
+#fig.clf()
+#ax1 = fig.add_subplot(211); ax1.grid(True)
+#ax2 = fig.add_subplot(212); ax2.grid(True)
+#pmra_diff = prmot['pmra_ch1']-prmot['pmra_ch2']
+#pmde_diff = prmot['pmde_ch1']-prmot['pmde_ch2']
+#ax1.hist(pmra_diff, range=(-200, 200), bins=11)
+#ax1.set_title('pmRA (CH1) - pmRA (CH2)')
+#ax1.set_xlabel('delta pmRA (mas)')
+##ax2.set_xlim(-2, 82)
+#ax2.hist(pmde_diff, range=(-200, 200), bins=11)
+#ax2.set_xlabel('delta pmDE (mas)')
+#fig.tight_layout()
+#fig.savefig('prmot_1v2.png')
+#
+#fig.clf()
+#ax1 = fig.add_subplot(211); ax1.grid(True)
+#ax2 = fig.add_subplot(212); ax2.grid(True)
+#ax1.scatter(np.abs(prmot['pmra_jnt']), np.abs(pmra_diff))
+#ax1.set_xlabel('|pmra_jnt|')
+#ax1.set_ylabel('pmra_diff')
+#ax2.scatter(np.abs(prmot['pmde_jnt']), np.abs(pmde_diff))
+#ax2.set_xlabel('|pmde_jnt|')
+#ax2.set_ylabel('pmde_diff')
+#ax1.set_ylim(-20, 200)
+#ax2.set_ylim(-20, 200)
+#ax1.set_xlim(-2, 82)
 #ax2.set_xlim(-2, 82)
-ax2.hist(pmde_diff, range=(-200, 200), bins=11)
-ax2.set_xlabel('delta pmDE (mas)')
-fig.tight_layout()
-fig.savefig('prmot_1v2.png')
-
-fig.clf()
-ax1 = fig.add_subplot(211); ax1.grid(True)
-ax2 = fig.add_subplot(212); ax2.grid(True)
-ax1.scatter(np.abs(prmot['pmra_jnt']), np.abs(pmra_diff))
-ax1.set_xlabel('|pmra_jnt|')
-ax1.set_ylabel('pmra_diff')
-ax2.scatter(np.abs(prmot['pmde_jnt']), np.abs(pmde_diff))
-ax2.set_xlabel('|pmde_jnt|')
-ax2.set_ylabel('pmde_diff')
-ax1.set_ylim(-20, 200)
-ax2.set_ylim(-20, 200)
-ax1.set_xlim(-2, 82)
-ax2.set_xlim(-2, 82)
-fig.tight_layout()
-fig.savefig('prmot_diff_vs_prmot.png')
+#fig.tight_layout()
+#fig.savefig('prmot_diff_vs_prmot.png')
 
 #sys.exit(0)
 
@@ -1339,7 +1340,7 @@ cbar = fig.colorbar(scm, orientation='vertical')
 #cbar = fig.colorbar(scm, orientation='vertical')
 fig.tight_layout()
 plt.draw()
-plot_name = 'empirical_scatter_ch1_%s.png' % plot_tag
+plot_name = 'plots/empirical_scatter_ch1_%s.png' % plot_tag
 fig.savefig(plot_name)
 
 
