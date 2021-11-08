@@ -285,7 +285,10 @@ if __name__ == '__main__':
                           formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
     #parser.set_defaults(thing1='value1', thing2='value2')
+    #parser.set_defaults(target=None)
     # ------------------------------------------------------------------
+    parser.add_argument('-t', '--target', default=None, required=False,
+            help='specify a target to process', type=str)
     #parser.add_argument('firstpos', help='first positional argument')
     #parser.add_argument('-w', '--whatever', required=False, default=5.0,
     #        help='some option with default [def: %(default)s]', type=float)
@@ -343,7 +346,7 @@ _ra_key, _de_key = centroid_colmap[centroid_method]
 cat_type = 'pcat'
 #cat_type = 'fcat'
 tgt_name = '2m0415'
-tgt_name = '2m0729'
+#tgt_name = '2m0729'
 #tgt_name = 'pso043'
 #tgt_name = 'ross458c'
 #tgt_name = 'ugps0722'
@@ -357,6 +360,11 @@ tgt_name = '2m0729'
 #tgt_name = 'wise1804'
 #tgt_name = 'wise1828'
 #tgt_name = 'wise2056'
+sys.stderr.write("context.target: %s\n" % str(context.target))
+if context.target:
+    tgt_name = context.target
+    sys.stderr.write("Using tgt_name %s from command line!\n" % tgt_name)
+#sys.exit(0)
 ch1_file = 'process/%s_ch1_%s.pickle' % (tgt_name, cat_type)
 ch2_file = 'process/%s_ch2_%s.pickle' % (tgt_name, cat_type)
 #ch1_file = 'process/wise1828_ch1_pcat.pickle'
@@ -424,8 +432,10 @@ jd2im_both = {**jd2im_ch1, **jd2im_ch2}
 ## The following should probably be weighted by errors in a future version:
 full_jdtdb_vector = np.array(list(jd2im_both.keys()))
 mean_jdtdb = np.average(full_jdtdb_vector)
+first_jdtdb = full_jdtdb_vector.min()
 
 j2000_epoch = astt.Time('2000-01-01T12:00:00', scale='tt', format='isot')
+j2000_epoch = astt.Time(first_jdtdb, scale='tdb', format='jd')
 
 def fit_4par(data, debug=False):
     years = (data['jdtdb'] - j2000_epoch.tdb.jd) / 365.25
