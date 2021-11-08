@@ -803,7 +803,7 @@ de_rad_errs = np.radians(de_deg_errs)
 sigcut = 5
 #af.setup(use_dataset)
 af.setup(use_dataset, RA_err=ra_rad_errs, DE_err=de_rad_errs,
-        jd_tdb_ref=j2000_epoch)
+        jd_tdb_ref=j2000_epoch.tdb.jd)
 bestpars = af.fit_bestpars(sigcut=sigcut)
 firstpars = bestpars.copy()
 
