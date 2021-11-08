@@ -344,7 +344,7 @@ cat_type = 'pcat'
 #cat_type = 'fcat'
 tgt_name = '2m0415'
 tgt_name = '2m0729'
-#tgt_name = 'pso043'
+tgt_name = 'pso043'
 #tgt_name = 'ross458c'
 #tgt_name = 'ugps0722'
 #tgt_name = 'wise0148'
@@ -1405,7 +1405,7 @@ scm.set_array([])
 cbar = fig.colorbar(scm, orientation='vertical')
 fig.tight_layout()
 plt.draw()
-plot_name = 'empirical_scatter_ch2_%s.png' % plot_tag
+plot_name = 'plots/empirical_scatter_ch2_%s.png' % plot_tag
 fig.savefig(plot_name)
 
 fig = plt.figure(6, figsize=(10,8))
@@ -1424,7 +1424,7 @@ cbar.update_ticks()
 cbar.set_label('Data Points')
 fig.tight_layout()
 plt.draw()
-plot_name = 'npoints_vs_radec_ch2_%s.png' % plot_tag
+plot_name = 'plots/npoints_vs_radec_ch2_%s.png' % plot_tag
 fig.savefig(plot_name)
 
 fig.clf()
@@ -1447,7 +1447,7 @@ cbar.set_label('log10(residual / mas)')
 #cbar.set_label('log10(residual * SNR)')
 fig.tight_layout()
 plt.draw()
-plot_name = 'resid_vs_radec_ch2_%s.png' % plot_tag
+plot_name = 'plots/resid_vs_radec_ch2_%s.png' % plot_tag
 fig.savefig(plot_name)
 
 sys.exit(0)
