@@ -566,6 +566,21 @@ done
 ls process/*_ch1_pcat.pickle
 ls process/*_ch2_pcat.pickle
 
+
+./12_empirical_noise_model.py -i IRAC1 process/2m0415_ch1_pcat.pickle process/2m0729_ch1_pcat.pickle \
+   process/pso043_ch1_pcat.pickle process/ross458c_ch1_pcat.pickle process/ugps0722_ch1_pcat.pickle \
+   process/wise0148_ch1_pcat.pickle process/wise0410_ch1_pcat.pickle process/wise0458_ch1_pcat.pickle \
+   process/wise1405_ch1_pcat.pickle process/wise1541_ch1_pcat.pickle process/wise1738_ch1_pcat.pickle \
+   process/wise1741_ch1_pcat.pickle process/wise1804_ch1_pcat.pickle process/wise1828_ch1_pcat.pickle \
+   process/wise2056_ch1_pcat.pickle
+
+./12_empirical_noise_model.py -i IRAC2 process/2m0415_ch2_pcat.pickle process/2m0729_ch2_pcat.pickle \
+   process/pso043_ch2_pcat.pickle process/ross458c_ch2_pcat.pickle process/ugps0722_ch2_pcat.pickle \
+   process/wise0148_ch2_pcat.pickle process/wise0410_ch2_pcat.pickle process/wise0458_ch2_pcat.pickle \
+   process/wise1405_ch2_pcat.pickle process/wise1541_ch2_pcat.pickle process/wise1738_ch2_pcat.pickle \
+   process/wise1741_ch2_pcat.pickle process/wise1804_ch2_pcat.pickle process/wise1828_ch2_pcat.pickle \
+   process/wise2056_ch2_pcat.pickle
+
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 

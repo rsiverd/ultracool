@@ -410,9 +410,10 @@ class AstFit(object):
         #sys.stderr.write("rde_scatter: %e (rad)\n" % rde_scatter)
 
         ra_rweights = self._calc_huber_rweights(rra_resid, rra_scatter)
-        self._use_RA_err = ra_rweights * self._RA_err
+        #self._use_RA_err = ra_rweights * self._RA_err
+        self._use_RA_err = self._RA_err / ra_rweights
         de_rweights = self._calc_huber_rweights(rde_resid, rde_scatter)
-        self._use_DE_err = de_rweights * self._DE_err
+        self._use_DE_err = self._DE_err / de_rweights
 
         # find minimum:
         self.iresult = opti.fmin(self._calc_chi_square, params ,

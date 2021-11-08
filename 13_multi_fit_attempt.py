@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2021-04-13
-# Last modified: 2021-09-20
+# Last modified: 2021-11-05
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.2.0"
+__version__ = "0.2.2"
 
 ## Python version-agnostic module reloading:
 try:
@@ -94,6 +94,7 @@ sem = spitz_error_model.SpitzErrorModel()
 
 ## MCMC sampler:
 import emcee
+import corner
 
 ##--------------------------------------------------------------------------##
 ## Projections with cartopy:
@@ -208,6 +209,19 @@ def recarray_from_dicts(list_of_dicts, use_keys=None):
     keys = use_keys if use_keys else list_of_dicts[0].keys()
     data = [np.array([d[k] for d in list_of_dicts]) for k in keys]
     return np.core.records.fromarrays(data, names=','.join(keys))
+
+## This routine streamlines addition of new columns to record arrays:
+def add_recarray_columns(recarray, column_specs):
+    """
+    Add new fields/columns to a structured numpy array. The 'column_specs'
+    input is a list of tuples containing names and data for appending.
+    Example column_specs: [('col1', c1array), ('col2', c2array)]
+    """
+
+    result = recarray.copy()
+    for cname, cdata in column_specs:
+        result = append_fields(result, cname, cdata, usemask=False)
+    return result
 
 ##--------------------------------------------------------------------------##
 ##------------------         Terminal Fanciness             ----------------##
@@ -329,20 +343,20 @@ _ra_key, _de_key = centroid_colmap[centroid_method]
 cat_type = 'pcat'
 #cat_type = 'fcat'
 tgt_name = '2m0415'
-tgt_name = '2m0729'
-tgt_name = 'pso043'
-tgt_name = 'ross458c'
-tgt_name = 'ugps0722'
-tgt_name = 'wise0148'
-tgt_name = 'wise0410'
-tgt_name = 'wise0458'
-tgt_name = 'wise1405'
-tgt_name = 'wise1541'
-tgt_name = 'wise1738'
-tgt_name = 'wise1741'
-tgt_name = 'wise1804'
-tgt_name = 'wise1828'
-tgt_name = 'wise2056'
+#tgt_name = '2m0729'
+#tgt_name = 'pso043'
+#tgt_name = 'ross458c'
+#tgt_name = 'ugps0722'
+#tgt_name = 'wise0148'
+#tgt_name = 'wise0410'
+#tgt_name = 'wise0458'
+#tgt_name = 'wise1405'
+#tgt_name = 'wise1541'
+#tgt_name = 'wise1738'
+#tgt_name = 'wise1741'
+#tgt_name = 'wise1804'
+#tgt_name = 'wise1828'
+#tgt_name = 'wise2056'
 ch1_file = 'process/%s_ch1_%s.pickle' % (tgt_name, cat_type)
 ch2_file = 'process/%s_ch2_%s.pickle' % (tgt_name, cat_type)
 #ch1_file = 'process/wise1828_ch1_pcat.pickle'
@@ -406,6 +420,10 @@ large_both = set(large_ch1).intersection(large_ch2)
 jd2im_both = {**jd2im_ch1, **jd2im_ch2}
 
 ##--------------------------------------------------------------------------##
+
+## The following should probably be weighted by errors in a future version:
+full_jdtdb_vector = np.array(list(jd2im_both.keys()))
+mean_jdtdb = np.average(full_jdtdb_vector)
 
 j2000_epoch = astt.Time('2000-01-01T12:00:00', scale='tt', format='isot')
 
@@ -633,14 +651,30 @@ if not ('ra_err_mas' in tgt_ch1.dtype.names):
     sys.stderr.write("No errors, adding empirical ones!\n")
     signal_ch1 = tgt_ch1['flux'] * tgt_ch1['exptime']
     asterr_ch1 = sem.signal2error(signal_ch1, 1)
+    new_fields = [('ra_err_mas', asterr_ch1), ('de_err_mas', asterr_ch1)]
+    tgt_ch1 = add_recarray_columns(tgt_ch1, new_fields)
+
     signal_ch2 = tgt_ch2['flux'] * tgt_ch2['exptime']
     asterr_ch2 = sem.signal2error(signal_ch2, 2)
-    tgt_ch1 = append_fields(tgt_ch1, 'ra_err_mas', asterr_ch1, usemask=False)
-    tgt_ch1 = append_fields(tgt_ch1, 'de_err_mas', asterr_ch1, usemask=False)
-    tgt_ch2 = append_fields(tgt_ch2, 'ra_err_mas', asterr_ch2, usemask=False)
-    tgt_ch2 = append_fields(tgt_ch2, 'de_err_mas', asterr_ch2, usemask=False)
+    new_fields = [('ra_err_mas', asterr_ch2), ('de_err_mas', asterr_ch2)]
+    tgt_ch2 = add_recarray_columns(tgt_ch2, new_fields)
+    #tgt_ch1 = append_fields(tgt_ch1, 'ra_err_mas', asterr_ch1, usemask=False)
+    #tgt_ch1 = append_fields(tgt_ch1, 'de_err_mas', asterr_ch1, usemask=False)
+    #tgt_ch2 = append_fields(tgt_ch2, 'ra_err_mas', asterr_ch2, usemask=False)
+    #tgt_ch2 = append_fields(tgt_ch2, 'de_err_mas', asterr_ch2, usemask=False)
 else:
     sys.stderr.write("Empirical errors already exist!\n")
+
+## Add instrument tag if not already present:
+if not ('instrument' in tgt_ch1.dtype.names):
+    sys.stderr.write("No 'instrument' column found for ch1, adding!\n")
+    new_fields = [('instrument', ['IRAC1' for x in range(len(tgt_ch1))])]
+    tgt_ch1 = add_recarray_columns(tgt_ch1, new_fields)
+if not ('instrument' in tgt_ch2.dtype.names):
+    sys.stderr.write("No 'instrument' column found for ch2, adding!\n")
+    new_fields = [('instrument', ['IRAC2' for x in range(len(tgt_ch2))])]
+    tgt_ch2 = add_recarray_columns(tgt_ch2, new_fields)
+
 
 tgt_both = np.concatenate((tgt_ch1, tgt_ch2))
 ref_time = np.median(tgt_both['jdtdb'])
@@ -768,7 +802,8 @@ de_rad_errs = np.radians(de_deg_errs)
 ## Try out fitting now:
 sigcut = 5
 #af.setup(use_dataset)
-af.setup(use_dataset, RA_err=ra_rad_errs, DE_err=de_rad_errs)
+af.setup(use_dataset, RA_err=ra_rad_errs, DE_err=de_rad_errs,
+        jd_tdb_ref=j2000_epoch)
 bestpars = af.fit_bestpars(sigcut=sigcut)
 firstpars = bestpars.copy()
 
@@ -787,6 +822,49 @@ best_dde = np.degrees(bestpars[1])
 raw_res_ra, raw_res_de = af._calc_radec_residuals(bestpars)
 raw_res_ra_mas = 3.6e6 * np.degrees(raw_res_ra) * use_cos_dec
 raw_res_de_mas = 3.6e6 * np.degrees(raw_res_de)
+
+## Split by instrument:
+which_ch1 = (use_dataset['instrument'] == 'IRAC1')
+which_ch2 = (use_dataset['instrument'] == 'IRAC2')
+
+## Medians for each:
+med_ra_res_ch1 = np.median(raw_res_ra_mas[which_ch1])
+med_ra_res_ch2 = np.median(raw_res_ra_mas[which_ch2])
+med_de_res_ch1 = np.median(raw_res_de_mas[which_ch1])
+med_de_res_ch2 = np.median(raw_res_de_mas[which_ch2])
+
+## Make a plot:
+hbins = len(raw_res_ra_mas) // 20
+bspec = {'range':(-800, 800), 'bins':hbins, 'histtype':'step'}
+fig_dims = (10, 10)
+acfig = plt.figure(23, figsize=fig_dims)
+acfig.clf()
+acfra = acfig.add_subplot(211)
+acfra.set_title(plot_tag)
+acfra.grid(True)
+acfra.hist(raw_res_ra_mas[which_ch1], color='b', label='ch1', **bspec)
+acfra.hist(raw_res_ra_mas[which_ch2], color='g', label='ch2', **bspec)
+acfra.axvline(med_ra_res_ch1, color='r', ls=':', 
+        label='median RA (ch1): %.3f mas'%med_ra_res_ch1)
+acfra.axvline(med_ra_res_ch2, color='m', ls=':', 
+        label='median RA (ch2): %.3f mas'%med_ra_res_ch2)
+acfra.set_xlabel('RA Residual (mas)')
+acfra.legend(loc='upper left')
+acfde = acfig.add_subplot(212)
+acfde.grid(True)
+acfde.hist(raw_res_de_mas[which_ch1], color='b', label='ch1', **bspec)
+acfde.hist(raw_res_de_mas[which_ch2], color='g', label='ch2', **bspec)
+acfde.axvline(med_ra_res_ch1, color='r', ls=':', 
+        label='median DE (ch1): %.3f mas'%med_de_res_ch1)
+acfde.axvline(med_ra_res_ch2, color='m', ls=':', 
+        label='median DE (ch2): %.3f mas'%med_de_res_ch2)
+acfde.set_xlabel('DE Residual (mas)')
+acfde.legend(loc='upper left')
+acfig.tight_layout()
+plt.draw()
+pname = 'residual_hist_%s.png' % plot_tag
+pname = 'residual_hist_%s.pdf' % plot_tag
+acfig.savefig(pname)
 
 #ra_resids, de_resids = af._calc_radec_residuals_sigma(bestpars)
 #sys.exit(0)
@@ -846,6 +924,7 @@ sys.stderr.write("%s\n" % halfdiv)
 ## -----------------------------------------------------------------------
 
 _PERFORM_MCMC = False
+_PERFORM_MCMC = True
 
 def lnprior(params):
     #rra, rde, pmra, pmde, prlx = params
@@ -875,6 +954,7 @@ use_rde_err = de_rad_errs[af.inliers]
 arglist = (use_rra, use_rde, use_rra_err, use_rde_err)
 
 if _PERFORM_MCMC:
+    tik = time.time()
     initial = iterpars.copy()
     ndim = len(initial)
     nwalkers = 32
@@ -893,6 +973,12 @@ if _PERFORM_MCMC:
     sys.stderr.write("done.\n")
 
     ra_chain, de_chain, pmra_chain, pmde_chain, prlx_chain = sampler.flatchain.T
+
+    plabels = ['ra', 'de', 'pmra', 'pmde', 'prlx']
+    flat_samples = sampler.get_chain(discard=100, thin=15, flat=True)
+    #labels=plabels)
+    tok = time.time()
+    sys.stderr.write("Running MCMC took %.2f seconds.\n" % (tok-tik))
     
     prlx_chain_mas = 3.6e6 * np.degrees(prlx_chain)
     
@@ -906,6 +992,14 @@ if _PERFORM_MCMC:
     plt.draw()
     save_plot = 'plx_posterior_%s.png' % plot_tag
     cfig.savefig(save_plot) #, bbox='tight')
+
+    corn_file = 'corner_plot_%s.pdf' % plot_tag
+    cornerfig = plt.figure(31, figsize=(9,7))
+    cornerfig.clf()
+    corner.corner(flat_samples, labels=plabels, fig=cornerfig,
+            truths=iterpars)
+    #cornerfig.tight_layout()
+    cornerfig.savefig(corn_file)
 
 
 ## -----------------------------------------------------------------------
