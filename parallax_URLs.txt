@@ -1,0 +1,6 @@
+# Parallax and proper motion fitting software
+https://github.com/walterfb/pmpar
+
+# astrometryfit
+https://github.com/adamdeller/astrometryfit
+
