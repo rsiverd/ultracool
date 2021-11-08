@@ -343,7 +343,7 @@ _ra_key, _de_key = centroid_colmap[centroid_method]
 cat_type = 'pcat'
 #cat_type = 'fcat'
 tgt_name = '2m0415'
-#tgt_name = '2m0729'
+tgt_name = '2m0729'
 #tgt_name = 'pso043'
 #tgt_name = 'ross458c'
 #tgt_name = 'ugps0722'
@@ -968,14 +968,15 @@ if _PERFORM_MCMC:
     sampler.reset()
 
     sys.stderr.write("Running full MCMC ... ")
-    niter = 4000
+    niter, thinned = 4000, 15
+    niter, thinned = 2000, 5
     pos, prob, state = sampler.run_mcmc(p0, niter)
     sys.stderr.write("done.\n")
 
     ra_chain, de_chain, pmra_chain, pmde_chain, prlx_chain = sampler.flatchain.T
 
     plabels = ['ra', 'de', 'pmra', 'pmde', 'prlx']
-    flat_samples = sampler.get_chain(discard=100, thin=15, flat=True)
+    flat_samples = sampler.get_chain(discard=100, thin=thinned, flat=True)
     #labels=plabels)
     tok = time.time()
     sys.stderr.write("Running MCMC took %.2f seconds.\n" % (tok-tik))
