@@ -343,8 +343,8 @@ _ra_key, _de_key = centroid_colmap[centroid_method]
 cat_type = 'pcat'
 #cat_type = 'fcat'
 tgt_name = '2m0415'
-tgt_name = '2m0729'
-tgt_name = 'pso043'
+#tgt_name = '2m0729'
+#tgt_name = 'pso043'
 #tgt_name = 'ross458c'
 #tgt_name = 'ugps0722'
 #tgt_name = 'wise0148'
@@ -999,6 +999,8 @@ if _PERFORM_MCMC:
     corner.corner(flat_samples, labels=plabels, fig=cornerfig,
             truths=iterpars)
     #cornerfig.tight_layout()
+    cornerfig.suptitle(plot_tag)
+    plt.draw()
     cornerfig.savefig(corn_file)
 
 
