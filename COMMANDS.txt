@@ -5,6 +5,10 @@ targ_list=( 2m0415 2m0729 pso043 ross458c ugps0722 wise0148 wise0410 wise0458 )
 targ_list+=( wise1217 wise1257 wise1405 wise1541 wise1738 wise1741 wise1804 )
 targ_list+=( wise1828 wise2056 )
 
+for thing in ${targ_list[*]}; do
+   ./13_multi_fit_attempt.py -t $thing
+done
+
 # ----------------------------------------------------------------------- 
 
 %run ./fetch_sha_data.py -t targets.txt -o ~/ucd_project/ucd_sha_data
@@ -592,6 +596,12 @@ ls process/*_ch2_pcat.pickle
 ## weighted!
 #./06_sextract_spitzer.sh --original -I ../ucd_sha_data -O ../wei_scat_orig --START -r --rmswei
 #./06_sextract_spitzer.sh --cosclean -I ../ucd_sha_data -O ../wei_scat_ccln --START -r --rmswei
+
+# ----------------------------------------------------------------------- 
+# ----------------------------------------------------------------------- 
+# ----------------------------------------------------------------------- 
+
+
 
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
