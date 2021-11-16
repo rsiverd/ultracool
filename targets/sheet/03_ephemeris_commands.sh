@@ -1,11 +1,11 @@
 #!/bin/bash
 #
-# This script produces a set of commands that should download Spitzer data
-# for all the 'everything' objects into a custom directory.
+# Build a script to retrieve SST ephemerides for all targets with Spitzer
+# data.
 #
 # Rob Siverd
-# Created:      2021-11-04
-# Last updated: 2021-11-04
+# Created:      2021-11-16
+# Last updated: 2021-11-16
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -80,28 +80,27 @@ fi
 ##==========================================================================##
 ##--------------------------------------------------------------------------##
 
-cmds_list_fwd="get_everything_fwd.sh"
-cmds_list_rev="get_everything_rev.sh"
-cmds_list_rdm="get_everything_rdm.sh"
-targets_dir="everything"
-[ -d $targets_dir ] || PauseAbort "Can't find directory: $targets_dir"
+cmds_list_fwd="z3_get_ephems_fwd.sh"
+cmds_list_rev="z3_get_ephems_rev.sh"
+cmds_list_rdm="z3_get_ephems_rdm.sh"
 
-#targets_path=$(readlink -f $targets_dir)
-
-targets_path="~/ucd_project/ultracool/targets/sheet/everything"
 storage_path="~/ucd_project/ucd_targets/everything"
-cmde "mkdir -p $storage_path" || exit $?
+storage_path="/net/krang.accre.vanderbilt.edu/fs0/rjs_data/ucd_project/ucd_targets/everything"
+#cmde "ls $storage_path"
+#[ -d $storage_path ] || PauseAbort "Can't find directory: $storage_path"
 
+short_names=( $(ls $storage_path | grep -v z_metadata) )
+ntargets=${#short_names[*]}
+echo "ntargets: $ntargets"
 
-## Make commands list:
 rm $foo 2>/dev/null
-short_names=( $(ls $targets_dir | sed 's/\.txt$//') )
 for sname in ${short_names[*]}; do
    echo "sname: $sname"
-   fetch_cmd="./fetch_sha_data.py -t ${targets_path}/${sname}.txt"
-   fetch_cmd+=" -o ${storage_path}/${sname}"
-   #echo "echo $fetch_cmd" >> $foo
-   echo $fetch_cmd >> $foo
+   eph_file="sst_eph_${sname}.csv"
+   targ_dir="${storage_path}/$sname"
+   fetch_cmd="./01_get_SST_ephemeris.py -W -I ${targ_dir}/"
+   fetch_cmd+=" -o ${targ_dir}/${eph_file}"
+   echo "$fetch_cmd" >> $foo
 done
 
 ## Save commands list:
@@ -112,17 +111,17 @@ cmde "mv -f   $foo   $cmds_list_fwd" || exit $?
 ##--------------------------------------------------------------------------##
 ## Clean up:
 #[ -d $tmp_dir ] && [ -O $tmp_dir ] && rm -rf $tmp_dir
-[ -f $foo ] && rm -f $foo
-[ -f $bar ] && rm -f $bar
-[ -f $baz ] && rm -f $baz
-[ -f $qux ] && rm -f $qux
+#[ -f $foo ] && rm -f $foo
+#[ -f $bar ] && rm -f $bar
+#[ -f $baz ] && rm -f $baz
+#[ -f $qux ] && rm -f $qux
 exit 0
 
 ######################################################################
-# CHANGELOG (02_download_commands.sh):
+# CHANGELOG (03_ephemeris_commands.sh):
 #---------------------------------------------------------------------
 #
-#  2021-11-04:
+#  2021-11-16:
 #     -- Increased script_version to 0.10.
-#     -- First created 02_download_commands.sh.
+#     -- First created 03_ephemeris_commands.sh.
 #
