@@ -1,0 +1,3 @@
+# source tarball for lacosmic:
+https://pypi.org/project/lacosmic/#files
+
