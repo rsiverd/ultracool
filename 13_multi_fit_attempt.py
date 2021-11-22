@@ -436,6 +436,7 @@ first_jdtdb = full_jdtdb_vector.min()
 
 j2000_epoch = astt.Time('2000-01-01T12:00:00', scale='tt', format='isot')
 j2000_epoch = astt.Time(first_jdtdb, scale='tdb', format='jd')
+j2000_epoch = astt.Time(mean_jdtdb, scale='tdb', format='jd')
 
 def fit_4par(data, debug=False):
     years = (data['jdtdb'] - j2000_epoch.tdb.jd) / 365.25
@@ -914,13 +915,18 @@ sys.stderr.write("new_mde_scatter: %10.5f\n" % new_mde_scatter)
 sys.stderr.write("%s\n" % halfdiv)
 
 ## Chi-square estimate:
-chi2 = af._calc_chi_square(bestpars)
+chi2_irls = af._calc_chi_square(bestpars)
 pts_used = np.sum(af.inliers)
-chi2_dof = chi2 / float(pts_used)
-chi2_dof_tru = chi2_dof / np.sqrt(2.)
-sys.stderr.write("total chi2 (hypot): %10.5f\n" % chi2)
-sys.stderr.write("chi2 / dof (hypot): %10.5f\n" % chi2_dof)
-sys.stderr.write("chi2 / dof (coord): %10.5f\n" % chi2_dof_tru)
+chi2_irls_dof = chi2_irls / float(2 * pts_used)
+#chi2_dof_tru = chi2_dof / np.sqrt(2.)
+chi2_message = "points used: %d\n" % pts_used
+chi2_message += "total chi2 (IRLS): %10.5f\n" % chi2_irls
+chi2_message += "chi2 / dof (IRLS): %10.5f\n" % chi2_irls_dof
+#chi2_message += "chi2 / dof (coord): %10.5f\n" % chi2_dof_tru
+#sys.stderr.write("total chi2 (hypot): %10.5f\n" % chi2)
+#sys.stderr.write("chi2 / dof (hypot): %10.5f\n" % chi2_dof)
+#sys.stderr.write("chi2 / dof (coord): %10.5f\n" % chi2_dof_tru)
+sys.stderr.write(chi2_message)
 sys.stderr.write("%s\n" % halfdiv)
 
 ### Re-fit with plx-savvy scatter:
@@ -958,8 +964,12 @@ def lnprob(params, rra, rde, rra_err, rde_err):
 ## Identify useful data points:
 use_rra = np.radians(use_dataset['dra'][af.inliers])
 use_rde = np.radians(use_dataset['dde'][af.inliers])
-use_rra_err = ra_rad_errs[af.inliers]
-use_rde_err = de_rad_errs[af.inliers]
+use_rra_err_raw = ra_rad_errs[af.inliers]
+use_rde_err_raw = de_rad_errs[af.inliers]
+use_rra_err_adj = af._use_RA_err[af.inliers]
+use_rde_err_adj = af._use_DE_err[af.inliers]
+use_rra_err = use_rra_err_adj
+use_rde_err = use_rde_err_adj
 
 arglist = (use_rra, use_rde, use_rra_err, use_rde_err)
 
@@ -990,13 +1000,22 @@ if _PERFORM_MCMC:
     #labels=plabels)
     tok = time.time()
     sys.stderr.write("Running MCMC took %.2f seconds.\n" % (tok-tik))
-    
-    prlx_chain_mas = 3.6e6 * np.degrees(prlx_chain)
-    
+
+    # best parameters from mcmc:
+    mcmcpars = np.array([np.median(x) for x in sampler.flatchain.T])
+
+    # chi^2 of best parameters:
+    chi2_mcmc = af._calc_chi_square(mcmcpars)
+    chi2_mcmc_dof = chi2_mcmc / float(2 * np.sum(af.inliers))
+    chi2_message += "total chi2 (MCMC): %10.5f\n" % chi2_mcmc
+    chi2_message += "chi2 / dof (MCMC): %10.5f\n" % chi2_mcmc_dof
+
+    # plot parallax posterior distribution in mas:
     cfig = plt.figure(22)
     cfig.clf()
     plxax = cfig.add_subplot(111)
     plxax.grid(True)
+    prlx_chain_mas = 3.6e6 * np.degrees(prlx_chain)
     plxax.hist(prlx_chain_mas, bins=50)
     plxax.set_xlabel("Parallax (mas)")
     cfig.tight_layout()
@@ -1004,13 +1023,14 @@ if _PERFORM_MCMC:
     save_plot = 'plots/plx_posterior_%s.png' % plot_tag
     cfig.savefig(save_plot) #, bbox='tight')
 
+    # create corner plot of MCMC results:
     corn_file = 'corner_plot_%s.pdf' % plot_tag
     cornerfig = plt.figure(31, figsize=(9,7))
     cornerfig.clf()
     corner.corner(flat_samples, labels=plabels, fig=cornerfig,
             truths=iterpars)
     #cornerfig.tight_layout()
-    cornerfig.suptitle(plot_tag)
+    cornerfig.suptitle("%s\n%s" % (plot_tag, chi2_message))
     plt.draw()
     cornerfig.savefig(corn_file)
 
