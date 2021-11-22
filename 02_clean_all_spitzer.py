@@ -427,7 +427,7 @@ ignored_cbcd_files = sorted(list(set(all_cbcd_files) - set(use_cbcd_files)))
 if context.delete_ignored:
     removed_last = False
     sys.stderr.write("%s\n" % fulldiv)
-    sys.stderr.write("Removing and extant outputs from 'ignore' list ...\n")
+    sys.stderr.write("Removing any extant outputs from 'ignore' list ...\n")
     total = len(ignored_cbcd_files)
     for ii,cbcd_path in enumerate(ignored_cbcd_files, 1):
         ipaths, opaths = io_paths_from_cbcd(cbcd_path)
