@@ -15,7 +15,7 @@
 #
 # Rob Siverd
 # Created:       2019-10-30
-# Last modified: 2021-04-21
+# Last modified: 2021-11-21
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 
 ## Python version-agnostic module reloading:
 try:
@@ -425,6 +425,7 @@ def io_paths_from_cbcd(cbcd_ipath):
 ## Reconstruct list of ignored images:
 ignored_cbcd_files = sorted(list(set(all_cbcd_files) - set(use_cbcd_files)))
 if context.delete_ignored:
+    removed_last = False
     sys.stderr.write("%s\n" % fulldiv)
     sys.stderr.write("Removing and extant outputs from 'ignore' list ...\n")
     total = len(ignored_cbcd_files)
