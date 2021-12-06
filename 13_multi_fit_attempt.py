@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2021-04-13
-# Last modified: 2021-11-08
+# Last modified: 2021-12-06
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.2.5"
+__version__ = "0.2.6"
 
 ## Python version-agnostic module reloading:
 try:
@@ -971,8 +971,27 @@ use_rde_err_adj = af._use_DE_err[af.inliers]
 use_rra_err = use_rra_err_adj
 use_rde_err = use_rde_err_adj
 
-arglist = (use_rra, use_rde, use_rra_err, use_rde_err)
+## A version of errors in mas (errors above INCLUDE cos(dec) already):
 
+
+## Save residuals and errors for external examination:
+save_residuals = True
+resids_dir = 'residuals'
+if save_residuals:
+    scaled_ra_resid, scaled_de_resid = af._calc_radec_residuals_sigma(bestpars)
+    scaled_ra_resid = scaled_ra_resid[af.inliers]
+    scaled_de_resid = scaled_de_resid[af.inliers]
+    if not os.path.isdir(resids_dir):
+        os.mkdir(resids_dir)
+    resids_file = '%s/resid_%s.csv' % (resids_dir, plot_tag)
+    with open(resids_file, 'w') as rf:
+        rf.write("scaled_ra_resid,scaled_de_resid\n")
+        for sradec in zip(scaled_ra_resid, scaled_de_resid):
+            rf.write("%.3f,%.3f\n" % sradec)
+
+sys.exit(0)
+
+arglist = (use_rra, use_rde, use_rra_err, use_rde_err)
 if _PERFORM_MCMC:
     tik = time.time()
     initial = iterpars.copy()
