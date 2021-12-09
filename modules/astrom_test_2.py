@@ -416,7 +416,7 @@ class AstFit(object):
         self._use_DE_err = self._DE_err / de_rweights
 
         # find minimum:
-        self.iresult = opti.fmin(self._calc_chi_square, params ,
+        self.iresult = opti.fmin(self._calc_chi_square, params,
                 xtol=1e-7, ftol=1e-7, full_output=True)
 
         sys.stderr.write("Found IRLS minimum:\n")
