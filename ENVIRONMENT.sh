@@ -22,3 +22,7 @@ new_pypath=$(echo "${module_dir}:${PYTHONPATH}" | sed 's/:$//')
 #echo "new_pypath: '$new_pypath'"
 export PYTHONPATH="$new_pypath"
 echo "PYTHONPATH updated."
+
+export NUMEXPR_MAX_THREADS=8
+echo "Using NUMEXPR_MAX_THREADS = $NUMEXPR_MAX_THREADS"
+
