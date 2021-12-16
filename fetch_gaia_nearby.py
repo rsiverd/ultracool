@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2019-09-05
-# Last modified: 2019-09-05
+# Last modified: 2021-12-16
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -219,6 +219,8 @@ if __name__ == '__main__':
     parser.add_argument('DE_deg', help='target RA in degrees', type=float)
     #parser.add_argument('-w', '--whatever', required=False, default=5.0,
     #        help='some option with default [def: %(default)s]', type=float)
+    parser.add_argument('--overwrite', required=False, default=False,
+            help='enable overwrite of existing output file')
     parser.add_argument('-o', '--output_file', required=True, default=None,
             help='output file for Gaia sources (CSV)', type=str)
     #parser.add_argument('remainder', help='other stuff', nargs='*')
@@ -248,6 +250,19 @@ if __name__ == '__main__':
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
+
+## Stop early in case of existing output unless --overwrite given:
+if not context.overwrite:
+    if os.path.isfile(context.output_file):
+        sys.stderr.write("Found existing output file:\n")
+        sys.stderr.write("--> %s\n" % context.output_file)
+        sys.stderr.write("Gaia data already retrieved!\n")
+        exit(0)
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
 ## Search cone setup:
 tgtcoo = coord.SkyCoord(ra=context.RA_deg, dec=context.DE_deg,
             unit=(uu.deg, uu.deg), frame='icrs')
