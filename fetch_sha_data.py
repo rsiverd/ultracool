@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2019-08-27
-# Last modified: 2021-11-03
+# Last modified: 2021-12-16
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.4.7"
+__version__ = "0.4.8"
 
 ## Python version-agnostic module reloading:
 try:
@@ -52,10 +52,10 @@ from zipfile import ZipFile
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
 ## Because obviously:
-#import warnings
-#if not sys.warnoptions:
-#    warnings.simplefilter("ignore", category=DeprecationWarning)
-#    warnings.simplefilter("ignore", category=UserWarning)
+import warnings
+if not sys.warnoptions:
+    warnings.simplefilter("ignore", category=DeprecationWarning)
+    warnings.simplefilter("ignore", category=UserWarning)
 #    warnings.simplefilter("ignore")
 #with warnings.catch_warnings():
 #    some_risky_activity()
@@ -144,6 +144,7 @@ degree_sign = u'\N{DEGREE SIGN}'
 ## Dividers:
 halfdiv = '-' * 40
 fulldiv = '-' * 80
+fequdiv = '=' * 80
 
 ##--------------------------------------------------------------------------##
 ## Catch interruption cleanly:
@@ -279,6 +280,9 @@ if not os.path.isfile(context.target_list):
     sys.exit(1)
 
 targets = cfr.load_coords(context.target_list)
+sys.stderr.write("\n%s\n" % fequdiv)
+sys.stderr.write("Loaded %d targets from file:\n" % len(targets))
+sys.stderr.write("--> %s\n" % context.target_list)
 
 ## Warn/abort if no targets:
 if not targets:
