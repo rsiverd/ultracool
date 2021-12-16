@@ -281,7 +281,7 @@ if not os.path.isfile(context.target_list):
 
 targets = cfr.load_coords(context.target_list)
 sys.stderr.write("\n%s\n" % fequdiv)
-sys.stderr.write("Loaded %d targets from file:\n" % len(targets))
+sys.stderr.write("Loaded %d target(s) from file:\n" % len(targets))
 sys.stderr.write("--> %s\n" % context.target_list)
 
 ## Warn/abort if no targets:
