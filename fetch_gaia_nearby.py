@@ -257,7 +257,7 @@ if not context.overwrite:
         sys.stderr.write("Found existing output file:\n")
         sys.stderr.write("--> %s\n" % context.output_file)
         sys.stderr.write("Gaia data already retrieved!\n")
-        exit(0)
+        sys.exit(0)
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
@@ -271,6 +271,7 @@ cone_radius = uu.Quantity(context.radius, uu.deg)
 ## Perform query:
 sys.stderr.write("Running query ... \n")
 tik  = time.time()
+Gaia.ROW_LIMIT = 0
 qobj = Gaia.cone_search_async(tgtcoo, cone_radius)
 hits = qobj.get_results()
 tok  = time.time()
