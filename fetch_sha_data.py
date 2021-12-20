@@ -373,6 +373,7 @@ tmp_zsave = 'temp.zip'
 wanted_instruments = ['I1', 'I2']
 wanted_image_types = ['_bcd.fits', '_cbcd.fits', '_cbunc.fits']
 full_frame_npixels = 256
+min_images_per_obj = 5      # skip objects with fewer images than this
 #data_storage_specs = {'bcd':'_bcd.fits', 'cbcd':'_cbcd.fits'}
 for nn,targ in enumerate(targets, 1):
     sys.stderr.write("%s\n" % fulldiv)
@@ -410,6 +411,11 @@ for nn,targ in enumerate(targets, 1):
     nfound  = len(keepers)
     sys.stderr.write("Found %d images to download around:\n%s\n"
             % (nfound, str(targ)))
+
+    # stop here if too few images found to be useful:
+    if (nfound < min_images_per_obj):
+        sys.stderr.write("Too few images to be useful ... skipping object!\n")
+        continue
 
     # optionally augment list of files to fetch:
     if context.fetch_list:
