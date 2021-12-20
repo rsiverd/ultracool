@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2019-08-27
-# Last modified: 2021-12-16
+# Last modified: 2021-12-19
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.4.8"
+__version__ = "0.5.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -372,6 +372,7 @@ max_objs = 0
 tmp_zsave = 'temp.zip'
 wanted_instruments = ['I1', 'I2']
 wanted_image_types = ['_bcd.fits', '_cbcd.fits', '_cbunc.fits']
+full_frame_npixels = 256
 #data_storage_specs = {'bcd':'_bcd.fits', 'cbcd':'_cbcd.fits'}
 for nn,targ in enumerate(targets, 1):
     sys.stderr.write("%s\n" % fulldiv)
@@ -399,12 +400,14 @@ for nn,targ in enumerate(targets, 1):
 
     # drop unavailable files:
     blocked = (hits['bcd_url'] == 'NONE')
-    keep = hits[~blocked]
+    keepers = hits[~blocked]
 
-    # select IRAC images:
-    chosen = np.array([x in wanted_instruments for x in keep['instr']])
-    images = keep[chosen]
-    nfound = len(images)
+    # select full-frame IRAC images:
+    is_irac = np.array([x in wanted_instruments for x in keepers['instr']])
+    keepers = keepers[is_irac]
+    keepers = keepers[keepers['naxis1'] == full_frame_npixels]  # full in X
+    keepers = keepers[keepers['naxis2'] == full_frame_npixels]  # full in Y
+    nfound  = len(keepers)
     sys.stderr.write("Found %d images to download around:\n%s\n"
             % (nfound, str(targ)))
 
@@ -412,13 +415,14 @@ for nn,targ in enumerate(targets, 1):
     if context.fetch_list:
         sys.stderr.write("Saving list of images to fetch ... ")
         with open(context.fetch_list, 'a') as fl:
-            for item in images['ibase']:
+            for item in keepers['ibase']:
                 fl.write("%s\n" % item)
         sys.stderr.write("done.\n")
 
     # retrieve everything:
+    sys.exit(0)
     n_retrieved = 0
-    for ii,item in enumerate(images, 1):
+    for ii,item in enumerate(keepers, 1):
         sys.stderr.write("\rFile %d of %d: %s ... "
                 % (ii, nfound, item['ibase']))
         if already_have_data(item, wanted_image_types, context.output_dir):
