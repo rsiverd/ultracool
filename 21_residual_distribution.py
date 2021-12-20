@@ -308,6 +308,13 @@ def argnear(vec, val):
 ## Configuration:
 resid_dir = 'residuals'
 resid_dir = 'residuals_100'
+dsections = resid_dir.split('_')
+
+kvalue = 1.34
+kvalue = 2.00
+kvalue = float(dsections[1]) / 100.
+cutoff = 1.00
+partxt = 'k = %.2f  |  cutoff = %.2f' % (kvalue, cutoff)
 
 ## Get list of CSV files with scaled residuals:
 csv_files = glob.glob('%s/resid_*pcat.csv' % resid_dir)
@@ -483,10 +490,6 @@ def overplot_gaussians(ax):
     #ax.plot(xvals, ndist_20, c='g', label=r'$\sigma=2.0$')
 
 
-kvalue = 1.34
-kvalue = 2.00
-cutoff = 1.00
-partxt = 'k = %.2f  |  cutoff = %.2f' % (kvalue, cutoff)
 fig.suptitle(partxt)
 
 hopts = {'range':(-6, 6), 'bins':34}

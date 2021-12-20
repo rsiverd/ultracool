@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2021-04-13
-# Last modified: 2021-12-06
+# Last modified: 2021-12-13
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.2.6"
+__version__ = "0.3.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -79,7 +79,8 @@ _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 import astrom_test_2
 reload(astrom_test_2)
 at2 = astrom_test_2
-af = at2.AstFit()
+af = at2.AstFit()   # used for target
+afn = at2.AstFit()  # used for neighbors
 
 ## Cartesian rotations (testing):
 import fov_rotation
@@ -936,6 +937,59 @@ sys.stderr.write("%s\n" % halfdiv)
 #savvy_pars = af.fit_bestpars(sigcut=sigcut)
 
 ## -----------------------------------------------------------------------
+## -----------------         Select and Fit Neighbors       --------------
+## -----------------------------------------------------------------------
+
+have_tgt_ndata = len(tgt_both)          # total ch1+ch2 target data points
+min_nei_ndata  = 0.95 * have_tgt_ndata  # need 95% matched points
+
+nei_want = 10
+nei_ndata = {}
+use_nei_ids = []
+for nn in large_both:
+    nch1 = len(sdata['ch1'][nn])
+    nch2 = len(sdata['ch2'][nn])
+    ntot = nch1 + nch2
+    nei_ndata[nn] = ntot
+    if (ntot > min_nei_ndata):
+        use_nei_ids.append(nn)
+    if (len(use_nei_ids) >= nei_want):
+        break
+    pass
+
+
+## 5-paramteer IRLS fits to neighbors:
+sigcut = 5
+#af.setup(use_dataset)
+nei_both = {}
+nei_pars = {}
+irls_iters = 30
+for nid in use_nei_ids:
+    sys.stderr.write("%s\n" % fulldiv)
+    sys.stderr.write("Starting IRLS fit for %s ... \n" % nid)
+    _nboth = np.concatenate((sdata['ch1'][nid], sdata['ch2'][nid]))
+    nei_both[nid] = _nboth
+
+    #afn.setup(use_dataset, RA_err=ra_rad_errs, DE_err=de_rad_errs,
+    afn.setup(_nboth, 
+            jd_tdb_ref=j2000_epoch.tdb.jd)
+    bestpars = afn.fit_bestpars(sigcut=sigcut)
+    firstpars = bestpars.copy()
+    iterpars = afn.iter_update_bestpars(bestpars)
+    for i in range(irls_iters):
+        iterpars = afn.iter_update_bestpars(iterpars)
+    nei_pars[nid] = iterpars.copy()
+    ra_resid, de_resid = afn._calc_radec_residuals(iterpars)
+#bestpars = af.fit_bestpars(sigcut=sigcut)
+#firstpars = bestpars.copy()
+
+### Iterate a bunch to better solution:
+#iterpars = af.iter_update_bestpars(bestpars)
+#for i in range(30):
+#    iterpars = af.iter_update_bestpars(iterpars)
+#bestpars = iterpars
+
+## -----------------------------------------------------------------------
 ## -----------------         MCMC Attempt (emcee)           --------------
 ## -----------------------------------------------------------------------
 
@@ -971,8 +1025,13 @@ use_rde_err_adj = af._use_DE_err[af.inliers]
 use_rra_err = use_rra_err_adj
 use_rde_err = use_rde_err_adj
 
-## A version of errors in mas (errors above INCLUDE cos(dec) already):
-
+## Save a copy of best-fit parameters for posterity:
+par_save_file = 'results_params.txt'
+with open(par_save_file, 'a') as pf:
+    pf.write(plot_tag)
+    for vv in bestpars:
+        pf.write(" %15.8f" % vv)
+    pf.write("\n")
 
 ## Save residuals and errors for external examination:
 save_residuals = True
