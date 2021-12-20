@@ -390,7 +390,9 @@ class AstFit(object):
  
     # ----------------------------------------------------------------------- 
     def _calc_huber_rweights(self, residuals, sigma):
+        #_k_sig = 1.00 * sigma
         _k_sig = 1.34 * sigma
+        #_k_sig = 2.00 * sigma
         res_devs = np.abs(residuals / _k_sig)
         rweights = np.ones_like(res_devs)
         distants = (res_devs > 1.0)
