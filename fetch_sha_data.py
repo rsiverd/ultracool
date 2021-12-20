@@ -420,7 +420,6 @@ for nn,targ in enumerate(targets, 1):
         sys.stderr.write("done.\n")
 
     # retrieve everything:
-    sys.exit(0)
     n_retrieved = 0
     for ii,item in enumerate(keepers, 1):
         sys.stderr.write("\rFile %d of %d: %s ... "
