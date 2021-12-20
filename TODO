@@ -4,6 +4,7 @@
 
 * Calculate sensible uncertainties and include those in the catalogs from start
 
+* Giant residuals histogram
 
 * Report number of exposures used
 * Report number of epochs used
