@@ -24,87 +24,11 @@ except NameError:
         from imp import reload          # Python 3.0 - 3.3
 
 ## Modules:
-#import glob
 import os
 import sys
 import time
-#import vaex
-#import calendar
-#import ephem
 import numpy as np
-#from numpy.lib.recfunctions import append_fields
-#import datetime as dt
-#from dateutil import parser as dtp
-#import scipy.linalg as sla
-#import scipy.signal as ssig
-#import scipy.ndimage as ndi
-#import scipy.optimize as opti
-#import scipy.interpolate as stp
-#import scipy.spatial.distance as ssd
-#from functools import partial
-#from collections import OrderedDict
-#from collections.abc import Iterable
-#import multiprocessing as mp
-#np.set_printoptions(suppress=True, linewidth=160)
-#import pandas as pd
-#import statsmodels.api as sm
-#import statsmodels.formula.api as smf
-#from statsmodels.regression.quantile_regression import QuantReg
-#import PIL.Image as pli
-#import seaborn as sns
-#import cmocean
-#import theil_sen as ts
-#import window_filter as wf
-#import itertools as itt
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
-
-##--------------------------------------------------------------------------##
-
-## Home-brew robust statistics:
-#try:
-#    import robust_stats
-#    reload(robust_stats)
-#    rs = robust_stats
-#except ImportError:
-#    logger.error("module robust_stats not found!  Install and retry.")
-#    sys.stderr.write("\nError!  robust_stats module not found!\n"
-#           "Please install and try again ...\n\n")
-#    sys.exit(1)
-
-## Home-brew KDE:
-#try:
-#    import my_kde
-#    reload(my_kde)
-#    mk = my_kde
-#except ImportError:
-#    logger.error("module my_kde not found!  Install and retry.")
-#    sys.stderr.write("\nError!  my_kde module not found!\n"
-#           "Please install and try again ...\n\n")
-#    sys.exit(1)
-
-## Fast FITS I/O:
-#try:
-#    import fitsio
-#except ImportError:
-#    logger.error("fitsio module not found!  Install and retry.")
-#    sys.stderr.write("\nError: fitsio module not found!\n")
-#    sys.exit(1)
-
-## Various from astropy:
-#try:
-#    import astropy.io.ascii as aia
-#    import astropy.io.fits as pf
-#    import astropy.io.votable as av
-#    import astropy.table as apt
-#    import astropy.time as astt
-#    import astropy.wcs as awcs
-#    from astropy import constants as aconst
-#    from astropy import coordinates as coord
-#    from astropy import units as uu
-#except ImportError:
-#    logger.error("astropy module not found!  Install and retry.")
-#    sys.stderr.write("\nError: astropy module not found!\n")
-#    sys.exit(1)
 
 ##--------------------------------------------------------------------------##
 ##------------------    Spitzer Empirical Error Model       ----------------##
