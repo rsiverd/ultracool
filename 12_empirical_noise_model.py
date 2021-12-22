@@ -620,6 +620,10 @@ fittable_delta_de = binned_delta_de_mas
 #fittable_delta_ra = np.concatenate((binned_delta_ra_mas, binned_delta_de_mas))
 #fittable_delta_de = fittable_delta_ra
 
+## Spitzer noise model thoughts:
+## RONOISE = 7.5    / [ele] readout noise 
+## npixels =~ pi/4 * FWHM^2     # from solutions
+
 ## RMS model evaluator:
 def trialrms(star_counts, fwhm, noise_floor=0, eff_gain=1.00):
     star_ele = star_counts * eff_gain
