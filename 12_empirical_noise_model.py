@@ -518,6 +518,8 @@ every_instmag = kmag(every_counts)
 ## Binned values for plotting:
 imag_limits = {'IRAC1':(11.0, 18.0), 'IRAC2':(12.0, 19.0)}
 nbins = 14
+#imag_limits = {'IRAC1':(10.0, 18.0), 'IRAC2':(10.0, 19.0)}
+#nbins = 16
 #imag_lower = {'IRAC1':11.0, 'IRAC2':12.0}
 #imag_upper = {'IRAC1':18.0, 'IRAC2':19.0}
 imag_lower, imag_upper = imag_limits[context.instrument]
@@ -530,9 +532,15 @@ for ii in range(nbins):
     bmid = 0.5 * (b_lo + b_hi)
     which = (b_lo < every_instmag) & (every_instmag <= b_hi)
     #sys.stderr.write("b_lo, b_hi: %.2f, %.2f\n" % (b_lo, b_hi))
-    binned_imag.append(bmid)
+    avg_instmag = np.average(every_instmag[which])
+    #binned_imag.append(bmid)
+    binned_imag.append(avg_instmag)
+    sys.stderr.write("mid=%.3f, avg=%.3f\n" % (bmid, avg_instmag))
     binned_delta_ra_mas.append(np.median(every_ra_delta_mas[which]))
     binned_delta_de_mas.append(np.median(every_de_delta_mas[which]))
+
+sys.stderr.write("Press ENTER to continue ... ")
+asdf = input()
 
 binned_imag = np.array(binned_imag)
 binned_counts = kadu(binned_imag)
