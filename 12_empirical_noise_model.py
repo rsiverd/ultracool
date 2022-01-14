@@ -621,13 +621,17 @@ fittable_delta_de = binned_delta_de_mas
 #fittable_delta_de = fittable_delta_ra
 
 ## Spitzer noise model thoughts:
-## RONOISE = 7.5    / [ele] readout noise 
-## npixels =~ pi/4 * FWHM^2     # from solutions
+## --> RONOISE = 7.5    / [ele] readout noise 
+## --> npixels =~ pi/4 * FWHM^2     # from solutions
+## --> SEP appears to use a variable box size. The minimum number of pixels
+##  in a detection is 5 so read noise must contribute at least at this level.
 
 ## RMS model evaluator:
-def trialrms(star_counts, fwhm, noise_floor=0, eff_gain=1.00):
-    star_ele = star_counts * eff_gain
-    star_snr = np.sqrt(star_ele)
+def trialrms(star_counts, fwhm, noise_floor=0, eff_gain=1.00, 
+        bkg_ele=0.0, rdnoise_ele=7.5, npixels=5):
+    star_ele = star_counts * eff_gain       # signal
+    star_noi = np.sqrt(star_ele + npixels*bkg_ele + npixels*rdnoise_ele**2)
+    star_snr = star_ele / star_noi
     star_rms = fwhm / star_snr
     return np.sqrt(star_rms**2 + noise_floor**2)
 

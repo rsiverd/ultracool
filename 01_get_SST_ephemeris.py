@@ -279,6 +279,7 @@ else:
 sys.stderr.write("Identified %d '%s' FITS images.\n"
         % (len(all_cbcd_files), iflav))
 
+sys.exit(0)
 ## Retrieve FITS headers:
 if context.gather_headers:
     sys.stderr.write("Loading FITS headers for all files ... ")
