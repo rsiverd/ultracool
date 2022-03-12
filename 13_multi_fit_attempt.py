@@ -393,6 +393,20 @@ srcs_ch1 = set(sdata['ch1'].keys())
 srcs_ch2 = set(sdata['ch2'].keys())
 srcs_both = srcs_ch1.intersection(srcs_ch2)
 
+## Ensure presence of instrument keyword everywhere:
+sys.stderr.write("Ensuring presence of 'instrument' keyword ... \n")
+for sid,ss in sdata['ch1'].items():
+    if not ('instrument' in ss.dtype.names):
+        #sys.stderr.write("Adding IRAC1 to %s ...\n" % sid)
+        new_fields = [('instrument', ['IRAC1' for x in range(len(ss))])]
+        sdata['ch1'][sid] = add_recarray_columns(ss, new_fields)
+for sid,ss in sdata['ch2'].items():
+    if not ('instrument' in ss.dtype.names):
+        #sys.stderr.write("Adding IRAC2 to %s ...\n" % sid)
+        new_fields = [('instrument', ['IRAC2' for x in range(len(ss))])]
+        sdata['ch2'][sid] = add_recarray_columns(ss, new_fields)
+sys.stderr.write("Instrument keywords updated.\n")
+
 ##--------------------------------------------------------------------------##
 ## Count data points per set:
 npts_ch1 = {x:len(sdata['ch1'][x]) for x in sdata['ch1'].keys()}
@@ -705,8 +719,27 @@ uniq_imgs = len(set(use_dataset['iname']))
 total_pts = len(use_dataset)
 sys.stderr.write("Have %d data points and %d unique images.\n" 
         % (total_pts, uniq_imgs))
+
+## Dictionary-based occurrence counter:
+def count_occurrences(values):
+    hdict = {x:0 for x in values}
+    for x in values:
+        hdict[x] += 1
+    return hdict
+
+## Counts per image/JD:
+iname_hist = count_occurrences(use_dataset['iname'])
+jdtdb_hist = count_occurrences(use_dataset['jdtdb'])
+
 if (uniq_imgs != total_pts):
     sys.stderr.write("WARNING: non-unique images/timestamps!\n")
+    sys.stderr.write("Duplicates come from / have:\n")
+    dupe_iname = [x for x,n in iname_hist.items() if n>1]
+    dupe_jdtdb = [x for x,n in jdtdb_hist.items() if n>1]
+    dupe_index = np.nonzero(use_dataset['iname'] == dupe_iname[0])[0]
+    dupe_data  = use_dataset[use_dataset['iname'] == dupe_iname[0]]
+    sys.stderr.write("iname: %s\n" % str(dupe_iname))
+    sys.stderr.write("jdtdb: %s\n" % str(dupe_jdtdb))
     sys.stderr.write("Press ENTER to continue ... \n")
     derp = input()
 
@@ -940,6 +973,7 @@ sys.stderr.write("%s\n" % halfdiv)
 ## -----------------         Select and Fit Neighbors       --------------
 ## -----------------------------------------------------------------------
 
+
 have_tgt_ndata = len(tgt_both)          # total ch1+ch2 target data points
 min_nei_ndata  = 0.95 * have_tgt_ndata  # need 95% matched points
 
@@ -957,6 +991,22 @@ for nn in large_both:
         break
     pass
 
+## Residual examinatino:
+
+## Matching residual arrays:
+#targ_jdtdb = use_dataset['jdtdb']
+targ_jdtdb = use_dataset['jdtdb'][af.inliers]
+matched_ra_resvecs = {}
+
+def patched_matched_residuals(want_jds, have_jds, res):
+    matched_data = np.zeros_like(want_jds, dtype='float32')
+    jd2idx = {jj:vv for jj,vv in zip(want_jds, np.arange(len(want_jds)))}
+    #lut = {jj:vv for jj,vv in zip(have_jds, res)}
+    for jj,rr in zip(have_jds, res):
+        #sys.stderr.write("jj: %s, rr: %s\n" % (str(jj), str(rr)))
+        if jj in jd2idx.keys():
+            matched_data[jd2idx[jj]] = rr
+    return matched_data
 
 ## 5-paramteer IRLS fits to neighbors:
 sigcut = 5
@@ -964,11 +1014,27 @@ sigcut = 5
 nei_both = {}
 nei_pars = {}
 irls_iters = 30
-for nid in use_nei_ids:
+ra_resids = {}
+de_resids = {}
+#aligned_ra_resids = {}
+#aligned_de_resids = {}
+aligned_ra_resids = []
+aligned_de_resids = []
+
+## Fit neighbor astrometry:
+trend_resid_vecs = {}
+trend_meta = {}
+for ii,nid in enumerate(use_nei_ids):
     sys.stderr.write("%s\n" % fulldiv)
     sys.stderr.write("Starting IRLS fit for %s ... \n" % nid)
     _nboth = np.concatenate((sdata['ch1'][nid], sdata['ch2'][nid]))
+    #add_recarray_columns
     nei_both[nid] = _nboth
+
+    mdata = {'signal':np.median(_nboth['exptime']*_nboth['flux']),
+             'ra_deg':np.median(_nboth['dra']),
+             'de_deg':np.median(_nboth['dde'])}
+    trend_meta[nid] = mdata
 
     #afn.setup(use_dataset, RA_err=ra_rad_errs, DE_err=de_rad_errs,
     afn.setup(_nboth, 
@@ -980,6 +1046,218 @@ for nid in use_nei_ids:
         iterpars = afn.iter_update_bestpars(iterpars)
     nei_pars[nid] = iterpars.copy()
     ra_resid, de_resid = afn._calc_radec_residuals(iterpars)
+    ra_resids[nid] = ra_resid
+    de_resids[nid] = de_resid
+    trend_resid_vecs[nid] = pd.DataFrame({  'jdtdb':_nboth['jdtdb'],
+                                       'ra_resid':ra_resid,
+                                       'de_resid':de_resid    })
+    #aligned_ra_resids[nid] = patched_matched_residuals(targ_jdtdb, _nboth['jdtdb'], ra_resid)
+    #aligned_de_resids[nid] = patched_matched_residuals(targ_jdtdb, _nboth['jdtdb'], de_resid)
+    aligned_ra_resids.append(patched_matched_residuals(targ_jdtdb, _nboth['jdtdb'], ra_resid))
+    aligned_de_resids.append(patched_matched_residuals(targ_jdtdb, _nboth['jdtdb'], de_resid))
+
+#def detrend_using_subset(targ_jds, nei_both, ra_resids, de_resids, trend_stars):
+#    _aligned_ra_res = []
+#    _aligned_de_res = []
+#    for nid in trend_stars:
+#        _nboth = nei_both[nid]
+#        _ra_resid = ra_resids[nid]
+#        _de_resid = de_resids[nid]
+#        _aligned_ra_res.append(patched_matched_residuals(targ_jds, 
+#            nei_both[nid]['jdtdb'], ra_resids[nid]))
+#        _aligned_de_res.append(patched_matched_residuals(targ_jds,
+#            nei_both[nid]['jdtdb'], de_resids[nid]))
+
+
+tfa_results_file = 'tfa_results.csv'
+tfa_results_cols = ['name', 'ra_deg', 'de_deg', 'signal', 'ra_res', 'ra_tfa', 'de_res', 'de_tfa']
+
+## Check whether a header row is needed:
+def file_is_empty(filename):
+    if os.path.isfile(filename):
+        with open(filename, 'r') as f:
+            content = f.readlines()
+        if len(content) >= 1:
+            return False
+    return True
+
+## Stats file updater:
+def dump_to_file(stat_savefile, cols, data, delimiter=','):
+    if file_is_empty(stat_savefile):
+        sys.stderr.write("No stats file!\n")
+        with open(stat_savefile, 'w') as ff:
+            ff.write("%s\n" % delimiter.join(cols))
+    with open(stat_savefile, 'a') as ff:
+        ff.write("%s\n" % delimiter.join([str(x) for x in data]))
+
+# 
+for nid in trend_resid_vecs.keys():
+    sys.stderr.write("%s\n" % fulldiv)
+    sys.stderr.write("nid: %s\n" % nid)
+    others = [x for x in trend_resid_vecs.keys() if x != nid]
+    #sys.stderr.write("others: %s\n" % str(others))
+    sys.stderr.write("signal: %15.5f\n" % trend_meta[nid]['signal'])
+    _target = trend_resid_vecs[nid]
+    _trends = {k:trend_resid_vecs[k] for k in others}
+    _aligned_ra_res = []
+    _aligned_de_res = []
+    for trend,trdata in _trends.items():
+        _aligned_ra_res.append(patched_matched_residuals(_target['jdtdb'],
+                                         trdata['jdtdb'], trdata['ra_resid']))
+        _aligned_de_res.append(patched_matched_residuals(_target['jdtdb'],
+                                         trdata['jdtdb'], trdata['de_resid']))
+
+    save_things = [nid, trend_meta[nid]['ra_deg'], trend_meta[nid]['de_deg'],
+                        trend_meta[nid]['signal'], ]
+
+    # RA detrend:
+    _ra_dmat = np.array(_aligned_ra_res).T              # design matrix
+    _ra_nmat = np.dot(_ra_dmat.T, _ra_dmat)             # normal matrix
+    _ra_xtxi = np.linalg.inv(_ra_nmat)                  # X_transpose_X-inverse
+    _ra_prod = np.dot(_ra_dmat.T, _target['ra_resid'])  # X_transpose * Y
+    _ra_coef = np.dot(_ra_xtxi, _ra_prod)
+    _ra_filt = np.dot(_ra_dmat, _ra_coef)
+    _target['ra_detrend'] = _target['ra_resid'] - _ra_filt
+    #_, old_scatter = rs.calc_ls_med_IQR(_target['ra_resid']) * at2._MAS_PER_RADIAN
+    #_, new_scatter = rs.calc_ls_med_IQR(_target['ra_detrend']) * at2._MAS_PER_RADIAN
+    old_scatter = np.std(_target['ra_resid'])   * at2._MAS_PER_RADIAN
+    new_scatter = np.std(_target['ra_detrend']) * at2._MAS_PER_RADIAN
+    pct_improvement = 100. * (old_scatter - new_scatter) / old_scatter
+    sys.stderr.write("old RA scatter: %s\n" % old_scatter)
+    sys.stderr.write("new RA scatter: %s\n" % new_scatter)
+    sys.stderr.write("Improved by %6.1f%%\n" % pct_improvement)
+    save_things += [old_scatter, new_scatter]
+
+    # DE detrend:
+    _de_dmat = np.array(_aligned_de_res).T              # design matrix
+    _de_nmat = np.dot(_de_dmat.T, _de_dmat)             # normal matrix
+    _de_xtxi = np.linalg.inv(_de_nmat)                  # X_transpose_X-inverse
+    _de_prod = np.dot(_de_dmat.T, _target['de_resid'])  # X_transpose * Y
+    _de_coef = np.dot(_de_xtxi, _de_prod)
+    _de_filt = np.dot(_de_dmat, _de_coef)
+    _target['de_detrend'] = _target['de_resid'] - _de_filt
+    #_, old_scatter = rs.calc_ls_med_IQR(_target['de_resid'])
+    #_, new_scatter = rs.calc_ls_med_IQR(_target['de_detrend'])
+    #old_scatter, new_scatter = np.std(_target['de_resid']), np.std(_target['de_detrend'])
+    old_scatter = np.std(_target['de_resid'])   * at2._MAS_PER_RADIAN
+    new_scatter = np.std(_target['de_detrend']) * at2._MAS_PER_RADIAN
+    pct_improvement = 100. * (old_scatter - new_scatter) / old_scatter
+    sys.stderr.write("old DE scatter: %s\n" % old_scatter)
+    sys.stderr.write("new DE scatter: %s\n" % new_scatter)
+    sys.stderr.write("Improved by %6.1f%%\n" % pct_improvement)
+    save_things += [old_scatter, new_scatter]
+
+    # save it!
+    dump_to_file(tfa_results_file, tfa_results_cols, save_things)
+
+
+## Plot target and neighbor astrometry:
+sys.stderr.write("\n\nPlotting target residuals ... \n")
+nfig = plt.figure(66)
+nfig.clf()
+raax = nfig.add_subplot(211); raax.grid(True); raax.set_ylabel("RA residuals")
+deax = nfig.add_subplot(212); deax.grid(True); deax.set_ylabel("DE residuals")
+pkw = {'lw':0, 's':25}
+raax.scatter(targ_jdtdb, raw_res_ra[af.inliers], **pkw)
+deax.scatter(targ_jdtdb, raw_res_de[af.inliers], **pkw)
+fixed_ra_yshift = 10. * np.std(raw_res_ra)
+fixed_de_yshift = 10. * np.std(raw_res_de)
+sys.stderr.write("Adding neighbor residuals ... \n")
+for ii,nid in enumerate(use_nei_ids):
+    _nboth = nei_both[nid]
+    iterpars = nei_pars[nid]
+    ra_resid, de_resid = afn._calc_radec_residuals(iterpars)
+    ra_shift = (ii + 1) * fixed_ra_yshift
+    de_shift = (ii + 1) * fixed_de_yshift
+    #ra_resids.append(ra_resid)
+    #de_resids.append(de_resid)
+    #aligned_ra_resids.append(patched_matched_residuals(targ_jdtdb, _nboth['jdtdb'], ra_resid))
+    #aligned_de_resids.append(patched_matched_residuals(targ_jdtdb, _nboth['jdtdb'], de_resid))
+    raax.scatter(_nboth['jdtdb'], ra_resids[nid]+ra_shift, **pkw)
+    deax.scatter(_nboth['jdtdb'], de_resids[nid]+de_shift, **pkw)
+sys.stderr.write("Plotting complete.\n")
+nfig.tight_layout()
+
+#raax.scatter(use_dataset['jdtdb'], raw_res_ra + 0
+nfig.savefig('nei_residuals.png')
+
+## Median neighbor residual:
+#taligned_ra_resid = [aligned_ra_resids[nn] for nn in use_nei_ids]
+#taligned_de_resid = [aligned_de_resids[nn] for nn in use_nei_ids]
+#medalign_ra_resid = np.median(np.array(aligned_ra_resids), axis=0)
+#medalign_de_resid = np.median(np.array(aligned_de_resids), axis=0)
+
+# Does it match:
+#res_ratio_ra = raw_res_ra / medalign_ra_resid
+#res_ratio_de = raw_res_de / medalign_de_resid
+
+use_res_ra = raw_res_ra[af.inliers]
+use_res_de = raw_res_de[af.inliers]
+
+ra_dmat = np.array(aligned_ra_resids).T         # design matrix
+ra_nmat = np.dot(ra_dmat.T, ra_dmat)            # normal matrix
+ra_xtxi = np.linalg.inv(ra_nmat)                # X_transpose_X-inverse
+ra_prod = np.dot(ra_dmat.T, use_res_ra)         # X_transpose * Y
+ra_coef = np.dot(ra_xtxi, ra_prod)
+de_dmat = np.array(aligned_de_resids).T         # design matrix
+de_nmat = np.dot(de_dmat.T, de_dmat)            # normal matrix
+de_xtxi = np.linalg.inv(de_nmat)                # X_transpose_X-inverse
+de_prod = np.dot(de_dmat.T, use_res_de)         # X_transpose * Y
+de_coef = np.dot(de_xtxi, de_prod)
+
+## Filter:
+ra_filt = np.dot(ra_dmat, ra_coef)
+de_filt = np.dot(de_dmat, de_coef)
+
+## Single shot:
+#rckw = {'rcond':None} if (_have_np_vers >= 1.14) else {}
+#ra_soln = np.linalg.lstsq(ra_dmat, use_res_ra, **rckw)
+#de_soln = np.linalg.lstsq(de_dmat, use_res_de, **rckw)
+
+
+#res_ratio_de = raw_res_de / medalign_de_resid
+
+cln_res_ra = use_res_ra - ra_filt
+cln_res_de = use_res_de - de_filt
+
+## Target signal for comparison:
+targ_signal = np.median(use_dataset['exptime']*use_dataset['flux'])
+targ_ra_deg = np.median(use_dataset['dra'])
+targ_de_deg = np.median(use_dataset['dde'])
+sys.stderr.write("Target signal level: %15.5f\n" % targ_signal)
+
+## prepare data for dump:
+save_things = [plot_tag, targ_ra_deg, targ_de_deg, targ_signal]
+
+old_res = np.std(use_res_ra) * at2._MAS_PER_RADIAN
+new_res = np.std(cln_res_ra) * at2._MAS_PER_RADIAN
+pct_win = 100.0 * (old_res - new_res) / old_res
+sys.stderr.write("\n")
+sys.stderr.write("Old RA res: %10.4f\n" % old_res)
+sys.stderr.write("New RA res: %10.4f\n" % new_res)
+sys.stderr.write("Improvement: %6.1f%%\n" % pct_win)
+save_things += [old_res, new_res]
+
+old_res = np.std(use_res_de) * at2._MAS_PER_RADIAN
+new_res = np.std(cln_res_de) * at2._MAS_PER_RADIAN
+pct_win = 100.0 * (old_res - new_res) / old_res
+sys.stderr.write("\n")
+sys.stderr.write("Old DE res: %10.4f\n" % old_res)
+sys.stderr.write("Old DE res: %10.4f\n" % new_res)
+sys.stderr.write("Improvement: %6.1f%%\n" % pct_win)
+save_things += [old_res, new_res]
+
+
+dump_to_file(tfa_results_file, tfa_results_cols, save_things)
+
+sys.exit(0)
+
+plt.plot(use_res_ra)
+plt.plot(cln_res_ra)
+
+plt.plot(use_res_de)
+plt.plot(cln_res_de)
+
 #bestpars = af.fit_bestpars(sigcut=sigcut)
 #firstpars = bestpars.copy()
 

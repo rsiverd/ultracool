@@ -255,6 +255,10 @@ class AstFit(object):
         rsigs_DE = (self._DE_rad - model_DE) / self._use_DE_err
         return rsigs_RA, rsigs_DE
 
+    ## FIXME: the following implies that the sigma-based residuals
+    ## are in matched units of arcseconds (cos(dec) correction applied).
+    ## I don't think this is the case, meaning the residual calculation
+    ## will exhibit bad behavior at high Dec. EEEEK!
     def _calc_total_residuals_sigma(self, params):
         return np.hypot(*self._calc_radec_residuals_sigma(params))
 
