@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2021-08-30
-# Last modified: 2021-08-30
+# Last modified: 2022-03-11
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -85,15 +85,8 @@ class AstFit(object):
     _mas_per_rad   = _MAS_PER_RADIAN
 
     def __init__(self):
-        self._jd_tdb = None
-        self._dt_yrs = None
-        self.obs_eph = None
-        self.ref_tdb = None
-        self.inliers = None
-        self.rweight = None
-        self._is_set = False
         self._chiexp = 2
-        self._can_iterate = False
+        self._reset()
         return
 
     def set_exponent(self, exponent=2):
@@ -107,10 +100,31 @@ class AstFit(object):
         self._chiexp = exponent
         return
 
+    def _reset(self):
+        self._jd_tdb = None
+        self._dt_yrs = None
+        self.obs_eph = None
+        self.ref_tdb = None
+        self.inliers = None
+        self.rweight = None
+        self._is_set = False
+        self._is_rdy = False
+
+        # solver states:
+        self._can_iterate  = False
+        self._is_converged = False
+
+        # solutions:
+        self.full_result  = None
+        self.iresult      = None
+        self.iresult_prev = None
+        return
+
     #def setup(self, jd_tdb_ref, RA_deg, DE_deg, obs_eph, 
     def setup(self, data, reject_outliers=True,
             jd_tdb_ref=None, RA_err=None, DE_err=None):
-        self._is_rdy = False
+        #self._is_rdy = False
+        self._reset()
         if not all([isinstance(data[x], np.ndarray) \
                 for x in self._need_data_keys]):
             sys.stderr.write("Incomplete data set!\n") 
@@ -403,8 +417,17 @@ class AstFit(object):
         rweights[distants] = 1.0 / res_devs[distants]
         return rweights
 
+    # perform one more iteration of parameter updates:
     def iter_update_bestpars(self, params):
         """Perform an IRLS iteration."""
+
+        if not self._can_iterate:
+            sys.stderr.write("Iteration not possible, solve first!\n")
+            return None
+
+        if self._is_converged:
+            sys.stderr.write("Iteration has already converged!\n")
+            return self.iresult[0]
 
         # calculate residuals:
         rra_resid, rde_resid = self._calc_radec_residuals(params)
@@ -422,14 +445,31 @@ class AstFit(object):
         self._use_DE_err = self._DE_err / de_rweights
 
         # find minimum:
+        self.iresult_prev = self.iresult    # save previous result
         self.iresult = opti.fmin(self._calc_chi_square, params,
                 xtol=1e-7, ftol=1e-7, full_output=True)
 
         sys.stderr.write("Found IRLS minimum:\n")
         sys.stderr.write("==> %s\n" % str(self.nice_units(self.iresult[0])))
+
+        # check for convergence:
+        self._is_converged = self._convergence_check()
+
         self._can_iterate = True
         return self.iresult[0]
 
+    def _convergence_check(self):
+        if self.iresult_prev == None:
+            sys.stderr.write("First iteration, check skipped!\n")
+            return False
+        _params_match = np.all(self.iresult_prev[0] == self.iresult[0])
+        _others_match = (self.iresult_prev[1:] == self.iresult[1:])
+        #sys.stderr.write("_params_match: %s\n" % _params_match)
+        #sys.stderr.write("_others_match: %s\n" % _others_match)
+        return (_params_match and _others_match)
+
+    def is_converged(self):
+        return self._is_converged
 
     # ----------------------------------------------------------------------- 
     def nice_units(self, params):
