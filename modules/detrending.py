@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2022-03-10
-# Last modified: 2022-03-10
+# Last modified: 2022-03-15
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -39,7 +39,7 @@ import numpy as np
 #import scipy.optimize as opti
 #import scipy.interpolate as stp
 #import scipy.spatial.distance as ssd
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 #import matplotlib.patches as mpatches
 #import matplotlib.cm as cm
 #import matplotlib.ticker as mt
@@ -153,21 +153,56 @@ class CoordDetrending(object):
         return
 
     def _reset(self):
-        self._have_trends = False
         self._have_data   = False
-        self._time_vec    = None      # independent variable
-        self._raw_vals    = None      # data before detrending
-        self._cln_vals    = None      # data after detrending
+        self._time_vec    = None        # independent variable
+        self._raw_vals    = None        # data before detrending
+        self._cln_vals    = None        # data after detrending
+        self._reset_trends()
+        #self._reset_math()
         return
+
+    def _reset_trends(self):
+        #self._have_trends = False
+        self._trend_names = []
+        self._trend_times = []
+        self._trend_vals  = []
+        self._cln_vals    = None
+        self._reset_math()
+        return
+
+    def _reset_math(self):
+        # math stuff:
+        self._dmat        = None        # design matrix
+        self._nmat        = None        # normal matrix
+        self._xtxi        = None        # inverted normal (xTx)^-1
+        self._prod        = None        # xTxi dot vals
+        self._coef        = None        # fitted trend coefficients
+        self._filt        = None        # fitted residuals to subtract
+        return
+
+    # ---------------------------------------
+    # Data/trend getters and setters
+    # ---------------------------------------
+
 
     def set_data(self, times, values):
         if not self._vectors_are_okay(times, values):
-            sys.stderr.write("Failed to set data!\n")
+            sys.stderr.write("Mismatched times/values!\n")
             self._have_data = False
             return
         self._time_vec  = times.copy()
         self._vals_vec  = values.copy()
         self._have_data = True
+        return
+
+    def add_trend(self, name, times, values):
+        #self._reset_math()     # maybe wise
+        if not self._vectors_are_okay(times, values):
+            sys.stderr.write("Mismatched times/values!\n")
+            return
+        self._trend_names.append(name)
+        self._trend_times.append(times)
+        self._trend_vals.append(values)
         return
 
     @staticmethod
@@ -183,6 +218,16 @@ class CoordDetrending(object):
             return False
         return True
 
+    def get_cleaned(self):
+        if not self._cln_vals:
+            sys.stderr.write("No clean data available!\n")
+            sys.stderr.write("Try running detrend() first ...\n")
+            return None
+        return self._cln_vals
+
+    # ---------------------------------------
+    # Helpers for creating aligned arrays
+    # ---------------------------------------
 
     # Get list of corresponding indexes in pts2 for values in pts1:
     @staticmethod
@@ -225,41 +270,26 @@ class CoordDetrending(object):
         if not self._have_data:
             sys.stderr.write("No data provided!\n")
             return
-        if not self._have_trends:
+        if not self._trend_names:
             sys.stderr.write("No trends provided!\n")
             return
+        self._dmat = self._make_design_matrix()
+        self._nmat = np.dot(_dmat.T, _dmat)
+        self._xtxi = np.linalg.inv(_nmat)
+        self._prod = np.dot(_dmat.T, self._raw_vals)
+        self._coef = np.dot(_xtxi, _prod)
+        self._filt = np.dot(_dmat, _coef)
+        self._cln_vals = self._raw_vals - _filt
+        return
 
+    def _make_design_matrix(self):
+        _aligned = []
+        for tt,vv in zip(self._trend_times, self._trend_vals):
+            _aligned.append(
+                    self._patched_matched_values(self._time_vec, tt, vv))
+            pass
+        return _np.array(_aligned).T
 
-##--------------------------------------------------------------------------##
-## Quick ASCII I/O:
-#data_file = 'data.txt'
-#gftkw = {'encoding':None} if (_have_np_vers >= 1.14) else {}
-#gftkw.update({'names':True, 'autostrip':True})
-#gftkw.update({'delimiter':'|', 'comments':'%0%0%0%0'})
-#gftkw.update({'loose':True, 'invalid_raise':False})
-#all_data = np.genfromtxt(data_file, dtype=None, **gftkw)
-#all_data = np.atleast_1d(np.genfromtxt(data_file, dtype=None, **gftkw))
-#all_data = np.genfromtxt(fix_hashes(data_file), dtype=None, **gftkw)
-#all_data = aia.read(data_file)
-
-#pdkwargs = {'skipinitialspace':True, 'low_memory':False}
-#pdkwargs.update({'delim_whitespace':True, 'sep':'|', 'escapechar':'#'})
-#all_data = pd.read_csv(data_file)
-#all_data = pd.read_csv(data_file, **pdkwargs)
-#all_data = pd.read_table(data_file)
-#all_data = pd.read_table(data_file, **pdkwargs)
-#nskip, cnames = analyze_header(data_file)
-#all_data = pd.read_csv(data_file, names=cnames, skiprows=nskip, **pdkwargs)
-
-#all_data.rename(columns={'old_name':'new_name'}, inplace=True)
-#all_data.reset_index()
-#firstrow = all_data.iloc[0]
-#for ii,row in all_data.iterrows():
-#    pass
-
-#vot_file = 'neato.xml'
-#vot_data = av.parse_single_table(vot_file)
-#vot_data = av.parse_single_table(vot_file).to_table()
 
 ##--------------------------------------------------------------------------##
 
