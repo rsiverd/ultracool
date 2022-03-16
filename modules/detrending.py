@@ -148,7 +148,41 @@ def patched_matched_residuals(want_pts, have_pts, trvec_list):
 class CoordDetrending(object):
 
     def __init__(self):
+        #self._have_data = False
+        self._reset()
         return
+
+    def _reset(self):
+        self._have_trends = False
+        self._have_data   = False
+        self._time_vec    = None      # independent variable
+        self._raw_vals    = None      # data before detrending
+        self._cln_vals    = None      # data after detrending
+        return
+
+    def set_data(self, times, values):
+        if not self._vectors_are_okay(times, values):
+            sys.stderr.write("Failed to set data!\n")
+            self._have_data = False
+            return
+        self._time_vec  = times.copy()
+        self._vals_vec  = values.copy()
+        self._have_data = True
+        return
+
+    @staticmethod
+    def _vectors_are_okay(vec1, vec):
+        if not isinstance(vec1, np.ndarray):
+            sys.stderr.write("Vector 1 is not numpy array!\n")
+            return False
+        if not isinstance(vec2, np.ndarray):
+            sys.stderr.write("Vector 2 is not numpy array!\n")
+            return False
+        if (len(vec1) != len(vec2)):
+            sys.stderr.write("Vector sizes do not match!\n")
+            return False
+        return True
+
 
     # Get list of corresponding indexes in pts2 for values in pts1:
     @staticmethod
@@ -182,6 +216,19 @@ class CoordDetrending(object):
             mdata[mdidx,] = tv[tvidx,]
             matched_data.append(mdata)
         return matched_data
+
+    # ---------------------------------------
+    # Detrend by fitting and subtraction
+    # ---------------------------------------
+
+    def detrend(self):
+        if not self._have_data:
+            sys.stderr.write("No data provided!\n")
+            return
+        if not self._have_trends:
+            sys.stderr.write("No trends provided!\n")
+            return
+
 
 ##--------------------------------------------------------------------------##
 ## Quick ASCII I/O:
