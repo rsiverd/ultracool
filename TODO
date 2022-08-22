@@ -1,4 +1,11 @@
 
+* Add spacecraft orientation (X-position) specifically as a trend.
+
+* Check field star astrometric parameters against Gaia for accuracy
+--> (my_param - gaia_param) / my_error =~ Gaussian variance 1
+
+* Check whether systematics / noise change with exposure time
+
 * include zenith angle in extended catalog explicitly? Or should this be
       handled earlier in the process?
 

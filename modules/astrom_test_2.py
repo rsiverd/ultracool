@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2021-08-30
-# Last modified: 2022-03-11
+# Last modified: 2022-04-01
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 ## Modules:
 import os
@@ -84,10 +84,15 @@ class AstFit(object):
     _asec_per_rad  = _ARCSEC_PER_RADIAN
     _mas_per_rad   = _MAS_PER_RADIAN
 
-    def __init__(self):
+    def __init__(self, vlevel=1):
+        self._stream = sys.stderr
+        self._vlevel = vlevel
         self._chiexp = 2
         self._reset()
         return
+
+    def set_vlevel(self, vlevel):
+        self._vlevel = vlevel
 
     def set_exponent(self, exponent=2):
         """
@@ -257,9 +262,14 @@ class AstFit(object):
         #delta_de = self._dt_yrs * pmde - prlx * pfde
         return (rra + delta_ra, rde + delta_de)
 
-    def _calc_radec_residuals(self, params):
+    def _calc_radec_residuals(self, params, inliers=False):
         model_RA, model_DE = self._solver_eval(params)
-        return (self._RA_rad - model_RA, self._DE_rad - model_DE)
+        resid_RA = self._RA_rad - model_RA
+        resid_DE = self._DE_rad - model_DE
+        if inliers:
+            return resid_RA[self.inliers], resid_DE[self.inliers]
+        else:
+            return resid_RA, resid_DE
 
     def _calc_radec_residuals_sigma(self, params):
         model_RA, model_DE = self._solver_eval(params)
@@ -305,15 +315,15 @@ class AstFit(object):
         rra_resid, rde_resid = self._calc_radec_residuals(params)
         mar_ra_rad = calc_MAR(rra_resid)
         mar_ra_mas = _MAS_PER_RADIAN * mar_ra_rad
-        sys.stderr.write("mar_ra_rad: %f\n" % mar_ra_rad)
-        sys.stderr.write("mar_ra_mas: %f\n" % mar_ra_mas)
+        self._vlwrite("mar_ra_rad: %f\n" % mar_ra_rad, 2)
+        self._vlwrite("mar_ra_mas: %f\n" % mar_ra_mas, 2)
         pfra, pfde = self._calc_parallax_factors(
                 self._RA_rad, self._DE_rad, self.dataset['obs_x'],
                 self.dataset['obs_y'], self.dataset['obs_z'])
         #sys.stderr.write("pfra_arcsec: %s\n" % str(pfra_arcsec))
         #pfra_rad   = pfra_arcsec / _ARCSEC_PER_RADIAN
         adjustment_arcsec = ts.linefit(pfra, _ARCSEC_PER_RADIAN * rra_resid)
-        sys.stderr.write("adjustment (arcsec): %s\n" % str(adjustment_arcsec))
+        #sys.stderr.write("adjustment (arcsec): %s\n" % str(adjustment_arcsec))
         return adjustment_arcsec
 
     # Driver routine for 5-parameter astrometric fitting:
@@ -328,20 +338,20 @@ class AstFit(object):
         wguess = self.ts_fit_radec_pm(self._dt_yrs, self._RA_rad, self._DE_rad,
                 weighted=True)
         #sys.stderr.write("Initial guess: %s\n" % str(guess))
-        sys.stderr.write("Initial guess (unweighted):\n")
-        sys.stderr.write("==> %s\n" % str(self.nice_units(uguess)))
-        sys.stderr.write("\n")
-        sys.stderr.write("Initial guess (weighted):\n")
-        sys.stderr.write("==> %s\n" % str(self.nice_units(wguess)))
-        sys.stderr.write("\n")
+        if self._vlevel >= 2:
+            sys.stderr.write("Initial guess (unweighted):\n")
+            sys.stderr.write("==> %s\n" % str(self.nice_units(uguess)))
+            sys.stderr.write("\n")
+            sys.stderr.write("Initial guess (weighted):\n")
+            sys.stderr.write("==> %s\n" % str(self.nice_units(wguess)))
+            sys.stderr.write("\n")
         guess = uguess  # adopt unweighted for now
         #guess[4] = 1000. / _MAS_PER_RADIAN
 
         # initial crack at parallax and zero-point:
-        woohoo = self._calc_initial_parallax(guess)
-        sys.stderr.write("woohoo: %s\n" % str(woohoo))
-        self.woohoo = woohoo
-        ra_nudge_rad, plx_rad = woohoo / _ARCSEC_PER_RADIAN
+        self._plx0 = self._calc_initial_parallax(guess)
+        self._vlwrite("plx0: %s\n" % str(self._plx0), 2)
+        ra_nudge_rad, plx_rad = self._plx0 / _ARCSEC_PER_RADIAN
         guess[0] += ra_nudge_rad
         guess[4] = plx_rad
 
@@ -369,12 +379,12 @@ class AstFit(object):
         rsig_tot = self._calc_total_residuals_sigma(guess)
         #sys.stderr.write("rsig_tot:\n")
         #sys.stderr.write("%s\n" % str(rsig_tot))
-        sys.stderr.write("typical rsig_tot: %8.3f\n" % np.median(rsig_tot))
+        #sys.stderr.write("typical rsig_tot: %8.3f\n" % np.median(rsig_tot))
         #sys.stderr.write("rsig_tot: %s\n" % str(rsig_tot))
         self.inliers = (rsig_tot < sigcut)
         ndropped = self.inliers.size - np.sum(self.inliers)
-        sys.stderr.write("Dropped %d point(s) beyond %.2f-sigma.\n"
-                % (ndropped, sigcut))
+        message = "Dropped %d point(s) beyond %.2f-sigma.\n" % (ndropped, sigcut)
+        self._vlwrite(message, 2)
         #sys.stderr.write("ra_res: %s\n" % str(ra_res))
         #sys.stderr.write("de_res: %s\n" % str(de_res))
         #sys.stderr.write("ra_sig: %s\n" % str(ra_sig))
@@ -382,8 +392,9 @@ class AstFit(object):
  
 
         # find minimum:
+        spamming = True if self._vlevel >= 2 else False
         self.full_result = opti.fmin(self._calc_chi_square, guess, 
-                xtol=1e-7, ftol=1e-7, full_output=True)
+                xtol=1e-7, ftol=1e-7, full_output=True, disp=spamming)
                 #xtol=1e-9, ftol=1e-9, full_output=True)
         self.result = self.full_result[0]
 
@@ -446,8 +457,9 @@ class AstFit(object):
 
         # find minimum:
         self.iresult_prev = self.iresult    # save previous result
+        spamming = True if self._vlevel >= 2 else False
         self.iresult = opti.fmin(self._calc_chi_square, params,
-                xtol=1e-7, ftol=1e-7, full_output=True)
+                xtol=1e-7, ftol=1e-7, full_output=True, disp=spamming)
 
         sys.stderr.write("Found IRLS minimum:\n")
         sys.stderr.write("==> %s\n" % str(self.nice_units(self.iresult[0])))
@@ -472,6 +484,17 @@ class AstFit(object):
         return self._is_converged
 
     # ----------------------------------------------------------------------- 
+    # ------------------------------- #
+    #    Verbosity and Format Help    #
+    # ------------------------------- #
+
+    # vlevel-conscious messaging:
+    def _vlwrite(self, msgtxt, vlmin):
+        if (self._vlevel >= vlmin):
+            self._stream.write(msgtxt)
+        return
+
+
     def nice_units(self, params):
         result = np.degrees(params)
         result[2:5] *= 3.6e6                # into milliarcsec

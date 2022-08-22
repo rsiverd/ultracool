@@ -108,41 +108,41 @@ _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
 ##--------------------------------------------------------------------------##
 
-## Get list of corresponding indexes in pts2 for values in pts1:
-def makedex_dumb(pts1, pts2):
-    ## ASSUMES UNIQUE have_pts
-    lut = {x:i for x,i in zip(pts2, np.arange(len(pts2)))}
-    idxpairs = []
-    # iterate over pts1, identify correspondences:
-    for ii,xx in enumerate(pts1):
-        if xx in lut.keys():
-            idxpairs.append((ii, lut[xx]))
-    return idxpairs
-
-## Build single corresponding trend vector:
-def patched_matched_residuals(want_pts, have_pts, trvec):
-    lookup = {p:i for p,i in zip(want_pts, np.arange(len(want_pts)))}
-    matched_data = np.zeros_like(want_pts, dtype='float32')
-    for jj,rr in zip(have_pts, trdata):
-        #sys.stderr.write("jj: %s, rr: %s\n" % (str(jj), str(rr)))
-        if jj in lookup.keys():
-            matched_data[lookup[jj]] = rr
-    return matched_data
-
-## Build multiple corresponding trend vectos:
-def patched_matched_residuals(want_pts, have_pts, trvec_list):
-    pairs = makedex_dumb(want_pts, have_pts)
-    mdidx, tvidx = zip(*pairs)
-    matched_data = []
-    for tv in trvec_list:
-        mdata = np.zeros_like(want_pts, dtype='float32')
-        mdata[mdidx,] = tv[tvidx,]
-        matched_data.append(mdata)
-    return matched_data
+### Get list of corresponding indexes in pts2 for values in pts1:
+#def makedex_dumb(pts1, pts2):
+#    ## ASSUMES UNIQUE have_pts
+#    lut = {x:i for x,i in zip(pts2, np.arange(len(pts2)))}
+#    idxpairs = []
+#    # iterate over pts1, identify correspondences:
+#    for ii,xx in enumerate(pts1):
+#        if xx in lut.keys():
+#            idxpairs.append((ii, lut[xx]))
+#    return idxpairs
+#
+### Build single corresponding trend vector:
+#def patched_matched_residuals(want_pts, have_pts, trvec):
+#    lookup = {p:i for p,i in zip(want_pts, np.arange(len(want_pts)))}
+#    matched_data = np.zeros_like(want_pts, dtype='float32')
+#    for jj,rr in zip(have_pts, trvec):
+#        #sys.stderr.write("jj: %s, rr: %s\n" % (str(jj), str(rr)))
+#        if jj in lookup.keys():
+#            matched_data[lookup[jj]] = rr
+#    return matched_data
+#
+### Build multiple corresponding trend vectos:
+#def patched_matched_residuals(want_pts, have_pts, trvec_list):
+#    pairs = makedex_dumb(want_pts, have_pts)
+#    mdidx, tvidx = zip(*pairs)
+#    matched_data = []
+#    for tv in trvec_list:
+#        mdata = np.zeros_like(want_pts, dtype='float32')
+#        mdata[mdidx,] = tv[tvidx,]
+#        matched_data.append(mdata)
+#    return matched_data
 
 
 ##--------------------------------------------------------------------------##
-##------------------         Coordinate Detrending          ----------------##
+##------------------    Low-Level Coordinate Detrending     ----------------##
 ##--------------------------------------------------------------------------##
 
 class CoordDetrending(object):
@@ -151,6 +151,9 @@ class CoordDetrending(object):
         #self._have_data = False
         self._reset()
         return
+
+    def reset(self):
+        return self._reset()
 
     def _reset(self):
         self._have_data   = False
@@ -184,15 +187,17 @@ class CoordDetrending(object):
     # Data/trend getters and setters
     # ---------------------------------------
 
-
     def set_data(self, times, values):
         if not self._vectors_are_okay(times, values):
             sys.stderr.write("Mismatched times/values!\n")
             self._have_data = False
             return
         self._time_vec  = times.copy()
-        self._vals_vec  = values.copy()
+        self._raw_vals  = values.copy()
+        self._cln_vals  = None
         self._have_data = True
+        self._reset_trends()
+        #self._reset_math()
         return
 
     def add_trend(self, name, times, values):
@@ -206,7 +211,7 @@ class CoordDetrending(object):
         return
 
     @staticmethod
-    def _vectors_are_okay(vec1, vec):
+    def _vectors_are_okay(vec1, vec2):
         if not isinstance(vec1, np.ndarray):
             sys.stderr.write("Vector 1 is not numpy array!\n")
             return False
@@ -219,11 +224,18 @@ class CoordDetrending(object):
         return True
 
     def get_cleaned(self):
-        if not self._cln_vals:
+        if not isinstance(self._cln_vals, np.ndarray):
             sys.stderr.write("No clean data available!\n")
             sys.stderr.write("Try running detrend() first ...\n")
             return None
         return self._cln_vals
+
+    def get_results(self):
+        if not isinstance(self._cln_vals, np.ndarray):
+            sys.stderr.write("No clean data available!\n")
+            sys.stderr.write("Try running detrend() first ...\n")
+            return None
+        return self._time_vec, self._cln_vals
 
     # ---------------------------------------
     # Helpers for creating aligned arrays
@@ -242,16 +254,18 @@ class CoordDetrending(object):
         return idxpairs
 
     # Build single corresponding trend vector:
+    @staticmethod
     def _patched_matched_values(want_pts, have_pts, trvec):
         lookup = {p:i for p,i in zip(want_pts, np.arange(len(want_pts)))}
         matched_data = np.zeros_like(want_pts, dtype='float32')
-        for jj,rr in zip(have_pts, trdata):
+        for jj,rr in zip(have_pts, trvec):
             #sys.stderr.write("jj: %s, rr: %s\n" % (str(jj), str(rr)))
             if jj in lookup.keys():
                 matched_data[lookup[jj]] = rr
         return matched_data
 
     # Build multiple corresponding trend vectos:
+    @staticmethod
     def _patched_matched_values_multi(want_pts, have_pts, trvec_list):
         pairs = self._makedex_dumb(want_pts, have_pts)
         mdidx, tvidx = zip(*pairs)
@@ -274,12 +288,12 @@ class CoordDetrending(object):
             sys.stderr.write("No trends provided!\n")
             return
         self._dmat = self._make_design_matrix()
-        self._nmat = np.dot(_dmat.T, _dmat)
-        self._xtxi = np.linalg.inv(_nmat)
-        self._prod = np.dot(_dmat.T, self._raw_vals)
-        self._coef = np.dot(_xtxi, _prod)
-        self._filt = np.dot(_dmat, _coef)
-        self._cln_vals = self._raw_vals - _filt
+        self._nmat = np.dot(self._dmat.T, self._dmat)
+        self._xtxi = np.linalg.inv(self._nmat)
+        self._prod = np.dot(self._dmat.T, self._raw_vals)
+        self._coef = np.dot(self._xtxi, self._prod)
+        self._filt = np.dot(self._dmat, self._coef)
+        self._cln_vals = self._raw_vals - self._filt
         return
 
     def _make_design_matrix(self):
@@ -288,8 +302,129 @@ class CoordDetrending(object):
             _aligned.append(
                     self._patched_matched_values(self._time_vec, tt, vv))
             pass
-        return _np.array(_aligned).T
+        return np.array(_aligned).T
 
+
+##--------------------------------------------------------------------------##
+##------------------   Instrument-Aware Detrending Driver   ----------------##
+##--------------------------------------------------------------------------##
+
+class InstCooDetrend(object):
+
+    def __init__(self):
+        self._min_ipts = 5
+        self._reset()
+        return None
+
+    def reset(self):
+        return self._reset()
+
+    #def _reset(self):
+    #    self._insts = []
+    #    self._have_data = False
+
+    def _reset(self):
+        self._have_data   = False
+        self._inst_list   = []
+        self._cdtr_objs   = {}
+        #self._time_vec    = None        # independent variable
+        #self._raw_vals    = None        # data before detrending
+        #self._cln_vals    = None        # data after detrending
+        #self._reset_trends()
+        #self._reset_math()
+        return
+
+
+    # ---------------------------------------
+    # Data/trend getters and setters
+    # ---------------------------------------
+
+    def set_data(self, times, values, insts):
+        if not self._vectors_are_okay(times, values):
+            sys.stderr.write("Mismatched times/values!\n")
+            self._have_data = False
+            return
+        if not self._vectors_are_okay(times, insts):
+            sys.stderr.write("Mismatched times/values!\n")
+            self._have_data = False
+            return
+        # make instrument list and create detrender objects:
+        sys.stderr.write("Checking instruments ... ")
+        self._inst_list = np.unique(insts)
+        sys.stderr.write("found %d: %s\n"
+                % (len(self._inst_list), str(self._inst_list)))
+        sys.stderr.write("Setting up detrenders ... ")
+        self._cdtr_objs = {ii:CoordDetrending() for ii in self._inst_list}
+        sys.stderr.write("done.\n")
+
+        # dole out initial data among detrenders:
+        npoints = len(times)
+        for ii in self._inst_list:
+            which = (insts == ii)
+            ninst = np.sum(which)
+            sys.stderr.write("Instrument %s <-- %d of %d data points.\n"
+                    % (ii, ninst, npoints))
+            self._cdtr_objs[ii].set_data(times[which], values[which])
+        self._have_data = True
+        #self._reset_trends()
+        #self._reset_math()
+        return
+
+    def add_trend(self, name, times, values, insts):
+        #self._reset_math()     # maybe wise
+        if not self._vectors_are_okay(times, values):
+            sys.stderr.write("Mismatched times/values in trend %s!\n" % name)
+            return
+        if not self._vectors_are_okay(times, insts):
+            sys.stderr.write("Mismatched times/insts in trend %s!\n" % name)
+            return
+        npoints = len(times)
+        for ii in self._inst_list:
+            which = (insts == ii)
+            ninst = np.sum(which)
+            sys.stderr.write("Instrument %s <-- %d of %d data points (%s).\n"
+                    % (ii, ninst, npoints, name))
+            if (ninst < self._min_ipts):
+                sys.stderr.write("Too few points not yet handled!\n")
+                raise
+            self._cdtr_objs[ii].add_trend(name, times[which], values[which])
+        #self._trend_names.append(name)
+        #self._trend_times.append(times)
+        #self._trend_vals.append(values)
+        return
+
+    def detrend(self):
+        for ii in self._inst_list:
+            sys.stderr.write("Detrending %s ... " % ii)
+            self._cdtr_objs[ii].detrend()
+            sys.stderr.write("done.\n")
+        return
+
+    def get_results(self):
+        _tparts = []
+        _cparts = []
+        _iparts = []
+        for ii in self._inst_list:
+            tt, cc = self._cdtr_objs[ii].get_results()
+            _tparts.append(tt)
+            _cparts.append(cc)
+            _iparts.append([ii for x in tt])
+        return (np.concatenate(_tparts), 
+                np.concatenate(_cparts),
+                np.concatenate(_iparts))
+
+    @staticmethod
+    def _vectors_are_okay(vec1, vec2):
+        if not isinstance(vec1, np.ndarray):
+            sys.stderr.write("Vector 1 is not numpy array!\n")
+            return False
+        if not isinstance(vec2, np.ndarray):
+            sys.stderr.write("Vector 2 is not numpy array!\n")
+            return False
+        if (len(vec1) != len(vec2)):
+            sys.stderr.write("Vector sizes do not match!\n")
+            return False
+        return True
 
 ##--------------------------------------------------------------------------##
 

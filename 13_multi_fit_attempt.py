@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2021-04-13
-# Last modified: 2021-12-13
+# Last modified: 2022-04-01
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 ## Python version-agnostic module reloading:
 try:
@@ -93,6 +93,11 @@ import spitz_error_model
 reload(spitz_error_model)
 sem = spitz_error_model.SpitzErrorModel()
 
+## Detrending facility:
+import detrending
+reload(detrending)
+
+
 ## MCMC sampler:
 import emcee
 import corner
@@ -149,12 +154,12 @@ except ImportError:
 #    sys.exit(1)
 
 ## Fast FITS I/O:
-#try:
-#    import fitsio
-#except ImportError:
-#    logger.error("fitsio module not found!  Install and retry.")
-#    sys.stderr.write("\nError: fitsio module not found!\n")
-#    sys.exit(1)
+try:
+    import fitsio
+except ImportError:
+    logger.error("fitsio module not found!  Install and retry.")
+    sys.stderr.write("\nError: fitsio module not found!\n")
+    sys.exit(1)
 
 ## Various from astropy:
 try:
@@ -323,6 +328,7 @@ if __name__ == '__main__':
     context.vlevel = 99 if context.debug else (context.verbose-context.quiet)
     context.prog_name = prog_name
 
+
 ##--------------------------------------------------------------------------##
 
 ##--------------------------------------------------------------------------##
@@ -331,18 +337,21 @@ if __name__ == '__main__':
 
 ## RA/DE coordinate keys for various methods:
 centroid_colmap = {
-        'simple'    :   ('dra', 'dde'),
-        'window'    :   ('wdra', 'wdde'),
-        'pp_fix'    :   ('ppdra', 'ppdde'),
+        'simple'    :   (  'dra',   'dde',   'x',   'y'),
+        'window'    :   ( 'wdra',  'wdde',  'wx',  'wy'),
+        'pp_fix'    :   ('ppdra', 'ppdde', 'ppx', 'ppy'),
         }
 
 centroid_method = 'simple'
 #centroid_method = 'window'
 #centroid_method = 'pp_fix'
-_ra_key, _de_key = centroid_colmap[centroid_method]
+_ra_key, _de_key, _xx_key, _yy_key = centroid_colmap[centroid_method]
 
 
 ##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
 ## Input data files:
 cat_type = 'pcat'
 #cat_type = 'fcat'
@@ -374,6 +383,50 @@ pkl_files = {'ch1':ch1_file, 'ch2':ch2_file}
 
 plot_tag = '%s_%s_%s' % (centroid_method, tgt_name, cat_type)
 
+##--------------------------------------------------------------------------##
+
+def get_cdmat_terms(filename):
+    hdata = fitsio.read_header(filename)
+    cdmat = (hdata['CD1_1'], hdata['CD1_2'], hdata['CD2_1'], hdata['CD2_2'])
+    return cdmat
+    #imwcs = awcs.WCS(hdata)
+    #return cdmat, imwcs
+
+##--------------------------------------------------------------------------##
+## FIXME: CD matrix loading:
+cbcd_list_dir = '/home/siverdrj/ucd_project/ucd_targets/cbcd_lists'
+cbcd_listing  = '%s/cbcd_files_%s.txt' % (cbcd_list_dir, tgt_name)
+if not os.path.isfile(cbcd_listing):
+    sys.stderr.write("\nProblem: cbcd_listing not found:\n")
+    sys.stderr.write("--> %s\n\n" % cbcd_listing)
+    sys.exit(1)
+
+## Load list of CBCD paths:
+with open(cbcd_listing, 'r') as ff:
+    full_cbcd_paths = [x.rstrip() for x in ff.readlines()]
+
+## Create lookup table from base names:
+cbcd_path_lookup = {}
+for ipath in full_cbcd_paths:
+    cbcd_path_lookup[os.path.basename(ipath)] = ipath
+
+## CD matrix parameter lookup:
+tik = time.time()
+sys.stderr.write("Loading CD matrices ... ")
+cdmat_lookup = {}
+cdinv_lookup = {}
+imwcs_lookup = {}
+for ibase,ipath in cbcd_path_lookup.items():
+    cd_matrix = get_cdmat_terms(ipath)
+    invmatrix = np.linalg.inv(np.array(cd_matrix).reshape(2, 2))
+    cdmat_lookup[ibase] = cd_matrix
+    cdinv_lookup[ibase] = invmatrix
+    #cdmat_lookup[ibase], imwcs_lookup[ibase] = get_cdmat_terms(ipath)
+tok = time.time()
+sys.stderr.write("done. Took %.3f seconds.\n" % (tok-tik))
+
+##--------------------------------------------------------------------------##
+
 ## Load parameters file:
 par_file = 'targets/%s.par' % tgt_name
 if not os.path.isfile(par_file):
@@ -388,6 +441,10 @@ for tag,filename in pkl_files.items():
     with open(filename, 'rb') as pp:
         tdata[tag], sdata[tag], gdata[tag] = pickle.load(pp)
 
+## Note instruments:
+instrument_list = list(sdata.keys())
+combined_srcids = list(set([ss for x in instrument_list for ss in sdata[x].keys()]))
+
 ## Collect sources:
 srcs_ch1 = set(sdata['ch1'].keys())
 srcs_ch2 = set(sdata['ch2'].keys())
@@ -395,17 +452,87 @@ srcs_both = srcs_ch1.intersection(srcs_ch2)
 
 ## Ensure presence of instrument keyword everywhere:
 sys.stderr.write("Ensuring presence of 'instrument' keyword ... \n")
-for sid,ss in sdata['ch1'].items():
-    if not ('instrument' in ss.dtype.names):
-        #sys.stderr.write("Adding IRAC1 to %s ...\n" % sid)
-        new_fields = [('instrument', ['IRAC1' for x in range(len(ss))])]
-        sdata['ch1'][sid] = add_recarray_columns(ss, new_fields)
-for sid,ss in sdata['ch2'].items():
-    if not ('instrument' in ss.dtype.names):
-        #sys.stderr.write("Adding IRAC2 to %s ...\n" % sid)
-        new_fields = [('instrument', ['IRAC2' for x in range(len(ss))])]
-        sdata['ch2'][sid] = add_recarray_columns(ss, new_fields)
+#for sid,ss in sdata['ch1'].items():
+#    if not ('instrument' in ss.dtype.names):
+#        #sys.stderr.write("Adding IRAC1 to %s ...\n" % sid)
+#        new_fields = [('instrument', ['IRAC1' for x in range(len(ss))])]
+#        sdata['ch1'][sid] = add_recarray_columns(ss, new_fields)
+#for sid,ss in sdata['ch2'].items():
+#    if not ('instrument' in ss.dtype.names):
+#        #sys.stderr.write("Adding IRAC2 to %s ...\n" % sid)
+#        new_fields = [('instrument', ['IRAC2' for x in range(len(ss))])]
+#        sdata['ch2'][sid] = add_recarray_columns(ss, new_fields)
+for inst in instrument_list:
+    for sid,ss in sdata[inst].items():
+        if not ('instrument' in ss.dtype.names):
+            #sys.stderr.write("Adding IRAC2 to %s ...\n" % sid)
+            #new_fields = [('instrument', ['IRAC2' for x in range(len(ss))])]
+            new_fields = [('instrument', [inst for x in range(len(ss))])]
+            new_fields = [('instrument', len(ss)*[inst])]
+            sdata[inst][sid] = add_recarray_columns(ss, new_fields)
+
 sys.stderr.write("Instrument keywords updated.\n")
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
+def make_subpix_vector(pos, zeropt=0.0):
+    sppos = (pos - zeropt) % 1.0
+    sppos[sppos > 0.5] -= 1.0
+    return sppos
+
+def make_subpix_radec(sp_x, sp_y, cdmat):
+    cd11, cd12, cd21, cd22 = cdmat
+    sp_ra = (cd11 * sp_x) + (cd12 * sp_y)
+    sp_de = (cd21 * sp_x) + (cd22 * sp_y)
+    return sp_ra, sp_de
+
+## Ensure presence of subpixel X,Y and RA/Dec projection:
+spzero = 0.0        # zero-point of adjustment
+spzero_x = 0.00
+spzero_y = 0.00
+sys.stderr.write("Ensuring presence of subpixel vectors ... \n")
+#for sid,ss in sdata['ch1'].items():
+#    if not ('subpix_ra' in ss.dtype.names):
+#        sp_x = make_subpix_vector(ss['x'], zeropt=spzero)
+#        sp_y = make_subpix_vector(ss['y'], zeropt=spzero)
+#        cd_m = [cdmat_lookup[x] for x in ss['iname']]
+#        sp_sky = [make_subpix_radec(sx, sy, cc) for (sx, sy, cc) in zip(sp_x, sp_y, cd_m)]
+#        sp_ra, sp_de = zip(*sp_sky)
+#        #sys.stderr.write("Adding IRAC1 to %s ...\n" % sid)
+#        new_fields = [('subpix_x', sp_x), ('subpix_y', sp_y),
+#                    ('subpix_ra', sp_ra), ('subpix_de', sp_de)]
+#        sdata['ch1'][sid] = add_recarray_columns(ss, new_fields)
+#for sid,ss in sdata['ch2'].items():
+#    if not ('subpix_ra' in ss.dtype.names):
+#        sp_x = make_subpix_vector(ss['x'], zeropt=spzero)
+#        sp_y = make_subpix_vector(ss['y'], zeropt=spzero)
+#        cd_m = [cdmat_lookup[x] for x in ss['iname']]
+#        sp_sky = [make_subpix_radec(sx, sy, cc) for (sx, sy, cc) in zip(sp_x, sp_y, cd_m)]
+#        sp_ra, sp_de = zip(*sp_sky)
+#        #sys.stderr.write("Adding IRAC2 to %s ...\n" % sid)
+#        new_fields = [('subpix_x', sp_x), ('subpix_y', sp_y),
+#                    ('subpix_ra', sp_ra), ('subpix_de', sp_de)]
+#        sdata['ch2'][sid] = add_recarray_columns(ss, new_fields)
+
+for inst in instrument_list:
+    for sid,ss in sdata[inst].items():
+        if not ('subpix_ra' in ss.dtype.names):
+            #sp_x = make_subpix_vector(ss['x'], zeropt=spzero)
+            #sp_y = make_subpix_vector(ss['y'], zeropt=spzero)
+            #sp_x = make_subpix_vector(ss['x'], zeropt=spzero_x)
+            #sp_y = make_subpix_vector(ss['y'], zeropt=spzero_y)
+            sp_x = make_subpix_vector(ss[_xx_key], zeropt=spzero_x)
+            sp_y = make_subpix_vector(ss[_yy_key], zeropt=spzero_y)
+            cd_m = [cdmat_lookup[x] for x in ss['iname']]
+            sp_sky = [make_subpix_radec(sx, sy, cc) for (sx, sy, cc) in zip(sp_x, sp_y, cd_m)]
+            sp_ra, sp_de = zip(*sp_sky)
+            #sys.stderr.write("Adding IRAC2 to %s ...\n" % sid)
+            new_fields = [('subpix_x', sp_x), ('subpix_y', sp_y),
+                        ('subpix_ra', sp_ra), ('subpix_de', sp_de)]
+            sdata[inst][sid] = add_recarray_columns(ss, new_fields)
+
+sys.stderr.write("Sub-pixel positions added/updated.\n")
 
 ##--------------------------------------------------------------------------##
 ## Count data points per set:
@@ -423,15 +550,43 @@ min_pts_2 = nmax_ch2 // 2
 large_ch1 = [ss for ss,nn in npts_ch1.items() if nn>min_pts_1]
 large_ch2 = [ss for ss,nn in npts_ch2.items() if nn>min_pts_2]
 
+## Identify 'large' sources (those with data from >half of frames)
+#source_npts = {}
+minpts_inst = {}
+large_srcid = {}
+for inst in instrument_list:
+    srcs_npts = {x:len(sdata[inst][x]) for x in sdata[inst]}
+    srcs_nmax = max(srcs_npts.values())
+    npts_min  = srcs_nmax // 2
+    #source_npts[inst] = {x:len(sdata[inst][x]) for x in sdata[inst].keys()}
+    #source_nmax[inst] = max(source_npts[inst].values())
+    #minpts_inst[inst] = source_nmax[inst] // 2          # need >half to be 'large'
+    large_srcid[inst] = [ss for ss,nn in srcs_npts.items() if nn>npts_min]
+
+
+## Create iname <--> jdtdb lookup tables:
 every_ch1_iname = np.concatenate([sdata['ch1'][x]['iname'] for x in large_ch1])
 every_ch1_jdtdb = np.concatenate([sdata['ch1'][x]['jdtdb'] for x in large_ch1])
 every_ch2_iname = np.concatenate([sdata['ch2'][x]['iname'] for x in large_ch2])
 every_ch2_jdtdb = np.concatenate([sdata['ch2'][x]['jdtdb'] for x in large_ch2])
-
 im2jd_ch1 = dict(zip(every_ch1_iname, every_ch1_jdtdb))
 im2jd_ch2 = dict(zip(every_ch2_iname, every_ch2_jdtdb))
 jd2im_ch1 = dict(zip(every_ch1_jdtdb, every_ch1_iname))
 jd2im_ch2 = dict(zip(every_ch2_jdtdb, every_ch2_iname))
+
+## Create iname <--> jdtdb lookup tables (generalized):
+every_iname = {}
+every_jdtdb = {}
+im2jd_mapper = {}
+jd2im_mapper = {}
+large_inames = {}
+for inst in instrument_list:
+    every_iname[inst] = np.concatenate([sdata[inst][x]['iname'] for x in large_srcid[inst]])
+    every_jdtdb[inst] = np.concatenate([sdata[inst][x]['jdtdb'] for x in large_srcid[inst]])
+    im2jd_mapper[inst] = dict(zip(every_iname[inst], every_jdtdb[inst]))
+    jd2im_mapper[inst] = dict(zip(every_jdtdb[inst], every_iname[inst]))
+    large_inames[inst] = [jd2im_mapper[x] for x in sorted(jd2im_mapper.keys())]
+
 
 #large_ch1_inames = np.unique(every_ch1_iname)
 #large_ch2_inames = np.unique(every_ch2_iname)
@@ -442,6 +597,20 @@ large_ch2_inames = [jd2im_ch2[x] for x in sorted(jd2im_ch2.keys())]
 large_both = set(large_ch1).intersection(large_ch2)
 jd2im_both = {**jd2im_ch1, **jd2im_ch2}
 
+##--------------------------------------------------------------------------##
+## Gather summary data for each object:
+summary_sdata = {}
+
+for sid in combined_srcids:
+    npts = {x:len(sdata[x].get(sid, [])) for x in instrument_list}
+    ntot = sum(list(npts.values()))
+    summary_sdata[sid] = {'npts':npts, 'ntot':ntot}
+    #nch1 = len(sdata['ch1'][sid])
+    #nch2 = len(sdata['ch2'][sid])
+    #ntot = nch1 + nch2
+
+
+#sys.exit(0)
 ##--------------------------------------------------------------------------##
 
 ## The following should probably be weighted by errors in a future version:
@@ -484,6 +653,16 @@ def radec_plx_factors(RA_rad, DE_rad, X_au, Y_au, Z_au):
               +  Y_au * sinRA * sinDE \
               -  Z_au * cosDE
     return ra_factor, de_factor
+
+def calc_f2_statistic(chi2, nu):
+    """
+    Good solutions have (maybe):
+    Constant acceleration: F2 < 22
+    Variable acceleration: F2 < 25
+    """
+    f2stat = (chi2 / nu)**(1. / 3.) + (2. / (9. * nu)) - 1.0
+    f2stat *= np.sqrt(9. * nu / 2.0)
+    return f2stat
 
 #def theilsen_fit_5par(data):
 #    model = 
@@ -694,13 +873,40 @@ else:
 ## Add instrument tag if not already present:
 if not ('instrument' in tgt_ch1.dtype.names):
     sys.stderr.write("No 'instrument' column found for ch1, adding!\n")
-    new_fields = [('instrument', ['IRAC1' for x in range(len(tgt_ch1))])]
+    #new_fields = [('instrument', ['IRAC1' for x in range(len(tgt_ch1))])]
+    new_fields = [('instrument', ['ch1' for x in range(len(tgt_ch1))])]
     tgt_ch1 = add_recarray_columns(tgt_ch1, new_fields)
 if not ('instrument' in tgt_ch2.dtype.names):
     sys.stderr.write("No 'instrument' column found for ch2, adding!\n")
-    new_fields = [('instrument', ['IRAC2' for x in range(len(tgt_ch2))])]
+    #new_fields = [('instrument', ['IRAC2' for x in range(len(tgt_ch2))])]
+    new_fields = [('instrument', ['ch2' for x in range(len(tgt_ch2))])]
     tgt_ch2 = add_recarray_columns(tgt_ch2, new_fields)
 
+## Add subpixel x,y,RA,DE shifts:
+if not ('subpix_ra' in tgt_ch1.dtype.names):
+    sys.stderr.write("Adding subpixel data for target (ch1)\n")
+    #sp_x = make_subpix_vector(tgt_ch1['x'])
+    #sp_y = make_subpix_vector(tgt_ch1['y'])
+    sp_x = make_subpix_vector(tgt_ch1[_xx_key])
+    sp_y = make_subpix_vector(tgt_ch1[_yy_key])
+    cd_m = [cdmat_lookup[x] for x in tgt_ch1['iname']]
+    sp_sky = [make_subpix_radec(sx, sy, cc) for (sx, sy, cc) in zip(sp_x, sp_y, cd_m)]
+    sp_ra, sp_de = zip(*sp_sky)
+    new_fields = [('subpix_x', sp_x), ('subpix_y', sp_y),
+                ('subpix_ra', sp_ra), ('subpix_de', sp_de)]
+    tgt_ch1 = add_recarray_columns(tgt_ch1, new_fields)
+if not ('subpix_ra' in tgt_ch2.dtype.names):
+    sys.stderr.write("Adding subpixel data for target (ch2)\n")
+    #sp_x = make_subpix_vector(tgt_ch2['x'])
+    #sp_y = make_subpix_vector(tgt_ch2['y'])
+    sp_x = make_subpix_vector(tgt_ch2[_xx_key])
+    sp_y = make_subpix_vector(tgt_ch2[_yy_key])
+    cd_m = [cdmat_lookup[x] for x in tgt_ch2['iname']]
+    sp_sky = [make_subpix_radec(sx, sy, cc) for (sx, sy, cc) in zip(sp_x, sp_y, cd_m)]
+    sp_ra, sp_de = zip(*sp_sky)
+    new_fields = [('subpix_x', sp_x), ('subpix_y', sp_y),
+                ('subpix_ra', sp_ra), ('subpix_de', sp_de)]
+    tgt_ch2 = add_recarray_columns(tgt_ch2, new_fields)
 
 tgt_both = np.concatenate((tgt_ch1, tgt_ch2))
 ref_time = np.median(tgt_both['jdtdb'])
@@ -855,7 +1061,14 @@ firstpars = bestpars.copy()
 ## Iterate a bunch to better solution:
 iterpars = af.iter_update_bestpars(bestpars)
 for i in range(30):
+    sys.stderr.write("Iteration %d ...\n" % i)
+    #prevpars = iterpars
     iterpars = af.iter_update_bestpars(iterpars)
+    if af.is_converged():
+        sys.stderr.write("Converged!  Iteration: %d\n" % i)
+        break
+    #if np.all(prevpars == iterpars):
+    #    break
 bestpars = iterpars
 
 ## Best-fit parameters in sane units:
@@ -869,8 +1082,8 @@ raw_res_ra_mas = 3.6e6 * np.degrees(raw_res_ra) * use_cos_dec
 raw_res_de_mas = 3.6e6 * np.degrees(raw_res_de)
 
 ## Split by instrument:
-which_ch1 = (use_dataset['instrument'] == 'IRAC1')
-which_ch2 = (use_dataset['instrument'] == 'IRAC2')
+which_ch1 = (use_dataset['instrument'] == 'ch1') #'IRAC1')
+which_ch2 = (use_dataset['instrument'] == 'ch2') #'IRAC2')
 
 ## Medians for each:
 med_ra_res_ch1 = np.median(raw_res_ra_mas[which_ch1])
@@ -977,6 +1190,7 @@ sys.stderr.write("%s\n" % halfdiv)
 have_tgt_ndata = len(tgt_both)          # total ch1+ch2 target data points
 min_nei_ndata  = 0.95 * have_tgt_ndata  # need 95% matched points
 
+## Identify all sources meeting selection criteria:
 nei_want = 10
 nei_ndata = {}
 use_nei_ids = []
@@ -991,12 +1205,14 @@ for nn in large_both:
         break
     pass
 
+## Warn in case of 
+
 ## Residual examinatino:
 
 ## Matching residual arrays:
 #targ_jdtdb = use_dataset['jdtdb']
 targ_jdtdb = use_dataset['jdtdb'][af.inliers]
-matched_ra_resvecs = {}
+#matched_ra_resvecs = {}
 
 def patched_matched_residuals(want_jds, have_jds, res):
     matched_data = np.zeros_like(want_jds, dtype='float32')
@@ -1021,9 +1237,42 @@ de_resids = {}
 aligned_ra_resids = []
 aligned_de_resids = []
 
+aligned_ra_resids.append(use_dataset['subpix_ra'][af.inliers])  # start with subpixel stuff
+aligned_de_resids.append(use_dataset['subpix_de'][af.inliers])  # start with subpixel stuff
+
+
+use_res_ra = raw_res_ra[af.inliers]
+tgt_RADetrend = detrending.CoordDetrending()
+tgt_RADetrend.set_data(use_dataset['jdtdb'][af.inliers], use_res_ra) #raw_res_ra[af.inliers])
+tgt_RADetrend.add_trend('subpix_ra', use_dataset['jdtdb'][af.inliers],
+                                     use_dataset['subpix_ra'][af.inliers])
+
+use_res_de = raw_res_de[af.inliers]
+tgt_DEDetrend = detrending.CoordDetrending()
+tgt_DEDetrend.set_data(use_dataset['jdtdb'][af.inliers], use_res_de)
+tgt_DEDetrend.add_trend('subpix_de', use_dataset['jdtdb'][af.inliers],
+                                     use_dataset['subpix_de'][af.inliers])
+
+
+## instrument-savvy detrenders:
+which = af.inliers
+tgt_ICDRA = detrending.InstCooDetrend()
+tgt_ICDRA.set_data(use_dataset['jdtdb'][af.inliers], use_res_ra, use_dataset['instrument'][af.inliers])
+tgt_ICDRA.add_trend('subpix_ra', use_dataset['jdtdb'][af.inliers],
+                                 use_dataset['subpix_ra'][af.inliers],
+                                 use_dataset['instrument'][af.inliers])
+
+tgt_ICDDE = detrending.InstCooDetrend()
+tgt_ICDDE.set_data(use_dataset['jdtdb'][af.inliers], use_res_de, use_dataset['instrument'][af.inliers])
+tgt_ICDDE.add_trend('subpix_ra', use_dataset['jdtdb'][af.inliers],
+                                 use_dataset['subpix_de'][af.inliers],
+                                 use_dataset['instrument'][af.inliers])
+
+
 ## Fit neighbor astrometry:
 trend_resid_vecs = {}
 trend_meta = {}
+nei_solvers = {}
 for ii,nid in enumerate(use_nei_ids):
     sys.stderr.write("%s\n" % fulldiv)
     sys.stderr.write("Starting IRLS fit for %s ... \n" % nid)
@@ -1031,30 +1280,53 @@ for ii,nid in enumerate(use_nei_ids):
     #add_recarray_columns
     nei_both[nid] = _nboth
 
+    _nch1 = sdata['ch1'][nid]
+    _nch2 = sdata['ch2'][nid]
+    #signal_ch1 = np.median(sdata['ch1'][nid])
+    #signal_ch2 = np.median(sdata['ch2'][nid])
     mdata = {'signal':np.median(_nboth['exptime']*_nboth['flux']),
-             'ra_deg':np.median(_nboth['dra']),
-             'de_deg':np.median(_nboth['dde'])}
+             'ra_deg':np.median(_nboth[_ra_key]),
+             'de_deg':np.median(_nboth[_de_key]),
+             'signal_ch1':np.median(_nch1['exptime']*_nch1['flux']),
+             'signal_ch2':np.median(_nch2['exptime']*_nch2['flux']),
+             }
+             #'ra_deg':np.median(_nboth['dra']),
+             #'de_deg':np.median(_nboth['dde'])}
     trend_meta[nid] = mdata
 
     #afn.setup(use_dataset, RA_err=ra_rad_errs, DE_err=de_rad_errs,
+    afn = at2.AstFit()  # used for neighbors
     afn.setup(_nboth, 
             jd_tdb_ref=j2000_epoch.tdb.jd)
     bestpars = afn.fit_bestpars(sigcut=sigcut)
     firstpars = bestpars.copy()
     iterpars = afn.iter_update_bestpars(bestpars)
+    nei_solvers[nid] = afn
     for i in range(irls_iters):
         iterpars = afn.iter_update_bestpars(iterpars)
+        if afn.is_converged():
+            sys.stderr.write("Converged!  Iteration: %d\n" % i)
+            break
     nei_pars[nid] = iterpars.copy()
-    ra_resid, de_resid = afn._calc_radec_residuals(iterpars)
-    ra_resids[nid] = ra_resid
-    de_resids[nid] = de_resid
+    ra_resid, de_resid = afn._calc_radec_residuals(iterpars) #, inliers=True)
+    #ra_resid = ra_resid[afn.inliers]
+    #de_resid = de_resid[afn.inliers]
+    ra_resids[nid] = ra_resid #[afn.inliers]
+    de_resids[nid] = de_resid #[afn.inliers]
     trend_resid_vecs[nid] = pd.DataFrame({  'jdtdb':_nboth['jdtdb'],
                                        'ra_resid':ra_resid,
-                                       'de_resid':de_resid    })
+                                       'de_resid':de_resid,
+                                       #'instrument':_nboth['instrument'],
+                                       })
     #aligned_ra_resids[nid] = patched_matched_residuals(targ_jdtdb, _nboth['jdtdb'], ra_resid)
     #aligned_de_resids[nid] = patched_matched_residuals(targ_jdtdb, _nboth['jdtdb'], de_resid)
     aligned_ra_resids.append(patched_matched_residuals(targ_jdtdb, _nboth['jdtdb'], ra_resid))
     aligned_de_resids.append(patched_matched_residuals(targ_jdtdb, _nboth['jdtdb'], de_resid))
+    tgt_RADetrend.add_trend(nid, _nboth['jdtdb'], ra_resid)
+    tgt_DEDetrend.add_trend(nid, _nboth['jdtdb'], de_resid)
+
+    tgt_ICDRA.add_trend(nid, _nboth['jdtdb'], ra_resid, _nboth['instrument'])
+    tgt_ICDDE.add_trend(nid, _nboth['jdtdb'], de_resid, _nboth['instrument'])
 
 #def detrend_using_subset(targ_jds, nei_both, ra_resids, de_resids, trend_stars):
 #    _aligned_ra_res = []
@@ -1070,7 +1342,10 @@ for ii,nid in enumerate(use_nei_ids):
 
 
 tfa_results_file = 'tfa_results.csv'
-tfa_results_cols = ['name', 'ra_deg', 'de_deg', 'signal', 'ra_res', 'ra_tfa', 'de_res', 'de_tfa']
+tfa_results_cols = ['name', 'ra_deg', 'de_deg', 'signal', 'signal_ch1', 'signal_ch2',
+        'ra_res', 'ra_tfa', 'ra_res_ch1', 'ra_tfa_ch1', 'ra_res_ch2', 'ra_tfa_ch2',
+        'de_res', 'de_tfa', 'de_res_ch1', 'de_tfa_ch1', 'de_res_ch2', 'de_tfa_ch2',
+        ]
 
 ## Check whether a header row is needed:
 def file_is_empty(filename):
@@ -1090,7 +1365,12 @@ def dump_to_file(stat_savefile, cols, data, delimiter=','):
     with open(stat_savefile, 'a') as ff:
         ff.write("%s\n" % delimiter.join([str(x) for x in data]))
 
-# 
+## Detrend various neighbors:
+nei_RADetrend = detrending.CoordDetrending()
+nei_DEDetrend = detrending.CoordDetrending()
+nei_ICDRA = detrending.InstCooDetrend()
+nei_ICDDE = detrending.InstCooDetrend()
+
 for nid in trend_resid_vecs.keys():
     sys.stderr.write("%s\n" % fulldiv)
     sys.stderr.write("nid: %s\n" % nid)
@@ -1099,25 +1379,59 @@ for nid in trend_resid_vecs.keys():
     sys.stderr.write("signal: %15.5f\n" % trend_meta[nid]['signal'])
     _target = trend_resid_vecs[nid]
     _trends = {k:trend_resid_vecs[k] for k in others}
-    _aligned_ra_res = []
-    _aligned_de_res = []
+    #_aligned_ra_res = []
+    #_aligned_de_res = []
+    #_aligned_ra_res.append(nei_both[nid]['subpix_ra'])
+    #_aligned_de_res.append(nei_both[nid]['subpix_de'])
+    nei_RADetrend.reset()
+    nei_DEDetrend.reset()
+    nei_ICDRA.reset()
+    nei_ICDDE.reset()
+
+    nei_RADetrend.set_data(_target['jdtdb'].values, _target['ra_resid'].values)
+    nei_DEDetrend.set_data(_target['jdtdb'].values, _target['de_resid'].values)
+    nei_RADetrend.add_trend('subpix_ra', nei_both[nid]['jdtdb'], nei_both[nid]['subpix_ra'])
+    nei_DEDetrend.add_trend('subpix_de', nei_both[nid]['jdtdb'], nei_both[nid]['subpix_de'])
+    
+    _nei_inst = nei_both[nid]['instrument']
+    nei_ICDRA.set_data(_target['jdtdb'].values, _target['ra_resid'].values, _nei_inst)
+    nei_ICDDE.set_data(_target['jdtdb'].values, _target['de_resid'].values, _nei_inst)
+    nei_ICDRA.add_trend('subpix_ra', nei_both[nid]['jdtdb'], nei_both[nid]['subpix_ra'], _nei_inst)
+    nei_ICDDE.add_trend('subpix_de', nei_both[nid]['jdtdb'], nei_both[nid]['subpix_de'], _nei_inst)
     for trend,trdata in _trends.items():
-        _aligned_ra_res.append(patched_matched_residuals(_target['jdtdb'],
-                                         trdata['jdtdb'], trdata['ra_resid']))
-        _aligned_de_res.append(patched_matched_residuals(_target['jdtdb'],
-                                         trdata['jdtdb'], trdata['de_resid']))
+        #_aligned_ra_res.append(patched_matched_residuals(_target['jdtdb'],
+        #                                 trdata['jdtdb'], trdata['ra_resid']))
+        #_aligned_de_res.append(patched_matched_residuals(_target['jdtdb'],
+        #                                 trdata['jdtdb'], trdata['de_resid']))
+        nei_RADetrend.add_trend(trend, trdata['jdtdb'].values, trdata['ra_resid'].values)
+        nei_DEDetrend.add_trend(trend, trdata['jdtdb'].values, trdata['de_resid'].values)
+
+        _ntr_inst = nei_both[trend]['instrument']
+        nei_ICDRA.add_trend(trend, trdata['jdtdb'].values, trdata['ra_resid'].values, _ntr_inst)
+        nei_ICDDE.add_trend(trend, trdata['jdtdb'].values, trdata['de_resid'].values, _ntr_inst)
 
     save_things = [nid, trend_meta[nid]['ra_deg'], trend_meta[nid]['de_deg'],
-                        trend_meta[nid]['signal'], ]
+                        trend_meta[nid]['signal'],
+                        trend_meta[nid]['signal_ch1'],
+                        trend_meta[nid]['signal_ch2'],]
 
-    # RA detrend:
-    _ra_dmat = np.array(_aligned_ra_res).T              # design matrix
-    _ra_nmat = np.dot(_ra_dmat.T, _ra_dmat)             # normal matrix
-    _ra_xtxi = np.linalg.inv(_ra_nmat)                  # X_transpose_X-inverse
-    _ra_prod = np.dot(_ra_dmat.T, _target['ra_resid'])  # X_transpose * Y
-    _ra_coef = np.dot(_ra_xtxi, _ra_prod)
-    _ra_filt = np.dot(_ra_dmat, _ra_coef)
-    _target['ra_detrend'] = _target['ra_resid'] - _ra_filt
+    ## RA detrend:
+    #_ra_dmat = np.array(_aligned_ra_res).T              # design matrix
+    #_ra_nmat = np.dot(_ra_dmat.T, _ra_dmat)             # normal matrix
+    #_ra_xtxi = np.linalg.inv(_ra_nmat)                  # X_transpose_X-inverse
+    #_ra_prod = np.dot(_ra_dmat.T, _target['ra_resid'])  # X_transpose * Y
+    #_ra_coef = np.dot(_ra_xtxi, _ra_prod)
+    #_ra_filt = np.dot(_ra_dmat, _ra_coef)
+    #_target['ra_detrend'] = _target['ra_resid'] - _ra_filt
+
+    # Detrend via module, compare:
+    nei_RADetrend.detrend()
+    #herpderp = nei_RADetrend.get_cleaned()
+    _target['ra_detrend'] = nei_RADetrend.get_cleaned()
+    #sys.exit(0)
+    nei_ICDRA.detrend()
+    _tvec_ra, _target['ra_detrend'], _ivec_ra = nei_ICDRA.get_results()
+
     #_, old_scatter = rs.calc_ls_med_IQR(_target['ra_resid']) * at2._MAS_PER_RADIAN
     #_, new_scatter = rs.calc_ls_med_IQR(_target['ra_detrend']) * at2._MAS_PER_RADIAN
     old_scatter = np.std(_target['ra_resid'])   * at2._MAS_PER_RADIAN
@@ -1128,14 +1442,30 @@ for nid in trend_resid_vecs.keys():
     sys.stderr.write("Improved by %6.1f%%\n" % pct_improvement)
     save_things += [old_scatter, new_scatter]
 
-    # DE detrend:
-    _de_dmat = np.array(_aligned_de_res).T              # design matrix
-    _de_nmat = np.dot(_de_dmat.T, _de_dmat)             # normal matrix
-    _de_xtxi = np.linalg.inv(_de_nmat)                  # X_transpose_X-inverse
-    _de_prod = np.dot(_de_dmat.T, _target['de_resid'])  # X_transpose * Y
-    _de_coef = np.dot(_de_xtxi, _de_prod)
-    _de_filt = np.dot(_de_dmat, _de_coef)
-    _target['de_detrend'] = _target['de_resid'] - _de_filt
+    # Old vs. new RA scatter by instrument:
+    for itag in ('ch1', 'ch2'):
+        which = (_nei_inst == itag)
+        old_scatter = np.std(_target['ra_resid'][which])   * at2._MAS_PER_RADIAN
+        new_scatter = np.std(_target['ra_detrend'][which]) * at2._MAS_PER_RADIAN
+        save_things += [old_scatter, new_scatter]
+
+    ## DE detrend:
+    #_de_dmat = np.array(_aligned_de_res).T              # design matrix
+    #_de_nmat = np.dot(_de_dmat.T, _de_dmat)             # normal matrix
+    #_de_xtxi = np.linalg.inv(_de_nmat)                  # X_transpose_X-inverse
+    #_de_prod = np.dot(_de_dmat.T, _target['de_resid'])  # X_transpose * Y
+    #_de_coef = np.dot(_de_xtxi, _de_prod)
+    #_de_filt = np.dot(_de_dmat, _de_coef)
+    #_target['de_detrend'] = _target['de_resid'] - _de_filt
+
+    # Detrend via module, compare:
+    nei_DEDetrend.detrend()
+    #herpderp = nei_DEDetrend.get_cleaned()
+    _target['de_detrend'] = nei_DEDetrend.get_cleaned()
+    #sys.exit(0)
+    nei_ICDDE.detrend()
+    _tvec_de, _target['de_detrend'], _ivec_de = nei_ICDDE.get_results()
+
     #_, old_scatter = rs.calc_ls_med_IQR(_target['de_resid'])
     #_, new_scatter = rs.calc_ls_med_IQR(_target['de_detrend'])
     #old_scatter, new_scatter = np.std(_target['de_resid']), np.std(_target['de_detrend'])
@@ -1146,6 +1476,13 @@ for nid in trend_resid_vecs.keys():
     sys.stderr.write("new DE scatter: %s\n" % new_scatter)
     sys.stderr.write("Improved by %6.1f%%\n" % pct_improvement)
     save_things += [old_scatter, new_scatter]
+
+    # Old vs. new DE scatter by instrument:
+    for itag in ('ch1', 'ch2'):
+        which = (_nei_inst == itag)
+        old_scatter = np.std(_target['de_resid'][which])   * at2._MAS_PER_RADIAN
+        new_scatter = np.std(_target['de_detrend'][which]) * at2._MAS_PER_RADIAN
+        save_things += [old_scatter, new_scatter]
 
     # save it!
     dump_to_file(tfa_results_file, tfa_results_cols, save_things)
@@ -1191,8 +1528,8 @@ nfig.savefig('nei_residuals.png')
 #res_ratio_ra = raw_res_ra / medalign_ra_resid
 #res_ratio_de = raw_res_de / medalign_de_resid
 
-use_res_ra = raw_res_ra[af.inliers]
-use_res_de = raw_res_de[af.inliers]
+#use_res_ra = raw_res_ra[af.inliers]
+#use_res_de = raw_res_de[af.inliers]
 
 ra_dmat = np.array(aligned_ra_resids).T         # design matrix
 ra_nmat = np.dot(ra_dmat.T, ra_dmat)            # normal matrix
@@ -1220,14 +1557,49 @@ de_filt = np.dot(de_dmat, de_coef)
 cln_res_ra = use_res_ra - ra_filt
 cln_res_de = use_res_de - de_filt
 
+
+tgt_RADetrend.detrend()
+tgt_DEDetrend.detrend()
+cln_res_ra = tgt_RADetrend.get_cleaned()
+cln_res_de = tgt_DEDetrend.get_cleaned()
+
+
+tgt_ICDRA.detrend()
+tgt_ICDDE.detrend()
+tgt_tvec_ra, tgt_cln_res_ra, tgt_ivec_ra = tgt_ICDRA.get_results()
+tgt_tvec_de, tgt_cln_res_de, tgt_ivec_de = tgt_ICDDE.get_results()
+
+if not np.all(targ_jdtdb == tgt_tvec_ra):
+    sys.stderr.write("Time vectors misaligned!!\n")
+    sys.exit(1)
+
+cln_res_ra = tgt_cln_res_ra
+cln_res_de = tgt_cln_res_de
+
+tfa_chi2_ra = (cln_res_ra / af._use_RA_err[af.inliers])**2
+tfa_chi2_de = (cln_res_de / af._use_DE_err[af.inliers])**2
+tfa_chi2_tot = np.sum(np.hypot(tfa_chi2_ra, tfa_chi2_de))
+tfa_chi2_dof = tfa_chi2_tot / tfa_chi2_ra.size / 2.0
+sys.stderr.write("\nChi2 comparison:\n")
+sys.stderr.write("--> before TFA: %10.7f\n" % chi2_irls_dof)
+sys.stderr.write("-->  after TFA: %10.7f\n" % tfa_chi2_dof)
+
 ## Target signal for comparison:
-targ_signal = np.median(use_dataset['exptime']*use_dataset['flux'])
+signal_vals = (use_dataset['exptime'] * use_dataset['flux'])[af.inliers]
+targ_signal = np.median(signal_vals)
 targ_ra_deg = np.median(use_dataset['dra'])
 targ_de_deg = np.median(use_dataset['dde'])
 sys.stderr.write("Target signal level: %15.5f\n" % targ_signal)
+targ_instru = use_dataset['instrument'][af.inliers]
 
 ## prepare data for dump:
 save_things = [plot_tag, targ_ra_deg, targ_de_deg, targ_signal]
+
+## Add per-instrument target signal:
+for itag in ('ch1', 'ch2'):
+    which = (targ_instru == itag)
+    targ_signal = np.median(signal_vals[which])
+    save_things += [targ_signal]
 
 old_res = np.std(use_res_ra) * at2._MAS_PER_RADIAN
 new_res = np.std(cln_res_ra) * at2._MAS_PER_RADIAN
@@ -1238,6 +1610,13 @@ sys.stderr.write("New RA res: %10.4f\n" % new_res)
 sys.stderr.write("Improvement: %6.1f%%\n" % pct_win)
 save_things += [old_res, new_res]
 
+# Old vs. new RA scatter by instrument:
+for itag in ('ch1', 'ch2'):
+    which = (targ_instru == itag)
+    old_scatter = np.std(use_res_ra[which]) * at2._MAS_PER_RADIAN
+    new_scatter = np.std(cln_res_ra[which]) * at2._MAS_PER_RADIAN
+    save_things += [old_scatter, new_scatter]
+
 old_res = np.std(use_res_de) * at2._MAS_PER_RADIAN
 new_res = np.std(cln_res_de) * at2._MAS_PER_RADIAN
 pct_win = 100.0 * (old_res - new_res) / old_res
@@ -1247,8 +1626,34 @@ sys.stderr.write("Old DE res: %10.4f\n" % new_res)
 sys.stderr.write("Improvement: %6.1f%%\n" % pct_win)
 save_things += [old_res, new_res]
 
+# Old vs. new DE scatter by instrument:
+for itag in ('ch1', 'ch2'):
+    which = (targ_instru == itag)
+    old_scatter = np.std(use_res_de[which]) * at2._MAS_PER_RADIAN
+    new_scatter = np.std(cln_res_de[which]) * at2._MAS_PER_RADIAN
+    save_things += [old_scatter, new_scatter]
 
 dump_to_file(tfa_results_file, tfa_results_cols, save_things)
+
+## Convert RA/DE residuals into X,Y:
+#cd_m = [cdmat_lookup[x] for x in use_dataset['iname'][af.inliers]]
+cd_i = [cdinv_lookup[x] for x in use_dataset['iname'][af.inliers]]
+
+pix_res = []
+for cdi,resRA,resDE in zip(cd_i, cln_res_ra, cln_res_de):
+    coo = np.degrees(np.array((resRA, resDE)))
+    dxdy = np.dot(cdi, coo)
+    pix_res.append(dxdy)
+
+results = np.vstack(pix_res)
+xx_res, yy_res = results.T
+
+pix_dump_file = 'pixel_resid_%s.csv' % tgt_nam
+
+with open(pix_dump_file, 'w') as pf:
+    pf.write("xres,yres,inst\n")
+    for things in zip(xx_res, yy_res, targ_instru):
+        pf.write(','.join([str(x) for x in things]) + '\n')
 
 sys.exit(0)
 
@@ -1272,7 +1677,7 @@ plt.plot(cln_res_de)
 ## -----------------------------------------------------------------------
 
 _PERFORM_MCMC = False
-_PERFORM_MCMC = True
+#_PERFORM_MCMC = True
 
 def lnprior(params):
     #rra, rde, pmra, pmde, prlx = params
@@ -1294,14 +1699,19 @@ def lnprob(params, rra, rde, rra_err, rde_err):
     return lp + lnlike(params, rra, rde, rra_err, rde_err)
 
 ## Identify useful data points:
-use_rra = np.radians(use_dataset['dra'][af.inliers])
+_apply_tfa = True
+use_rra = np.radians(use_dataset['dra'][af.inliers]) 
 use_rde = np.radians(use_dataset['dde'][af.inliers])
+if _apply_tfa:
+    use_rra -= ra_filt
+    use_rde -= de_filt
+
 use_rra_err_raw = ra_rad_errs[af.inliers]
 use_rde_err_raw = de_rad_errs[af.inliers]
 use_rra_err_adj = af._use_RA_err[af.inliers]
 use_rde_err_adj = af._use_DE_err[af.inliers]
-use_rra_err = use_rra_err_adj
-use_rde_err = use_rde_err_adj
+use_rra_err = use_rra_err_adj * 0.9
+use_rde_err = use_rde_err_adj * 0.9
 
 ## Save a copy of best-fit parameters for posterity:
 par_save_file = 'results_params.txt'
@@ -1326,12 +1736,13 @@ if save_residuals:
         for sradec in zip(scaled_ra_resid, scaled_de_resid):
             rf.write("%.3f,%.3f\n" % sradec)
 
-sys.exit(0)
+#sys.exit(0)
 
 arglist = (use_rra, use_rde, use_rra_err, use_rde_err)
 if _PERFORM_MCMC:
     tik = time.time()
-    initial = iterpars.copy()
+    initial = af.iresult[0].copy()
+    #initial = iterpars.copy()
     ndim = len(initial)
     nwalkers = 32
     p0 = [np.array(initial) + 1e-6*initial*np.random.randn(5) \
@@ -1378,6 +1789,10 @@ if _PERFORM_MCMC:
     plt.draw()
     save_plot = 'plots/plx_posterior_%s.png' % plot_tag
     cfig.savefig(save_plot) #, bbox='tight')
+
+    # Note prlx percentiles:
+    plx025, plx975 = np.percentile(prlx_chain_mas, [2.5, 97.5])
+    plx95width = plx975 - plx025
 
     # create corner plot of MCMC results:
     corn_file = 'corner_plot_%s.pdf' % plot_tag
