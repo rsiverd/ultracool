@@ -55,7 +55,7 @@ try:
     import angle
     reload(angle)
 except ImportError:
-    logger.error("failed to import extended_catalog module!")
+    logger.error("failed to import angle module!")
     sys.exit(1)
 
 ## Easy Gaia source matching:
