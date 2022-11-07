@@ -20,3 +20,10 @@
 
 * Excess astrometric variability plot
 
+* Check histogram of 2m0415 position angles
+* Disable intra-pixel TFA term
+
+* ExtendedCatalog object should throw an error when loading a non-catalog from FITS.
+
+* Is there a linear Y scaling difference in the AKS poly?
+
