@@ -11,7 +11,7 @@
 #
 # Rob Siverd
 # Created:       2021-03-31
-# Last modified: 2021-08-24
+# Last modified: 2023-01-19
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 ## Python version-agnostic module reloading:
 try:
@@ -285,7 +285,7 @@ def compute_offset(match_list):
 ## Catalog object:
 ccc = ec.ExtendedCatalog()
 
-## Lists of coordinate keys:
+## Lists of coordinate keys to fix (if seen):
 _ra_keys = ['dra', 'wdra', 'ppdra', 'akra']
 _de_keys = ['dde', 'wdde', 'ppdde', 'akde']
 
@@ -313,9 +313,11 @@ for cfile in cat_files:
         goffset = compute_offset(match_list)
         fixed = stars.copy()
         for kk in _ra_keys:
-            fixed[kk] = fixed[kk] + goffset['gradelta']
+            if kk in fixed.dtype.names:
+                fixed[kk] = fixed[kk] + goffset['gradelta']
         for kk in _de_keys:
-            fixed[kk] = fixed[kk] + goffset['gdedelta']
+            if kk in fixed.dtype.names:
+                fixed[kk] = fixed[kk] + goffset['gdedelta']
         ccc.set_catalog(fixed)
     ccc._imeta['gmatches'] = nmatched
     ccc._imeta.update(goffset)
