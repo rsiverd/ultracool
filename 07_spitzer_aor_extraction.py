@@ -468,7 +468,7 @@ for aor_tag in unique_tags:
         nproc += 1
         sys.stderr.write("not found ... creating ...\n")
         spf.use_images(ipath=img_ipath, upath=unc_ipath)
-        result = spf.find_stars(context.sigthresh)
+        result = spf.find_stars(context.sigthresh, include_akp=True)
 
         ## FIXME: this just grabs the ephemeris from the header content
         ## of the first ExtendedCatalog produced. This should be obtained
@@ -476,7 +476,7 @@ for aor_tag in unique_tags:
         ## the need to pre-modify the image headers ...)
         eph_data = eee.eph_from_header(result.get_header())
 
-        result.set_ephem(eph_data)
+        result.set_ephem(eph_data)          # this puts ephem into CATALOG portion
         result.save_as_fits(cat_fpath, overwrite=True)
         nfound = len(result.get_catalog())
         frame_rfile = img_ipath + '.reg'
