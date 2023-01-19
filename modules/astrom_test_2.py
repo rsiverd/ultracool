@@ -127,7 +127,8 @@ class AstFit(object):
 
     #def setup(self, jd_tdb_ref, RA_deg, DE_deg, obs_eph, 
     def setup(self, data, reject_outliers=True,
-            jd_tdb_ref=None, RA_err=None, DE_err=None):
+            jd_tdb_ref=None, RA_err=None, DE_err=None,
+            ra_key='dra', de_key='dde'):
         #self._is_rdy = False
         self._reset()
         if not all([isinstance(data[x], np.ndarray) \
@@ -159,8 +160,10 @@ class AstFit(object):
         self._dt_yrs = (self.dataset['jdtdb'] - self.ref_tdb) / 365.25
         #self._RA_rad = np.radians(RA_deg)
         #self._DE_rad = np.radians(DE_deg)
-        self._RA_rad = np.radians(self.dataset['dra'])
-        self._DE_rad = np.radians(self.dataset['dde'])
+        #self._RA_rad = np.radians(self.dataset['dra'])
+        #self._DE_rad = np.radians(self.dataset['dde'])
+        self._RA_rad = np.radians(self.dataset[ra_key])
+        self._DE_rad = np.radians(self.dataset[de_key])
         #self._RA_med, self._RA_MAD = calc_ls_med_MAD(self._RA_rad)
         #self._DE_med, self._DE_MAD = calc_ls_med_MAD(self._DE_rad)
         #self._RA_MAD *= np.cos(self._DE_med)
