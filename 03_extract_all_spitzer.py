@@ -223,7 +223,7 @@ for ii,img_ipath in enumerate(img_files, 1):
     # perform extraction:
     nproc += 1
     spf.use_images(ipath=img_ipath, upath=unc_ipath)
-    result = spf.find_stars(context.sigthresh, do_akp=True)
+    result = spf.find_stars(context.sigthresh, include_akp=True)
     result.save_as_fits(cat_fpath, overwrite=True)
     if (ntodo > 0) and (nproc >= ntodo):
         break
