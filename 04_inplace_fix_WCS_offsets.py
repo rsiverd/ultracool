@@ -286,8 +286,8 @@ def compute_offset(match_list):
 ccc = ec.ExtendedCatalog()
 
 ## Lists of coordinate keys:
-_ra_keys = ['dra', 'wdra', 'ppdra']
-_de_keys = ['dde', 'wdde', 'ppdde']
+_ra_keys = ['dra', 'wdra', 'ppdra', 'akra']
+_de_keys = ['dde', 'wdde', 'ppdde', 'akde']
 
 ## Update files:
 for cfile in cat_files:
