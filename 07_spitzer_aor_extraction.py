@@ -253,11 +253,13 @@ sys.stderr.write("Listing %s frames ... " % context.imtype)
 #    img_list[imsuff] = sorted(glob.glob(os.path.join(context.
 #img_files = sorted(glob.glob(os.path.join(context.input_folder, im_wildpath)))
 
+## Ensure presence of input folder:
 if not os.path.isdir(context.input_folder):
     sys.stderr.write("error: folder not found:\n")
     sys.stderr.write("--> %s\n\n" % context.input_folder)
     sys.exit(1)
 
+## Look for files:
 if context.walk:
     img_files = sfh.get_files_walk(context.input_folder, flavor=context.imtype)
 else:
