@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2021-02-01
-# Last modified: 2021-08-24
+# Last modified: 2023-01-19
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 ## Python version-agnostic module reloading:
 try:
@@ -223,7 +223,7 @@ for ii,img_ipath in enumerate(img_files, 1):
     # perform extraction:
     nproc += 1
     spf.use_images(ipath=img_ipath, upath=unc_ipath)
-    result = spf.find_stars(context.sigthresh)
+    result = spf.find_stars(context.sigthresh, do_akp=True)
     result.save_as_fits(cat_fpath, overwrite=True)
     if (ntodo > 0) and (nproc >= ntodo):
         break
