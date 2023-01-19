@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2019-10-15
-# Last modified: 2021-02-16
+# Last modified: 2023-01-19
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.2.5"
+__version__ = "0.3.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -91,6 +91,15 @@ try:
     iracfix = spitz_pixphase.IRACFix()
 except ImportError:
     logger.error("failed to import spitz_pixphase module!")
+    sys.exit(1)
+
+## Adam Kraus polynomial routines:
+try:
+    import akspoly
+    reload(akspoly)
+    akp = akspoly.AKSPoly()
+except ImportError:
+    logger.error("failed to import akspoly module!")
     sys.exit(1)
 
 ##--------------------------------------------------------------------------##
@@ -196,19 +205,19 @@ class SpitzFind(object):
                 self._reset_uparams()
         return
 
-    # remove cosmic rays:
-    def remove_cosmics(self):
-        sys.stderr.write("Removing cosmic rays ... ")
-        lakw = {}
-        lakw.update(_lacos_defaults)
-        lakw['mask'] = self._imask
-        if self._have_err_image:
-            lakw['error'] = self._udata
-        self._cdata, self._cmask = lacosmic(self._idata, **lakw)
-        self._pse.img_data = self._cdata    # swap in 
-        #self._pse.set_image(self._cdata, _docopy=False)
-        sys.stderr.write("done.\n")
-        return
+    ## remove cosmic rays:
+    #def remove_cosmics(self):
+    #    sys.stderr.write("Removing cosmic rays ... ")
+    #    lakw = {}
+    #    lakw.update(_lacos_defaults)
+    #    lakw['mask'] = self._imask
+    #    if self._have_err_image:
+    #        lakw['error'] = self._udata
+    #    self._cdata, self._cmask = lacosmic(self._idata, **lakw)
+    #    self._pse.img_data = self._cdata    # swap in 
+    #    #self._pse.set_image(self._cdata, _docopy=False)
+    #    sys.stderr.write("done.\n")
+    #    return
 
     # confirm choices to prepare for PSE:
     #def confirm(self):
@@ -224,10 +233,48 @@ class SpitzFind(object):
         return rdata.astype('float32'), rhdrs.copy(strip=True)
 
     # ----------------------------------------
-    def find_stars(self, thresh, keepall=False, use_err_img=True):
+#    def _ak_dephase_dewarp(self, dataset, mission, aks_inst):
+#        x_dephase, y_dephase = akp.dephase(np.atleast_1d(dataset['x']),
+#                                        np.atleast_1d(dataset['y']), mission, aks_inst)
+#        x_dewarp, y_dewarp = akp.xform_xy(x_dephase, y_dephase, aks_inst)
+#        dataset = append_fields(dataset, ('xdp', 'ydp', 'xdw', 'ydw'),
+#                (x_dephase, y_dephase, x_dewarp, y_dewarp), usemask=False)
+#
+#        return True
+
+    def _akp_added_value(self, dataset):
+        channel  = self._ihdrs['CHNLNUM']        # SHA provides this in FITS header
+        jdtdb    = self._ihdrs['OBS_TIME']       # mid-exposure JDTDB, added to headers previously
+        mission  = akspoly.mission_from_jdtdb(jdtdb)
+        aks_inst = akspoly._chmap[channel]
+
+        # first update adds dephased and dewarped pixel coordinates
+        #success  = self._ak_dephase_dewarp(dataset, mission, aks_inst)
+        x_dephase, y_dephase = akp.dephase(np.atleast_1d(dataset['x']),
+                                        np.atleast_1d(dataset['y']), mission, aks_inst)
+        x_dewarp, y_dewarp = akp.xform_xy(x_dephase, y_dephase, aks_inst)
+        dataset = append_fields(dataset, ('xdp', 'ydp', 'xdw', 'ydw'),
+                (x_dephase, y_dephase, x_dewarp, y_dewarp), usemask=False)
+
+        # second update transforms to RA/DE using PA, CRVAL1, CRVAL2:
+        this_padeg = self._ihdrs['PA']
+        this_crv_1 = self._ihdrs['CRVAL1']
+        this_crv_2 = self._ihdrs['CRVAL2']
+        aks_ra, aks_de = akspoly.xy2radec(this_padeg, x_dewarp, y_dewarp,
+                this_crv_1, this_crv_2, aks_inst)
+        dataset = append_fields(dataset, ('akra', 'akde'),
+                (aks_ra, aks_de), usemask=False)
+
+        #return True
+        return dataset
+
+    # ----------------------------------------
+    def find_stars(self, thresh, keepall=False, use_err_img=True, include_akp=False):
         """Driver routine for star extraction. Required inputs:
         thresh      --  significance threshold for star extraction
+        keepall     --  keep all detections (skip pruning)
         use_err_img --  False disables use of error-image
+        include_akp --  if True, add Adam Kraus polynomial columns (requires metadata)
 
         Results are reported in an ExtendedCatalog container.
         """
@@ -241,6 +288,30 @@ class SpitzFind(object):
         ppra, ppde = self._pse._wcs_func(ppx, ppy, pix_origin)
         dataset = append_fields(dataset, ('ppx', 'ppy', 'ppdra', 'ppdde'),
                 (ppx, ppy, ppra, ppde), usemask=False)
+
+        # Adam Kraus polynomial dephase/dewarp:
+        if include_akp:
+            #success = self._akp_added_value(dataset)
+            dataset = self._akp_added_value(dataset)
+
+        #channel  = self._ihdrs['CHNLNUM']        # SHA provides this in FITS header
+        #jdtdb    = self._ihdrs['OBS_TIME']       # mid-exposure JDTDB, added to headers previously
+        #mission  = akspoly.mission_from_jdtdb(jdtdb)
+        #aks_inst = akspoly._chmap[channel]
+        #x_dephase, y_dephase = akp.dephase(np.atleast_1d(dataset['x']),
+        #                                np.atleast_1d(dataset['y']), mission, aks_inst)
+        #x_dewarp, y_dewarp = akp.xform_xy(x_dephase, y_dephase, aks_inst)
+        #dataset = append_fields(dataset, ('xdp', 'ydp', 'xdw', 'ydw'),
+        #        (x_dephase, y_dephase, x_dewarp, y_dewarp), usemask=False)
+
+        ## sky coords from Adam Kraus polynomials:
+        #this_padeg = self._ihdrs['PA']
+        #this_crv_1 = self._ihdrs['CRVAL1']
+        #this_crv_2 = self._ihdrs['CRVAL2']
+        #aks_ra, aks_de = akspoly.xy2radec(this_padeg, x_dewarp, y_dewarp,
+        #        this_crv_1, this_crv_2, aks_inst)
+        #dataset = append_fields(dataset, ('akra', 'akde'),
+        #        (aks_ra, aks_de), usemask=False)
 
         # encapsulate result:
         ecopts = {'name':os.path.basename(self._ipath), 'header':self._ihdrs}
