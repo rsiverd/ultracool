@@ -192,7 +192,7 @@ def tanproj(prj_xx, prj_yy):
     return np.degrees(prj_phi), np.degrees(prj_theta)
 
 ## Convert X,Y to RA, Dec (single-value):
-def xy2radec(pa_deg, xpix, ypix, crval1, crval2, channel, debug=False):
+def xypa2radec(pa_deg, xpix, ypix, crval1, crval2, channel, debug=False):
     pa_rad = np.radians(pa_deg)
     rel_xx = xpix - _aks_crpix1
     rel_yy = ypix - _aks_crpix2

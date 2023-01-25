@@ -523,12 +523,14 @@ for inst in instrument_list:
         akra, akde = [], []
         for meas in ss:
             cwmission = akspoly.mission_from_jdtdb(meas['jdtdb'])
-            x_dephase, y_dephase = akp.dephase(meas['x'], meas['y'], cwmission, aks_inst)
+            x_dephase, y_dephase = akp.dephase(np.atleast_1d(meas['x']), np.atleast_1d(meas['y']),
+                    cwmission, aks_inst)
             x_dewarp, y_dewarp = akp.xform_xy(x_dephase, y_dephase, aks_inst)
             this_padeg = padeg_lookup[meas['iname']]
             this_crv_1 = crv_1_lookup[meas['iname']]
             this_crv_2 = crv_2_lookup[meas['iname']]
-            aks_ra, aks_de = akspoly.xy2radec(this_padeg, x_dewarp, y_dewarp, this_crv_1, this_crv_2, aks_inst)
+            aks_ra, aks_de = akspoly.xypa2radec(this_padeg, 
+                    x_dewarp, y_dewarp, this_crv_1, this_crv_2, aks_inst)
             xdp.append(x_dephase)
             ydp.append(y_dephase)
             xdw.append(x_dewarp)
@@ -536,12 +538,12 @@ for inst in instrument_list:
             akra.append(aks_ra)
             akde.append(aks_de)
             #continue
-        new_fields += [( 'xdp',  xdp)]
-        new_fields += [( 'ydp',  ydp)]
-        new_fields += [( 'xdw',  xdw)]
-        new_fields += [( 'ydw',  ydw)]
-        new_fields += [('akra', akra)]
-        new_fields += [('akde', akde)]
+        new_fields += [( 'xdp', np.concatenate( xdp))]
+        new_fields += [( 'ydp', np.concatenate( ydp))]
+        new_fields += [( 'xdw', np.concatenate( xdw))]
+        new_fields += [( 'ydw', np.concatenate( ydw))]
+        new_fields += [('akra', np.concatenate(akra))]
+        new_fields += [('akde', np.concatenate(akde))]
         sdata[inst][sid] = add_recarray_columns(ss, new_fields)
         continue
     continue
@@ -809,8 +811,10 @@ for sid in large_ch1:
                         delta_ra_mas, delta_de_mas)))
                         #delta_ra_mas, delta_de_mas, [sid for x in sra])))
     for iname,xpix,ypix,expt,rmiss,dmiss in zip(stmp['iname'],
-            stmp['wx'], stmp['wy'], stmp['exptime'],
+            stmp[_xx_key], stmp[_yy_key], stmp['exptime'],
             delta_ra_mas, delta_de_mas):
+            #stmp['wx'], stmp['wy'], stmp['exptime'],
+            #delta_ra_mas, delta_de_mas):
         resid_data_ch1[iname].append({'x':xpix, 'y':ypix,
             'ra_err':rmiss, 'de_err':dmiss, 'exptime':expt})
     delta_tot_mas = np.sqrt(delta_ra_mas**2 + delta_de_mas**2)
@@ -858,8 +862,10 @@ for sid in large_ch2:
                         delta_ra_mas, delta_de_mas)))
                         #delta_ra_mas, delta_de_mas, [sid for x in sra])))
     for iname,xpix,ypix,expt,rmiss,dmiss in zip(stmp['iname'],
-            stmp['wx'], stmp['wy'], stmp['exptime'],
+            stmp[_xx_key], stmp[_yy_key], stmp['exptime'],
             delta_ra_mas, delta_de_mas):
+            #stmp['wx'], stmp['wy'], stmp['exptime'],
+            #delta_ra_mas, delta_de_mas):
         resid_data_ch2[iname].append({'x':xpix, 'y':ypix,
             'ra_err':rmiss, 'de_err':dmiss, 'exptime':expt})
     delta_tot_mas = np.sqrt(delta_ra_mas**2 + delta_de_mas**2)
@@ -976,24 +982,26 @@ for inst,tt in tdata.items():
     akra, akde = [], []
     for meas in tt:
         cwmission = akspoly.mission_from_jdtdb(meas['jdtdb'])
-        x_dephase, y_dephase = akp.dephase(meas['x'], meas['y'], cwmission, aks_inst)
+        x_dephase, y_dephase = akp.dephase(np.atleast_1d(meas['x']), np.atleast_1d(meas['y']),
+                cwmission, aks_inst)
         x_dewarp, y_dewarp = akp.xform_xy(x_dephase, y_dephase, aks_inst)
         this_padeg = padeg_lookup[meas['iname']]
         this_crv_1 = crv_1_lookup[meas['iname']]
         this_crv_2 = crv_2_lookup[meas['iname']]
-        aks_ra, aks_de = akspoly.xy2radec(this_padeg, x_dewarp, y_dewarp, this_crv_1, this_crv_2, aks_inst)
+        aks_ra, aks_de = akspoly.xypa2radec(this_padeg,
+                x_dewarp, y_dewarp, this_crv_1, this_crv_2, aks_inst)
         xdp.append(x_dephase)
         ydp.append(y_dephase)
         xdw.append(x_dewarp)
         ydw.append(y_dewarp)
         akra.append(aks_ra)
         akde.append(aks_de)
-    new_fields += [( 'xdp',  xdp)]
-    new_fields += [( 'ydp',  ydp)]
-    new_fields += [( 'xdw',  xdw)]
-    new_fields += [( 'ydw',  ydw)]
-    new_fields += [('akra', akra)]
-    new_fields += [('akde', akde)]
+    new_fields += [( 'xdp', np.concatenate( xdp))]
+    new_fields += [( 'ydp', np.concatenate( ydp))]
+    new_fields += [( 'xdw', np.concatenate( xdw))]
+    new_fields += [( 'ydw', np.concatenate( ydw))]
+    new_fields += [('akra', np.concatenate(akra))]
+    new_fields += [('akde', np.concatenate(akde))]
     tdata[inst] = add_recarray_columns(tt, new_fields)
 tgt_ch1 = tdata['ch1']
 tgt_ch2 = tdata['ch2']
@@ -1166,7 +1174,8 @@ all_plxval = np.hstack((ra_plxval, de_plxval))
 ## -----------------------------------------------------------------------
 
 ## Errors to use in fitting:
-median_cosdec = np.median(np.cos(np.radians(use_dataset['dde'])))
+#median_cosdec = np.median(np.cos(np.radians(use_dataset['dde'])))
+median_cosdec = np.median(np.cos(np.radians(use_dataset[_de_key])))
 ra_deg_errs = use_dataset['ra_err_mas'] / 3.6e6 / median_cosdec
 de_deg_errs = use_dataset['de_err_mas'] / 3.6e6
 ra_rad_errs = np.radians(ra_deg_errs)
@@ -1176,7 +1185,7 @@ de_rad_errs = np.radians(de_deg_errs)
 sigcut = 5
 #af.setup(use_dataset)
 af.setup(use_dataset, RA_err=ra_rad_errs, DE_err=de_rad_errs,
-        jd_tdb_ref=j2000_epoch.tdb.jd)
+        jd_tdb_ref=j2000_epoch.tdb.jd, ra_key=_ra_key, de_key=_de_key)
 bestpars = af.fit_bestpars(sigcut=sigcut)
 firstpars = bestpars.copy()
 
@@ -1424,7 +1433,7 @@ for ii,nid in enumerate(use_nei_ids):
     #afn.setup(use_dataset, RA_err=ra_rad_errs, DE_err=de_rad_errs,
     afn = at2.AstFit()  # used for neighbors
     afn.setup(_nboth, 
-            jd_tdb_ref=j2000_epoch.tdb.jd)
+            jd_tdb_ref=j2000_epoch.tdb.jd, ra_key=_ra_key, de_key=_de_key)
     bestpars = afn.fit_bestpars(sigcut=sigcut)
     firstpars = bestpars.copy()
     iterpars = afn.iter_update_bestpars(bestpars)
@@ -1729,8 +1738,10 @@ with open(save_f2_stats, 'a') as sfs:
 ## Target signal for comparison:
 signal_vals = (use_dataset['exptime'] * use_dataset['flux'])[af.inliers]
 targ_signal = np.median(signal_vals)
-targ_ra_deg = np.median(use_dataset['dra'])
-targ_de_deg = np.median(use_dataset['dde'])
+#targ_ra_deg = np.median(use_dataset['dra'])
+#targ_de_deg = np.median(use_dataset['dde'])
+targ_ra_deg = np.median(use_dataset[_ra_key])
+targ_de_deg = np.median(use_dataset[_de_key])
 sys.stderr.write("Target signal level: %15.5f\n" % targ_signal)
 targ_instru = use_dataset['instrument'][af.inliers]
 
@@ -1764,7 +1775,7 @@ new_res = np.std(cln_res_de) * at2._MAS_PER_RADIAN
 pct_win = 100.0 * (old_res - new_res) / old_res
 sys.stderr.write("\n")
 sys.stderr.write("Old DE res: %10.4f\n" % old_res)
-sys.stderr.write("Old DE res: %10.4f\n" % new_res)
+sys.stderr.write("New DE res: %10.4f\n" % new_res)
 sys.stderr.write("Improvement: %6.1f%%\n" % pct_win)
 save_things += [old_res, new_res]
 
@@ -1842,8 +1853,10 @@ def lnprob(params, rra, rde, rra_err, rde_err):
 
 ## Identify useful data points:
 _apply_tfa = True
-use_rra = np.radians(use_dataset['dra'][af.inliers]) 
-use_rde = np.radians(use_dataset['dde'][af.inliers])
+#use_rra = np.radians(use_dataset['dra'][af.inliers]) 
+#use_rde = np.radians(use_dataset['dde'][af.inliers])
+use_rra = np.radians(use_dataset[_ra_key][af.inliers]) 
+use_rde = np.radians(use_dataset[_de_key][af.inliers])
 if _apply_tfa:
     use_rra -= ra_filt
     use_rde -= de_filt

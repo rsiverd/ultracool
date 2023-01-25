@@ -260,9 +260,9 @@ class SpitzFind(object):
         this_padeg = self._ihdrs['PA']
         this_crv_1 = self._ihdrs['CRVAL1']
         this_crv_2 = self._ihdrs['CRVAL2']
-        aks_ra, aks_de = akspoly.xy2radec(this_padeg, x_dewarp, y_dewarp,
+        aks_ra, aks_de = akspoly.xypa2radec(this_padeg, x_dewarp, y_dewarp,
                 this_crv_1, this_crv_2, aks_inst)
-        dataset = append_fields(dataset, ('akra', 'akde'),
+        dataset = append_fields(dataset, ('akpara', 'akpade'),
                 (aks_ra, aks_de), usemask=False)
 
         #return True
