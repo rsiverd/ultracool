@@ -177,7 +177,7 @@ ident_mat = np.array([[1.0, 0.0], [0.0, 1.0]])
 _radeg = 180.0 / np.pi
 
 ## Tangent projection:
-def tanproj(prj_xx, prj_yy):
+def _tanproj(prj_xx, prj_yy):
     prj_rr = np.hypot(prj_xx, prj_yy)
     #sys.stderr.write("%.3f < prj_rr < %.3f\n" % (prj_rr.min(), prj_rr.max()))
     #prj_rr = np.sqrt(prj_xx**2 + prj_yy**2)
@@ -191,7 +191,44 @@ def tanproj(prj_xx, prj_yy):
     #return prj_phi, prj_theta
     return np.degrees(prj_phi), np.degrees(prj_theta)
 
-## Convert X,Y to RA, Dec (single-value):
+## Low-level WCS tangent processor:
+def _wcs_tan_compute(thisCD, relpix, crval1, crval2, debug=False):
+    prj_xx, prj_yy = np.matmul(thisCD, relpix)
+    if debug:
+        sys.stderr.write("%.3f < prj_xx < %.3f\n" % (prj_xx.min(), prj_xx.max()))
+        sys.stderr.write("%.3f < prj_yy < %.3f\n" % (prj_yy.min(), prj_yy.max()))
+
+    # Perform tangent projection:
+    prj_phi, prj_theta = _tanproj(prj_xx, prj_yy)
+    if debug:
+        sys.stderr.write("%.3f < prj_theta < %.3f\n"
+                % (prj_theta.min(), prj_theta.max()))
+        sys.stderr.write("%.3f < prj_phi   < %.3f\n"
+                % (prj_phi.min(), prj_phi.max()))
+
+    # Change variable names to avoid confusion:
+    rel_ra, rel_de = prj_phi, prj_theta
+    if debug:
+        phi_range = prj_phi.max() - prj_phi.min()
+        sys.stderr.write("phi range: %.4f < phi < %.4f\n" 
+                % (prj_phi.min(), prj_phi.max()))
+
+    # Shift to 
+    old_fov = (0.0, 90.0, 0.0)
+    new_fov = (crval1, crval2, 0.0)
+    stuff = rfov.migrate_fov_deg(old_fov, new_fov, (rel_ra, rel_de))
+    return stuff
+
+## Convert X,Y to RA, Dec using CD matrix and CRVAL pair:
+def xycd2radec(cdmat, xpix, ypix, crval1, crval2, debug=False):
+    thisCD = np.array(cdmat).reshape(2, 2)
+    rel_xx = xpix - _aks_crpix1
+    rel_yy = ypix - _aks_crpix2
+    relpix = np.array([xpix - _aks_crpix1, ypix - _aks_crpix2])
+    prj_xx, prj_yy = np.matmul(thisCD, relpix)
+    return _wcs_tan_compute(thisCD, relpix, crval1, crval2, debug=debug)
+
+## Convert X,Y to RA, Dec (single-value), uses position angle and fixed pixel scale:
 def xypa2radec(pa_deg, xpix, ypix, crval1, crval2, channel, debug=False):
     pa_rad = np.radians(pa_deg)
     rel_xx = xpix - _aks_crpix1
@@ -212,52 +249,55 @@ def xypa2radec(pa_deg, xpix, ypix, crval1, crval2, channel, debug=False):
         sys.stderr.write("thisCD:\n")
         mprint(thisCD)
     #rel_ra, rel_de = np.dot(thisCD, relpix)
-    prj_xx, prj_yy = np.matmul(thisCD, relpix)
-    #sys.stderr.write("prj_xx: %s\n" % str(prj_xx))
-    #sys.stderr.write("prj_yy: %s\n" % str(prj_yy))
-    #prj_rr = np.sqrt(prj_xx, prj_yy)
-    if debug:
-        sys.stderr.write("%.3f < prj_xx < %.3f\n" % (prj_xx.min(), prj_xx.max()))
-        sys.stderr.write("%.3f < prj_yy < %.3f\n" % (prj_yy.min(), prj_yy.max()))
 
-    prj_phi, prj_theta = tanproj(prj_xx, prj_yy)
+    return _wcs_tan_compute(thisCD, relpix, crval1, crval2, debug=debug)
 
-    if debug:
-        sys.stderr.write("%.3f < prj_theta < %.3f\n"
-                % (prj_theta.min(), prj_theta.max()))
-        sys.stderr.write("%.3f < prj_phi   < %.3f\n"
-                % (prj_phi.min(), prj_phi.max()))
-    #prj_rr = np.hypot(prj_xx, prj_yy)
-    #useful = (prj_rr > 0.0)
-    #prj_theta = np.ones_like(xpix) * np.pi * 0.5
-    #prj_theta[useful] = np.arctan(np.radians(prj_rr[useful]))
-    ##prj_phi = np.arctan2(prj_xx, -prj_yy)
-    #prj_phi = np.arctan2(prj_xx, prj_yy)
-    #sys.stderr.write("prj_theta: %s\n" % str(prj_theta))
-    #sys.exit(0)
-    #rel_ra, rel_de = np.matmul(thisCD, relpix)
-    rel_ra, rel_de = prj_phi, prj_theta
-    #derp_ra = thisCD[0][0] * rel_xx + thisCD[0][1] * rel_yy
-    #derp_de = thisCD[1][0] * rel_xx + thisCD[1][1] * rel_yy
-    #sys.stderr.write("rel_ra: %s\n" % str(rel_ra))
-    #sys.stderr.write("drp_ra: %s\n" % str(derp_ra))
-    #sys.stderr.write("rel_de: %s\n" % str(rel_de))
-    #sys.stderr.write("drp_de: %s\n" % str(derp_de))
-    if debug:
-        phi_range = prj_phi.max() - prj_phi.min()
-        sys.stderr.write("phi range: %.4f < phi < %.4f\n" 
-                % (prj_phi.min(), prj_phi.max()))
-    #old_fov = (0.0, 0.0, 0.0)
-    #old_fov = (180.0, 90.0, 0.0)
-    old_fov = (0.0, 90.0, 0.0)
-    new_fov = (crval1, crval2, 0.0)
-    stuff = rfov.migrate_fov_deg(old_fov, new_fov, (rel_ra, rel_de))
-    #stuff = rfov.migrate_fov_deg(old_fov, new_fov, (prj_phi, prj_theta))
-    #sys.stderr.write("stuff: %s\n" % str(stuff))
-    # for speed, try:
-    # stuff = rfov.roll_sky_deg(rel_ra, rel_de, crval1, crval2)
-    return stuff
-    #return rel_ra + crval1, rel_de + crval2
+    ##prj_xx, prj_yy = np.matmul(thisCD, relpix)
+    ###sys.stderr.write("prj_xx: %s\n" % str(prj_xx))
+    ###sys.stderr.write("prj_yy: %s\n" % str(prj_yy))
+    ###prj_rr = np.sqrt(prj_xx, prj_yy)
+    ##if debug:
+    ##    sys.stderr.write("%.3f < prj_xx < %.3f\n" % (prj_xx.min(), prj_xx.max()))
+    ##    sys.stderr.write("%.3f < prj_yy < %.3f\n" % (prj_yy.min(), prj_yy.max()))
+
+    ##prj_phi, prj_theta = _tanproj(prj_xx, prj_yy)
+
+    ##if debug:
+    ##    sys.stderr.write("%.3f < prj_theta < %.3f\n"
+    ##            % (prj_theta.min(), prj_theta.max()))
+    ##    sys.stderr.write("%.3f < prj_phi   < %.3f\n"
+    ##            % (prj_phi.min(), prj_phi.max()))
+    ###prj_rr = np.hypot(prj_xx, prj_yy)
+    ###useful = (prj_rr > 0.0)
+    ###prj_theta = np.ones_like(xpix) * np.pi * 0.5
+    ###prj_theta[useful] = np.arctan(np.radians(prj_rr[useful]))
+    ####prj_phi = np.arctan2(prj_xx, -prj_yy)
+    ###prj_phi = np.arctan2(prj_xx, prj_yy)
+    ###sys.stderr.write("prj_theta: %s\n" % str(prj_theta))
+    ###sys.exit(0)
+    ###rel_ra, rel_de = np.matmul(thisCD, relpix)
+    ##rel_ra, rel_de = prj_phi, prj_theta
+    ###derp_ra = thisCD[0][0] * rel_xx + thisCD[0][1] * rel_yy
+    ###derp_de = thisCD[1][0] * rel_xx + thisCD[1][1] * rel_yy
+    ###sys.stderr.write("rel_ra: %s\n" % str(rel_ra))
+    ###sys.stderr.write("drp_ra: %s\n" % str(derp_ra))
+    ###sys.stderr.write("rel_de: %s\n" % str(rel_de))
+    ###sys.stderr.write("drp_de: %s\n" % str(derp_de))
+    ##if debug:
+    ##    phi_range = prj_phi.max() - prj_phi.min()
+    ##    sys.stderr.write("phi range: %.4f < phi < %.4f\n" 
+    ##            % (prj_phi.min(), prj_phi.max()))
+    ###old_fov = (0.0, 0.0, 0.0)
+    ###old_fov = (180.0, 90.0, 0.0)
+    ##old_fov = (0.0, 90.0, 0.0)
+    ##new_fov = (crval1, crval2, 0.0)
+    ##stuff = rfov.migrate_fov_deg(old_fov, new_fov, (rel_ra, rel_de))
+    ###stuff = rfov.migrate_fov_deg(old_fov, new_fov, (prj_phi, prj_theta))
+    ###sys.stderr.write("stuff: %s\n" % str(stuff))
+    ### for speed, try:
+    ### stuff = rfov.roll_sky_deg(rel_ra, rel_de, crval1, crval2)
+    ##return stuff
+    ###return rel_ra + crval1, rel_de + crval2
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
