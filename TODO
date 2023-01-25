@@ -25,5 +25,12 @@
 
 * ExtendedCatalog object should throw an error when loading a non-catalog from FITS.
 
-* Is there a linear Y scaling difference in the AKS poly?
+* Refit noise model using many objects with lots of epochs
+--> Look for targets with the most epochs
+
+* Neighbor stars need to use errors
+
+* Check for fit improvements to CD matrix
+
+* RUWE for targets in pipeline
 
