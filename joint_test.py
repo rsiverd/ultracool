@@ -7,8 +7,8 @@
 # analysis.
 #
 # Rob Siverd
-# Created:       2021-02-02
-# Last modified: 2021-08-24
+# Created:       2023-01-25
+# Last modified: 2023-02-20
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.3.5"
+__version__ = "0.1.5"
 
 ## Python version-agnostic module reloading:
 try:
