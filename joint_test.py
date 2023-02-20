@@ -571,7 +571,7 @@ for aor_tag in unique_tags:
     guessed_crval = param_guess[4:].reshape(-1, 2)
 
     for ii,kk in enumerate(imkeys):
-        content = [cbase, aor_tag, aor_hdrs[kk]['OBS_TIME'], aor_hdrs[kk]['PA']]
+        content = [kk, aor_tag, aor_hdrs[kk]['OBS_TIME'], aor_hdrs[kk]['PA']]
         content += guessed_crval[ii].tolist() + guessed_cdmat.tolist()
         content += bestfit_crval[ii].tolist() + bestfit_cdmat.tolist()
         dump_to_file(save_file, save_cols, content)
