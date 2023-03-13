@@ -456,7 +456,7 @@ akspoly._pxscale[2] = 1.21451
 ## one PA parameter to be fixed for all images in the AOR plus 2 CRVAL 
 ## parameters per image. The total number of parameters is thus 1 + 2*N,
 ## where N is the number of images in the AOR.
-def posang_evaluator(params, channel, imkeys, matches):
+def padeg_evaluator(params, channel, imkeys, matches):
     padeg = params[0]
     crval = params[1:].reshape(-1, 2)
 
@@ -511,7 +511,8 @@ save_cols_cdmat = ['iname', 'aor_tag', 'jdtdb', 'padeg',
     'new_crval1', 'new_crval2', 'new_cd11', 'new_cd12', 'new_cd21', 'new_cd22']
 save_cols_padeg = ['iname', 'aor_tag', 'jdtdb', 'padeg',
     'old_crval1', 'old_crval2', 'old_padeg',
-    'new_crval1', 'new_crval2', 'new_padeg']
+    'new_crval1', 'new_crval2', 'new_padeg',
+    'ngaia']
 
 ## Check whether a header row is needed:
 def file_is_empty(filename):
@@ -531,15 +532,16 @@ def dump_to_file(stat_savefile, cols, data, delimiter=','):
     with open(stat_savefile, 'a') as ff:
         ff.write("%s\n" % delimiter.join([str(x) for x in data]))
 
-save_file = 'results_joint.csv'
+#save_file = 'results_joint.csv'
+save_file = 'results_joint_padeg.csv'
 
 ## WCS keywords to fetch from the header:
 cdm_keys = ['CD1_1', 'CD1_2', 'CD2_1', 'CD2_2']
 wcs_keys = ['PA', 'CRVAL1', 'CRVAL2'] + cdm_keys
 
 ## What kind of fit are we doing?
-#fit_kind = 'PA'     # for 1-parameter position angle
-fit_kind = 'CD'     # for 4-parameter CD matrix
+fit_kind = 'PA'     # for 1-parameter position angle
+#fit_kind = 'CD'     # for 4-parameter CD matrix
 
 
 #for aor_tag,tag_files in images_by_tag.items():
@@ -583,15 +585,24 @@ for aor_tag in unique_tags:
     # Load all the pcat files:
     aor_cats = {}
     aor_hdrs = {}
+    aor_ngst = {}
     for tpf in tag_pcat_files:
         cbase = os.path.basename(tpf)
         sys.stderr.write("Loading %s ...\n" % tpf)
         ccc.load_from_fits(tpf)
         stars = ccc.get_catalog()
         #match_list = find_gaia_matches(stars, context.gaia_tol_arcsec)
+        ## TODO: IDENTIFY WHICH STARS WERE USED IN THE WCS FIT
+        ## FOR DIAGNOSTIC PURPOSES!!  The stars should be identified within
+        ## the updated ExtendedCatalog for further scrutiny. Ideally, I
+        ## should keep some kind of identifier so that Gaia params can
+        ## be retrieved for association.
         aor_cats[cbase] = find_gaia_matches(stars, context.gaia_tol_arcsec)
         aor_hdrs[cbase] = ccc.get_header().copy()
+        aor_ngst[cbase] = len(aor_cats[cbase])
 
+    #import pdb; pdb.set_trace()
+    #sys.exit(0)
 
     # This order will be used for array indexing:
     imkeys = list(sorted(aor_cats.keys()))
@@ -629,24 +640,24 @@ for aor_tag in unique_tags:
     sys.stderr.write("param_guess: %s\n" % str(param_guess))
 
     # Fitter routine for 4-parameter CD matrix:
-    fitme = partial(cdmat_evaluator, imkeys=imkeys, matches=aor_cats)
+    #fitme = partial(cdmat_evaluator, imkeys=imkeys, matches=aor_cats)
 
     # Fitter routine for fixed-scale (PA only) version:
-    #fitme = partial(posang_evaluator, channel=aor_channel,
-    #                    imkeys=imkeys, matches=aor_cats)
+    fitme = partial(padeg_evaluator, channel=aor_channel,
+                        imkeys=imkeys, matches=aor_cats)
 
     sys.stderr.write("Fitting global CD matrix and individual CRVALs ...\n")
     bestfit_pars = opti.fmin(fitme, param_guess)
-    if fit_kind is 'CD':
-        bestfit_cdmat = bestfit_pars[:4]
-        bestfit_crval = bestfit_pars[4:].reshape(-1, 2)
-        guessed_cdmat = param_guess[:4]
-        guessed_crval = param_guess[4:].reshape(-1, 2)
-        for ii,kk in enumerate(imkeys):
-            content = [kk, aor_tag, aor_hdrs[kk]['OBS_TIME'], aor_hdrs[kk]['PA']]
-            content += guessed_crval[ii].tolist() + guessed_cdmat.tolist()
-            content += bestfit_crval[ii].tolist() + bestfit_cdmat.tolist()
-            dump_to_file(save_file, save_cols_cdmat, content)
+    #if fit_kind is 'CD':
+    #    bestfit_cdmat = bestfit_pars[:4]
+    #    bestfit_crval = bestfit_pars[4:].reshape(-1, 2)
+    #    guessed_cdmat = param_guess[:4]
+    #    guessed_crval = param_guess[4:].reshape(-1, 2)
+    #    for ii,kk in enumerate(imkeys):
+    #        content = [kk, aor_tag, aor_hdrs[kk]['OBS_TIME'], aor_hdrs[kk]['PA']]
+    #        content += guessed_crval[ii].tolist() + guessed_cdmat.tolist()
+    #        content += bestfit_crval[ii].tolist() + bestfit_cdmat.tolist()
+    #        dump_to_file(save_file, save_cols_cdmat, content)
 
     if fit_kind is 'PA':
         bestfit_padeg = bestfit_pars[:1]
@@ -655,8 +666,9 @@ for aor_tag in unique_tags:
         guessed_crval = param_guess[1:].reshape(-1, 2)
         for ii,kk in enumerate(imkeys):
             content = [kk, aor_tag, aor_hdrs[kk]['OBS_TIME'], aor_hdrs[kk]['PA']]
-            content += guessed_crval[ii].tolist() + guessed_cdmat.tolist()
-            content += bestfit_crval[ii].tolist() + bestfit_cdmat.tolist()
+            content += guessed_crval[ii].tolist() + guessed_padeg.tolist()
+            content += bestfit_crval[ii].tolist() + bestfit_padeg.tolist()
+            content += [aor_ngst[kk]]
             dump_to_file(save_file, save_cols_padeg, content)
 
 
