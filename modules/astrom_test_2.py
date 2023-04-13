@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2021-08-30
-# Last modified: 2022-04-01
+# Last modified: 2023-04-13
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 ## Modules:
 import os
@@ -254,6 +254,12 @@ class AstFit(object):
     #    delta_de = self._dt_yrs * pmde + prlx * pfde
     #    return (rra + delta_ra, rde + delta_de)
 
+    # Evaluate a set of astrometric parameters using the
+    # timestamps loaded into the solver. The stored parameters
+    # are entirely in radians and coordinates
+    # NOTES:
+    #   * self._dt_yrs = Julian years (TDB), specifically,
+    #                  = (JD_TDB - JD_TDB_ref) / 365.25
     def _solver_eval(self, params):
         rra, rde, pmra, pmde, prlx = params
         pfra, pfde = self._calc_parallax_factors(rra, rde,
@@ -265,7 +271,42 @@ class AstFit(object):
         #delta_de = self._dt_yrs * pmde - prlx * pfde
         return (rra + delta_ra, rde + delta_de)
 
+    def _calc_radec_residuals_tru(self, params, inliers=False):
+        """This is the 'coordinate' version of the residual
+        calculator. The RA component is NOT corrected by cos(dec).
+        The residuals returned by this routine are the actual differences
+        in RA, Dec coordinates between model and data. 
+        """
+        model_RA, model_DE = self._solver_eval(params)
+        resid_RA = (self._RA_rad - model_RA) * np.cos(model_DE)
+        resid_DE = (self._DE_rad - model_DE)
+        if inliers:
+            return resid_RA[self.inliers], resid_DE[self.inliers]
+        else:
+            return resid_RA, resid_DE
+
+    def _calc_radec_residuals_coo(self, params, inliers=False):
+        """This is the 'coordinate' version of the residual
+        calculator. The RA component is NOT corrected by cos(dec).
+        The residuals returned by this routine are the actual differences
+        in RA, Dec coordinates between model and data."""
+        model_RA, model_DE = self._solver_eval(params)
+        resid_RA = self._RA_rad - model_RA
+        resid_DE = self._DE_rad - model_DE
+        if inliers:
+            return resid_RA[self.inliers], resid_DE[self.inliers]
+        else:
+            return resid_RA, resid_DE
+
     def _calc_radec_residuals(self, params, inliers=False):
+        """This is the OLD AND DEPRECATED 'coordinate' version of the residual
+        calculator. The RA component is NOT corrected by cos(dec).
+        The residuals returned by this routine are the actual differences
+        in RA, Dec coordinates between model and data. This version of
+        the routine (with ambiguous name) is DEPRECATED in favor of
+        the identical '_coo' variant above. This should help avoid
+        confusion in the long term."""
+        sys.stderr.write("_calc_radec_residuals() is DEPRECATED!\n")
         model_RA, model_DE = self._solver_eval(params)
         resid_RA = self._RA_rad - model_RA
         resid_DE = self._DE_rad - model_DE
@@ -290,11 +331,12 @@ class AstFit(object):
         return np.hypot(*self._calc_radec_residuals_sigma(params))
 
     def _calc_chi_square(self, params, negplxhit=100.):
-        model_ra, model_de = self._solver_eval(params)
-        #resid_ra = (model_ra - self._RA_rad) #/ np.cos(model_de)
-        #resid_de = (model_de - self._DE_rad)
-        resid_ra = (self._RA_rad - model_ra) #/ np.cos(model_de)
-        resid_de = (self._DE_rad - model_de)
+        #model_ra, model_de = self._solver_eval(params)
+        ##resid_ra = (model_ra - self._RA_rad) #/ np.cos(model_de)
+        ##resid_de = (model_de - self._DE_rad)
+        #resid_ra = (self._RA_rad - model_ra) #/ np.cos(model_de)
+        #resid_de = (self._DE_rad - model_de)
+        resid_ra, resid_de = self._calc_radec_residuals_coo(params)
         #resid_ra = (model_ra - self._RA_rad) / self._RA_err
         #resid_de = (model_de - self._DE_rad) / self._DE_err
         #if isinstance(self._RA_err, np.ndarray):
@@ -315,7 +357,7 @@ class AstFit(object):
         #return np.sum(np.abs(resid_ra * resid_de)**self._chiexp)
 
     def _calc_initial_parallax(self, params):
-        rra_resid, rde_resid = self._calc_radec_residuals(params)
+        rra_resid, rde_resid = self._calc_radec_residuals_coo(params)
         mar_ra_rad = calc_MAR(rra_resid)
         mar_ra_mas = _MAS_PER_RADIAN * mar_ra_rad
         self._vlwrite("mar_ra_rad: %f\n" % mar_ra_rad, 2)
@@ -358,9 +400,9 @@ class AstFit(object):
         guess[0] += ra_nudge_rad
         guess[4] = plx_rad
 
-        # estimate RA,Dec uncertainty from residuals if not known a prior:
+        # estimate RA,Dec uncertainty from residuals if not known a priori:
         if self._need_resid_errors:
-            rra_resid, rde_resid = self._calc_radec_residuals(guess)
+            rra_resid, rde_resid = self._calc_radec_residuals_coo(guess)
             rra_scatter = calc_MAR(rra_resid)
             rde_scatter = calc_MAR(rde_resid)
             mra_scatter = _MAS_PER_RADIAN * rra_scatter
@@ -444,7 +486,7 @@ class AstFit(object):
             return self.iresult[0]
 
         # calculate residuals:
-        rra_resid, rde_resid = self._calc_radec_residuals(params)
+        rra_resid, rde_resid = self._calc_radec_residuals_coo(params)
         #sys.stderr.write("rra_resid: %s\n" % str(rra_resid))
         #sys.stderr.write("rde_resid: %s\n" % str(rde_resid))
         rra_scatter = calc_MAR(rra_resid)
