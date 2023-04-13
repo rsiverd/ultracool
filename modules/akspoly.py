@@ -137,6 +137,10 @@ _pxscale = {
     4   :   1.2217,
 }
 
+## UPDATED VALUES FROM JOINT FITTING:
+_pxscale[1] = 1.22328
+_pxscale[2] = 1.21451
+
 ## CRPIX pixel coordinate we use:
 _aks_crpix1 = 128.0
 _aks_crpix2 = 128.0
