@@ -469,6 +469,7 @@ for ttt in ${targ_list[*]}; do
          coll_file="collections/${ttt}_SPITZER_I${chan}_nudge_${ctype}.txt"
          pick_file="process/${ttt}_ch${chan}_${ctype}.pickle"
          echo "./11_match_and_group_sources.py $args -C $coll_file -o $pick_file"
+         cmde "./11_match_and_group_sources.py $args -C $coll_file -o $pick_file"
       done
    done
 done

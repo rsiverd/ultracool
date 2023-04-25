@@ -123,11 +123,14 @@ class AstFit(object):
         self.full_result  = None
         self.iresult      = None
         self.iresult_prev = None
+        self._have_result = False
+        self._latest_pars = None
         return
 
     #def setup(self, jd_tdb_ref, RA_deg, DE_deg, obs_eph, 
-    def setup(self, data, reject_outliers=True,
-            jd_tdb_ref=None, RA_err=None, DE_err=None,
+    def setup(self, data, reject_outliers=True, jd_tdb_ref=None,
+            #RA_err_key=None, DE_err_key=None,
+            RA_err=None, DE_err=None,
             ra_key='dra', de_key='dde'):
         #self._is_rdy = False
         self._reset()
@@ -168,6 +171,14 @@ class AstFit(object):
         #self._DE_med, self._DE_MAD = calc_ls_med_MAD(self._DE_rad)
         #self._RA_MAD *= np.cos(self._DE_med)
 
+        # Initialize error vectors as needed:
+        #self._RA_err = None
+        #self._DE_err = None
+        #if RA_err_key:
+        #    self._RA_err = self.dataset[RA_err_key] 
+        #self._RA_err = self.dataset[RA_err_key] if RA_err_key else None
+        #self._DE_err = self.dataset[DE_err_key] if DE_err_key else None
+
         self._RA_err = RA_err
         self._DE_err = DE_err
         self._need_resid_errors = False
@@ -190,6 +201,26 @@ class AstFit(object):
         self._is_set = True
         self._can_iterate = False
         return True
+
+    # Retrieve some useful output when done:
+    def collect_result_dataset(self):
+        # first, identify best solution:
+        if not self._have_result:
+            sys.stderr.write("No solution to collect yet!\n")
+            return None
+        # calculate residuals (RADIANS, with cos(dec)):
+        ra_res_rad, de_res_rad = \
+                self._calc_radec_residuals_tru(self._latest_pars)
+        ra_res_mas = self._mas_per_rad * ra_res_rad 
+        de_res_mas = self._mas_per_rad * de_res_rad 
+        signal = self.dataset['flux'] * self.dataset['exptime']
+        rdata = append_fields(self.dataset,
+                ('fit_resid_ra_mas', 'fit_resid_de_mas', 'signal', 'inliers'),
+                (ra_res_mas, de_res_mas, signal, self.inliers),
+                usemask=False)
+
+        # include inlier/outlier flags:
+        return rdata
 
     #def set_ref_time(self, t_ref):
     #    self.ref_time = t_ref
@@ -460,6 +491,8 @@ class AstFit(object):
         sys.stderr.write("Found minimum:\n")
         sys.stderr.write("==> %s\n" % str(self.nice_units(self.result)))
         self._can_iterate = True
+        self._have_result = True
+        self._latest_pars = self.result
         return self.result
  
     # ----------------------------------------------------------------------- 
@@ -513,6 +546,8 @@ class AstFit(object):
         self._is_converged = self._convergence_check()
 
         self._can_iterate = True
+        self._have_result = True
+        self._latest_pars = self.iresult[0]
         return self.iresult[0]
 
     def _convergence_check(self):

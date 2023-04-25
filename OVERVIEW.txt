@@ -1,0 +1,36 @@
+How on Earth does this pipeline currently work?  It's pretty confusing ...
+
+1) fetch_sha_data.py is used to download images
+
+2) 01_get_SST_ephemeris.py -- used to fetch the Spitzer ephemeris for each image from HORIZONS, saves to CSV file
+
+# Image processing:
+
+3) 02_clean_all_spitzer.py --
+* explores a folder to find CBCD images
+* retrieves corresponding ephemeris data from CSV file
+* iterate over images, ignoring images that are significantly off-target
+* for each image:
+   * subtract hot columns (saves column map for inspection), save as 'hcfix'
+   * find and remove cosmic rays, save 'crmask' and 'clean' images
+
+# First pass of catalog creation and image processing:
+
+4) 03_extract_all_spitzer.py -- Extract stars from the 'clean' images, save as 'clean_fcat'
+5) 04_inplace_fix_WCS_offsets.py -- Match clean_fcat stars to Gaia, nudge RA/DE
+6) 05_nudge_image_WCS.py -- create 'nudge' image from 'clean' image by adjusting CRPIX1/CRPIX2
+
+# REAL catalog processing:
+
+7) 07_spitzer_aor_extraction.py --
+* runs over a single AOR, use 'nudge' images
+* for the given AOR, load all images and:
+   * do image cross-correlation to find integer pixel offsets
+   * shift and stack frames in Python, save 'stack' variant for inspection
+   * shift and stack frames with medianize, save 'medze' variant for inspection [not really used]
+   * find stars on stacked frame
+* once stacked star list is known, iterate over individual images and:
+   * find stars on individual frames
+   * prune sources from individual frames that are not present on the stack
+   * save nudge_pcat catalogs
+

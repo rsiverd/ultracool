@@ -34,3 +34,13 @@
 
 * RUWE for targets in pipeline
 
+* Plate Scale vs number of sources in the field
+
+* Plot of (Fitted PA - header PA) to understand provenance and look for outliers
+
+* Add to individual data catalogs:
+--> AOR tag ??
+--> ngaia = number of gaia stars identified in the image
+--> ngaor = number of gaia stars identified in the AOR (joint fit)
+
+

@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2021-04-13
-# Last modified: 2022-10-17
+# Last modified: 2023-04-13
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.3.6"
+__version__ = "0.3.7"
 
 ## Python version-agnostic module reloading:
 try:
@@ -105,6 +105,11 @@ akp = akspoly.AKSPoly()
 ## MCMC sampler:
 import emcee
 import corner
+
+## Noise model data collection helper:
+import noisemod_helpers
+reload(noisemod_helpers)
+nmch = noisemod_helpers.NoiseModHelper()
 
 ##--------------------------------------------------------------------------##
 ## Projections with cartopy:
@@ -233,6 +238,17 @@ def add_recarray_columns(recarray, column_specs):
         result = append_fields(result, cname, cdata, usemask=False)
     return result
 
+def include_tfa_residuals(data, tfa_ra_res, tfa_de_res):
+    sys.stderr.write("len(data): %d\n" % len(data))
+    tmp_tfa_ra = np.zeros(len(data)) * np.nan
+    tmp_tfa_de = np.zeros(len(data)) * np.nan
+    tmp_tfa_ra[data['inliers']] = tfa_ra_res * at2._MAS_PER_RADIAN
+    tmp_tfa_de[data['inliers']] = tfa_de_res * at2._MAS_PER_RADIAN
+    new_fields = [('tfa_resid_ra_mas', tmp_tfa_ra),
+                    ('tfa_resid_de_mas', tmp_tfa_de)]
+    return add_recarray_columns(data, new_fields)
+
+
 ##--------------------------------------------------------------------------##
 ##------------------         Terminal Fanciness             ----------------##
 ##--------------------------------------------------------------------------##
@@ -341,16 +357,16 @@ if __name__ == '__main__':
 
 ## RA/DE coordinate keys for various methods:
 centroid_colmap = {
-        'simple'    :   (  'dra',   'dde',   'x',   'y'),
-        'window'    :   ( 'wdra',  'wdde',  'wx',  'wy'),
-        'pp_fix'    :   ('ppdra', 'ppdde', 'ppx', 'ppy'),
-        'akpoly'    :   ( 'akra',  'akde', 'xdw', 'ydw'),
+        'simple'    :   (   'dra',    'dde',   'x',   'y'),
+        'window'    :   (  'wdra',   'wdde',  'wx',  'wy'),
+        'pp_fix'    :   ( 'ppdra',  'ppdde', 'ppx', 'ppy'),
+        'akpoly1'   :   ('akpara', 'akpade', 'xdw', 'ydw'),
         }
 
 centroid_method = 'simple'
 #centroid_method = 'window'
 #centroid_method = 'pp_fix'
-centroid_method = 'akpoly'
+centroid_method = 'akpoly1'
 _ra_key, _de_key, _xx_key, _yy_key = centroid_colmap[centroid_method]
 
 
@@ -443,6 +459,28 @@ for ibase,ipath in cbcd_path_lookup.items():
 tok = time.time()
 sys.stderr.write("done. Took %.3f seconds.\n" % (tok-tik))
 
+
+## Supplant CD matrix parameter lookup with 'joint' data:
+joint_data = 'results_joint_padeg.csv'
+jdata = pd.read_csv(joint_data, low_memory=False)
+ngaia_lookup = {}
+
+for idx,entry in jdata.iterrows():
+    jbase = '.'.join(entry.iname.split('.')[:2])
+    padeg_lookup[jbase] = entry['new_padeg']
+    crv_1_lookup[jbase] = entry['new_crval1']
+    crv_2_lookup[jbase] = entry['new_crval2']
+    ngaia_lookup[jbase] = entry['ngaia']
+    pass
+#sys.exit(0)
+
+ngaia_aorlut = {}
+for aortag,subset in jdata.groupby('aor_tag'):
+    ngaia_aorlut[aortag] = subset['ngaia'].sum()
+    pass
+
+#sys.exit(0)
+
 ##--------------------------------------------------------------------------##
 
 ## Load parameters file:
@@ -504,51 +542,66 @@ for inst in instrument_list:
             #sys.stderr.write("Adding IRAC2 to %s ...\n" % sid)
             #new_fields = [('instrument', ['IRAC2' for x in range(len(ss))])]
             #new_fields = [('instrument', [inst for x in range(len(ss))])]
+            aor_tags = ['_'.join(x.split('_')[:3]) for x in ss['iname']]
             new_fields = [('instrument', len(ss)*[inst])]
+            new_fields += [('ngaia', [ngaia_lookup[x] for x in ss['iname']])]
+            new_fields += [('ngaor', [ngaia_aorlut[x] for x in aor_tags])]
             sdata[inst][sid] = add_recarray_columns(ss, new_fields)
+        #if not ('ngaia' in ss.dtype.names):
+        #    nstars = [ngaia_lookup[x] for x in ss['iname']]
+        #    new_fields = ('ngaia', [ngaia_lookup[x] for x in ss['iname']])
+        #    sdata[inst][sid] = add_recarray_columns(ss, new_fields)
 
 sys.stderr.write("Instrument keywords updated.\n")
 
+
+
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
-for inst in instrument_list:
-    aks_inst = akspoly._chmap[inst]
-    for sid,ss in sdata[inst].items():
-        mission = [akspoly.mission_from_jdtdb(x) for x in ss['jdtdb']]
-        new_fields  = [('mission', mission)]
-        xdp, ydp = [], []
-        xdw, ydw = [], []
-        ipa = []    # Image Position Angle
-        akra, akde = [], []
-        for meas in ss:
-            cwmission = akspoly.mission_from_jdtdb(meas['jdtdb'])
-            x_dephase, y_dephase = akp.dephase(np.atleast_1d(meas['x']), np.atleast_1d(meas['y']),
-                    cwmission, aks_inst)
-            x_dewarp, y_dewarp = akp.xform_xy(x_dephase, y_dephase, aks_inst)
-            this_padeg = padeg_lookup[meas['iname']]
-            this_crv_1 = crv_1_lookup[meas['iname']]
-            this_crv_2 = crv_2_lookup[meas['iname']]
-            aks_ra, aks_de = akspoly.xypa2radec(this_padeg, 
-                    x_dewarp, y_dewarp, this_crv_1, this_crv_2, aks_inst)
-            xdp.append(x_dephase)
-            ydp.append(y_dephase)
-            xdw.append(x_dewarp)
-            ydw.append(y_dewarp)
-            akra.append(aks_ra)
-            akde.append(aks_de)
-            #continue
-        new_fields += [( 'xdp', np.concatenate( xdp))]
-        new_fields += [( 'ydp', np.concatenate( ydp))]
-        new_fields += [( 'xdw', np.concatenate( xdw))]
-        new_fields += [( 'ydw', np.concatenate( ydw))]
-        new_fields += [('akra', np.concatenate(akra))]
-        new_fields += [('akde', np.concatenate(akde))]
-        sdata[inst][sid] = add_recarray_columns(ss, new_fields)
+## Check columns in data:
+firstcat = list(sdata[instrument_list[0]].keys())[0]
+colslist = sdata[instrument_list[0]][firstcat].dtype.names
+
+if not 'akpara' in colslist:
+    for inst in instrument_list:
+        aks_inst = akspoly._chmap[inst]
+        for sid,ss in sdata[inst].items():
+            mission = [akspoly.mission_from_jdtdb(x) for x in ss['jdtdb']]
+            new_fields  = [('mission', mission)]
+            xdp, ydp = [], []
+            xdw, ydw = [], []
+            ipa = []    # Image Position Angle
+            akra, akde = [], []
+            for meas in ss:
+                cwmission = akspoly.mission_from_jdtdb(meas['jdtdb'])
+                x_dephase, y_dephase = akp.dephase(np.atleast_1d(meas['x']),
+                                                   np.atleast_1d(meas['y']),
+                                                   cwmission, aks_inst)
+                x_dewarp, y_dewarp = akp.xform_xy(x_dephase, y_dephase, aks_inst)
+                this_padeg = padeg_lookup[meas['iname']]
+                this_crv_1 = crv_1_lookup[meas['iname']]
+                this_crv_2 = crv_2_lookup[meas['iname']]
+                aks_ra, aks_de = akspoly.xypa2radec(this_padeg, 
+                        x_dewarp, y_dewarp, this_crv_1, this_crv_2, aks_inst)
+                xdp.append(x_dephase)
+                ydp.append(y_dephase)
+                xdw.append(x_dewarp)
+                ydw.append(y_dewarp)
+                akpara.append(aks_ra)
+                akpade.append(aks_de)
+                continue
+            new_fields += [( 'xdp', np.concatenate( xdp))]
+            new_fields += [( 'ydp', np.concatenate( ydp))]
+            new_fields += [( 'xdw', np.concatenate( xdw))]
+            new_fields += [( 'ydw', np.concatenate( ydw))]
+            new_fields += [('akpara', np.concatenate(akra))]
+            new_fields += [('akpade', np.concatenate(akde))]
+            sdata[inst][sid] = add_recarray_columns(ss, new_fields)
+            continue
         continue
-    continue
+    sys.stderr.write("AKS poly info added to field stars (TESTING).\n")
 
-sys.stderr.write("AKS poly info added (TESTING).\n")
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
@@ -961,48 +1014,56 @@ tdata['ch2'] = tgt_ch2
 if not ('instrument' in tgt_ch1.dtype.names):
     sys.stderr.write("No 'instrument' column found for ch1, adding!\n")
     #new_fields = [('instrument', ['IRAC1' for x in range(len(tgt_ch1))])]
+    aor_tags = ['_'.join(x.split('_')[:3]) for x in tgt_ch1['iname']]
     new_fields = [('instrument', ['ch1' for x in range(len(tgt_ch1))])]
+    new_fields += [('ngaia', [ngaia_lookup[x] for x in tgt_ch1['iname']])]
+    new_fields += [('ngaor', [ngaia_aorlut[x] for x in aor_tags])]
     tgt_ch1 = add_recarray_columns(tgt_ch1, new_fields)
 if not ('instrument' in tgt_ch2.dtype.names):
+    aor_tags = ['_'.join(x.split('_')[:3]) for x in tgt_ch2['iname']]
     sys.stderr.write("No 'instrument' column found for ch2, adding!\n")
     #new_fields = [('instrument', ['IRAC2' for x in range(len(tgt_ch2))])]
     new_fields = [('instrument', ['ch2' for x in range(len(tgt_ch2))])]
+    new_fields += [('ngaia', [ngaia_lookup[x] for x in tgt_ch2['iname']])]
+    new_fields += [('ngaor', [ngaia_aorlut[x] for x in aor_tags])]
     tgt_ch2 = add_recarray_columns(tgt_ch2, new_fields)
 tdata['ch1'] = tgt_ch1
 tdata['ch2'] = tgt_ch2
 
-#for inst in instrument_list:
-for inst,tt in tdata.items():
-    aks_inst = akspoly._chmap[inst]
-    mission = [akspoly.mission_from_jdtdb(x) for x in tt['jdtdb']]
-    new_fields  = [('mission', mission)]
-    xdp, ydp = [], []
-    xdw, ydw = [], []
-    ipa = []    # Image Position Angle
-    akra, akde = [], []
-    for meas in tt:
-        cwmission = akspoly.mission_from_jdtdb(meas['jdtdb'])
-        x_dephase, y_dephase = akp.dephase(np.atleast_1d(meas['x']), np.atleast_1d(meas['y']),
-                cwmission, aks_inst)
-        x_dewarp, y_dewarp = akp.xform_xy(x_dephase, y_dephase, aks_inst)
-        this_padeg = padeg_lookup[meas['iname']]
-        this_crv_1 = crv_1_lookup[meas['iname']]
-        this_crv_2 = crv_2_lookup[meas['iname']]
-        aks_ra, aks_de = akspoly.xypa2radec(this_padeg,
-                x_dewarp, y_dewarp, this_crv_1, this_crv_2, aks_inst)
-        xdp.append(x_dephase)
-        ydp.append(y_dephase)
-        xdw.append(x_dewarp)
-        ydw.append(y_dewarp)
-        akra.append(aks_ra)
-        akde.append(aks_de)
-    new_fields += [( 'xdp', np.concatenate( xdp))]
-    new_fields += [( 'ydp', np.concatenate( ydp))]
-    new_fields += [( 'xdw', np.concatenate( xdw))]
-    new_fields += [( 'ydw', np.concatenate( ydw))]
-    new_fields += [('akra', np.concatenate(akra))]
-    new_fields += [('akde', np.concatenate(akde))]
-    tdata[inst] = add_recarray_columns(tt, new_fields)
+if not 'akpade' in tgt_ch1.dtype.names:
+    #for inst in instrument_list:
+    for inst,tt in tdata.items():
+        aks_inst = akspoly._chmap[inst]
+        mission = [akspoly.mission_from_jdtdb(x) for x in tt['jdtdb']]
+        new_fields  = [('mission', mission)]
+        xdp, ydp = [], []
+        xdw, ydw = [], []
+        ipa = []    # Image Position Angle
+        akra, akde = [], []
+        for meas in tt:
+            cwmission = akspoly.mission_from_jdtdb(meas['jdtdb'])
+            x_dephase, y_dephase = akp.dephase(np.atleast_1d(meas['x']), np.atleast_1d(meas['y']),
+                    cwmission, aks_inst)
+            x_dewarp, y_dewarp = akp.xform_xy(x_dephase, y_dephase, aks_inst)
+            this_padeg = padeg_lookup[meas['iname']]
+            this_crv_1 = crv_1_lookup[meas['iname']]
+            this_crv_2 = crv_2_lookup[meas['iname']]
+            aks_ra, aks_de = akspoly.xypa2radec(this_padeg,
+                    x_dewarp, y_dewarp, this_crv_1, this_crv_2, aks_inst)
+            xdp.append(x_dephase)
+            ydp.append(y_dephase)
+            xdw.append(x_dewarp)
+            ydw.append(y_dewarp)
+            akra.append(aks_ra)
+            akde.append(aks_de)
+        new_fields += [(   'xdp', np.concatenate( xdp))]
+        new_fields += [(   'ydp', np.concatenate( ydp))]
+        new_fields += [(   'xdw', np.concatenate( xdw))]
+        new_fields += [(   'ydw', np.concatenate( ydw))]
+        new_fields += [('akpara', np.concatenate(akra))]
+        new_fields += [('akpade', np.concatenate(akde))]
+        tdata[inst] = add_recarray_columns(tt, new_fields)
+    sys.stderr.write("AKS poly info added to target (TESTING).\n")
 tgt_ch1 = tdata['ch1']
 tgt_ch2 = tdata['ch2']
 
@@ -1185,6 +1246,7 @@ de_rad_errs = np.radians(de_deg_errs)
 sigcut = 5
 #af.setup(use_dataset)
 af.setup(use_dataset, RA_err=ra_rad_errs, DE_err=de_rad_errs,
+#af.setup(use_dataset, RA_err_key='ra_err_mas', DE_err_key='de_err_mas',
         jd_tdb_ref=j2000_epoch.tdb.jd, ra_key=_ra_key, de_key=_de_key)
 bestpars = af.fit_bestpars(sigcut=sigcut)
 firstpars = bestpars.copy()
@@ -1208,7 +1270,7 @@ best_dra = np.degrees(bestpars[0])
 best_dde = np.degrees(bestpars[1])
 
 ## Inspect residuals:
-raw_res_ra, raw_res_de = af._calc_radec_residuals(bestpars)
+raw_res_ra, raw_res_de = af._calc_radec_residuals_coo(bestpars)
 raw_res_ra_mas = 3.6e6 * np.degrees(raw_res_ra) * use_cos_dec
 raw_res_de_mas = 3.6e6 * np.degrees(raw_res_de)
 
@@ -1261,7 +1323,7 @@ acfig.savefig(pname)
 ## Get residuals from 4-parameter fit for plotting:
 iter4par = iterpars.copy()
 iter4par[4] = 0.0
-ra_4p_res_rad, de_4p_res_rad = af._calc_radec_residuals(iter4par)
+ra_4p_res_rad, de_4p_res_rad = af._calc_radec_residuals_coo(iter4par)
 cosdec = np.cos(iter4par[1])
 ra_resids_deg = np.degrees(ra_4p_res_rad) * cosdec
 de_resids_deg = np.degrees(de_4p_res_rad)
@@ -1404,6 +1466,11 @@ tgt_ICDDE.set_data(use_dataset['jdtdb'][af.inliers], use_res_de, use_dataset['in
 #                                 use_dataset['subpix_de'][af.inliers],
 #                                 use_dataset['instrument'][af.inliers])
 
+tgt_ngaia  = use_dataset['ngaia'][af.inliers]
+tgt_ngaor  = use_dataset['ngaor'][af.inliers]
+tgt_signal = (use_dataset['flux'] * use_dataset['exptime'])[af.inliers]
+tgt_imchan = use_dataset['instrument'][af.inliers]
+
 
 ## Fit neighbor astrometry:
 trend_resid_vecs = {}
@@ -1444,7 +1511,16 @@ for ii,nid in enumerate(use_nei_ids):
             sys.stderr.write("Converged!  Iteration: %d\n" % i)
             break
     nei_pars[nid] = iterpars.copy()
-    ra_resid, de_resid = afn._calc_radec_residuals(iterpars) #, inliers=True)
+
+    # snag a copy of fitting results at this point:
+    biggo = afn.collect_result_dataset()
+    nmch.capture_fit_results(biggo, nid)
+    #for row in biggo[biggo['inliers']]:
+    #    hacked_res_storage.append([row[x] for x in noise_model_cols])
+
+
+    ra_resid, de_resid = afn._calc_radec_residuals_coo(iterpars) #, inliers=True)
+    #ra_resid, de_resid = afn._calc_radec_residuals_coo(iterpars, inliers=True)
     #ra_resid = ra_resid[afn.inliers]
     #de_resid = de_resid[afn.inliers]
     ra_resids[nid] = ra_resid #[afn.inliers]
@@ -1515,6 +1591,7 @@ for nid in use_nei_ids:
     others = [x for x in use_nei_ids if x != nid]
     #sys.stderr.write("others: %s\n" % str(others))
     sys.stderr.write("signal: %15.5f\n" % trend_meta[nid]['signal'])
+    _solver = nei_solvers[nid]
     _target = trend_resid_vecs[nid]
     _trends = {k:trend_resid_vecs[k] for k in others}
     #_aligned_ra_res = []
@@ -1530,7 +1607,7 @@ for nid in use_nei_ids:
     nei_DEDetrend.set_data(_target['jdtdb'].values, _target['de_resid'].values)
     #nei_RADetrend.add_trend('subpix_ra', nei_both[nid]['jdtdb'], nei_both[nid]['subpix_ra'])
     #nei_DEDetrend.add_trend('subpix_de', nei_both[nid]['jdtdb'], nei_both[nid]['subpix_de'])
-    
+
     _nei_inst = nei_both[nid]['instrument']
     nei_ICDRA.set_data(_target['jdtdb'].values, _target['ra_resid'].values, _nei_inst)
     nei_ICDDE.set_data(_target['jdtdb'].values, _target['de_resid'].values, _nei_inst)
@@ -1604,6 +1681,10 @@ for nid in use_nei_ids:
     nei_ICDDE.detrend()
     _tvec_de, _target['de_detrend'], _ivec_de = nei_ICDDE.get_results()
 
+    #biggo = _solver.collect_result_dataset()
+    #biggo = include_tfa_residuals(biggo, _target['ra_resid'], _target['de_resid'])
+    #nmch.capture_fit_results(biggo, nid)
+
     #_, old_scatter = rs.calc_ls_med_IQR(_target['de_resid'])
     #_, new_scatter = rs.calc_ls_med_IQR(_target['de_detrend'])
     #old_scatter, new_scatter = np.std(_target['de_resid']), np.std(_target['de_detrend'])
@@ -1641,7 +1722,7 @@ sys.stderr.write("Adding neighbor residuals ... \n")
 for ii,nid in enumerate(use_nei_ids):
     _nboth = nei_both[nid]
     iterpars = nei_pars[nid]
-    ra_resid, de_resid = afn._calc_radec_residuals(iterpars)
+    ra_resid, de_resid = afn._calc_radec_residuals_coo(iterpars)
     ra_shift = (ii + 1) * fixed_ra_yshift
     de_shift = (ii + 1) * fixed_de_yshift
     #ra_resids.append(ra_resid)
@@ -1706,6 +1787,34 @@ tgt_ICDRA.detrend()
 tgt_ICDDE.detrend()
 tgt_tvec_ra, tgt_cln_res_ra, tgt_ivec_ra = tgt_ICDRA.get_results()
 tgt_tvec_de, tgt_cln_res_de, tgt_ivec_de = tgt_ICDDE.get_results()
+
+#def include_tfa_residuals(data, tfa_ra_res, tfa_de_res):
+#    sys.stderr.write("len(data): %d\n" % len(data))
+#    tmp_tfa_ra = np.zeros(len(data)) * np.nan
+#    tmp_tfa_de = np.zeros(len(data)) * np.nan
+#    tmp_tfa_ra[data['inliers']] = tfa_ra_res
+#    tmp_tfa_de[data['inliers']] = tfa_de_res
+#    new_fields = [('tfa_resid_ra_mas', tmp_tfa_ra),
+#                    ('tfa_resid_de_mas', tmp_tfa_de)]
+#    return add_recarray_columns(data, new_fields)
+
+# Capture residuals from target astrometric fitting:
+biggo = af.collect_result_dataset()
+#biggo = include_tfa_residuals(biggo, tgt_cln_res_ra, tgt_cln_res_de)
+nmch.capture_fit_results(biggo, tgt_name)
+nmod_save_file = 'nmod_resid_raw_%s.csv' % tgt_name
+nmch.dump_to_file(nmod_save_file)
+
+# Also check post-TFA residuals:
+
+## Quickly dump results for inspection:
+with open('rms_ngaia.csv', 'w') as rmsf:
+    rmsf.write("chan,signal,ngaia,ngaor,ra_err_mas,de_err_mas\n")
+    for stuff in zip(tgt_imchan, tgt_signal, tgt_ngaia, tgt_ngaor,
+            3.6e6*np.degrees(tgt_cln_res_ra), 3.6e6 * np.degrees(tgt_cln_res_de)):
+        save_line = ','.join([str(x) for x in stuff])
+        rmsf.write(save_line + '\n')
+
 
 if not np.all(targ_jdtdb == tgt_tvec_ra):
     sys.stderr.write("Time vectors misaligned!!\n")

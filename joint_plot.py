@@ -114,15 +114,15 @@ except ImportError:
     sys.exit(1)
 
 ## Home-brew KDE:
-#try:
-#    import my_kde
-#    reload(my_kde)
-#    mk = my_kde
-#except ImportError:
-#    logger.error("module my_kde not found!  Install and retry.")
-#    sys.stderr.write("\nError!  my_kde module not found!\n"
-#           "Please install and try again ...\n\n")
-#    sys.exit(1)
+try:
+    import my_kde
+    reload(my_kde)
+    mk = my_kde
+except ImportError:
+    logger.error("module my_kde not found!  Install and retry.")
+    sys.stderr.write("\nError!  my_kde module not found!\n"
+           "Please install and try again ...\n\n")
+    sys.exit(1)
 
 ## Various from astropy:
 #try:
@@ -192,40 +192,147 @@ def mprint(matrix):
 _cryo_warm_cutoff = 2455562.5007660175      # JD (TDB)
 
 ##--------------------------------------------------------------------------##
+## Pre-load full paths of pcat files:
+pfp_list = 'pcat_file_paths.txt'
+if not os.path.isfile(pfp_list):
+    sys.stderr.write("File not found: %s\n" % pfp_list)
+    sys.exit(1)
+with open(pfp_list) as pfpl:
+    pcat_files = [x.strip() for x in pfpl.readlines()]
+
+## Create full path lookup table:
+pfp_lut = {}
+for ppath in pcat_files:
+    pbase = os.path.basename(ppath)
+    pfp_lut[pbase] = ppath
+
+## Pre-load full paths of pcat files and object counts:
+pcat_list = 'pcat_file_specs.csv'
+gftkw = {'encoding':None} if (_have_np_vers >= 1.14) else {}
+gftkw.update({'names':True, 'autostrip':True})
+gftkw.update({'delimiter':','})
+pcat_data = np.genfromtxt(pcat_list, dtype=None, **gftkw)
+
+## Create full path lookup table:
+obj_lut = dict(zip(pcat_data['pbase'], pcat_data['nobjs']))
+pfp_lut = dict(zip(pcat_data['pbase'], pcat_data['ppath']))
+
+##--------------------------------------------------------------------------##
 ## Quick ASCII I/O:
-data_file = 'results_joint.csv'
+#data_file = 'results_joint.csv'
+cdmat_file = 'results_joint.csv'
 gftkw = {'encoding':None} if (_have_np_vers >= 1.14) else {}
 gftkw.update({'names':True, 'autostrip':True})
 gftkw.update({'delimiter':','})
 #gftkw.update({'delimiter':'|', 'comments':'%0%0%0%0'})
 #gftkw.update({'loose':True, 'invalid_raise':False})
-all_data = np.genfromtxt(data_file, dtype=None, **gftkw)
+all_data = np.genfromtxt(cdmat_file, dtype=None, **gftkw)
 #all_data = np.atleast_1d(np.genfromtxt(data_file, dtype=None, **gftkw))
 #all_data = np.genfromtxt(fix_hashes(data_file), dtype=None, **gftkw)
 #all_data = aia.read(data_file)
 
+## Matching results from 'padeg' fit flavor:
+padeg_file = 'results_joint_padeg.csv'
+pad_data   = np.genfromtxt(padeg_file, dtype=None, **gftkw)
+ngaia_lut  = dict(zip(pad_data['iname'], pad_data['ngaia']))
+
+matched    = np.array([x in pad_data['iname'] for x in all_data['iname']])
+
+#use_data   = all_data[matched]
+
+
+## nobjs config (ExtCat vs Gaia matches):
+nobjs_gaia = True
+#nobjs_gaia = False
+if nobjs_gaia:
+    obj_lut    = ngaia_lut
+    nobj_label = 'Gaia Matches'
+    nobj_plot = 'joint_results_ngaia.png'
+    use_data   = all_data[matched]
+else:
+    #obj_lut    = obj_lut    # from above
+    nobj_label = 'Catalog Stars'
+    nobj_plot = 'joint_results_ncat.png'
+    use_data  = all_data
+
+## Process fit results:
+nobj_thresh = 20
+derot_obj = {'I1':[], 'I2':[]}
 derot_cdm = {'I1':[], 'I2':[]}
 derot_tdb = {'I1':[], 'I2':[]}
-for ii,stuff in enumerate(all_data):
+for ii,stuff in enumerate(use_data):
+    pbase = stuff['iname']
     channel = stuff['aor_tag'].split('_')[1]
     this_cdm = np.array([stuff['new_cd11'], stuff['new_cd12'],
         stuff['new_cd21'], stuff['new_cd22']]).reshape(2,2)
     this_rot = rotation_matrix(np.radians(stuff['padeg']))
+    this_obj = obj_lut.get(stuff['iname'])
+    #this_obj = ngaia_lut.get(stuff['iname'])
     #this_cdm = np.array([all_data['new_cd11'][ii], all_data['new_cd12'][ii],
     #    all_data['new_cd21'][ii], all_data['new_cd22'][ii]]).reshape(2,2)
     #this_rot = rotation_matrix(np.radians(all_data['padeg'][ii]))
     rot_prod = np.matmul(this_rot, this_cdm)
+    derot_obj[channel].append(this_obj)
     derot_cdm[channel].append(rot_prod.flatten().tolist())
     derot_tdb[channel].append(stuff['jdtdb'])
+    cd11_abs = 3600.0 * np.abs(rot_prod.flatten()[0])
+    if cd11_abs > 1.225:
+        sys.stderr.write("cd11_abs: %f\n" % cd11_abs)
+        sys.stderr.write("stuff: %s\n" % str(stuff))
+        sys.stderr.write("\n")
 derot_cdm['I1'] = np.array(derot_cdm['I1'])
 derot_cdm['I2'] = np.array(derot_cdm['I2'])
 derot_tdb['I1'] = np.array(derot_tdb['I1'])
 derot_tdb['I2'] = np.array(derot_tdb['I2'])
+derot_obj['I1'] = np.array(derot_obj['I1'])
+derot_obj['I2'] = np.array(derot_obj['I2'])
+
+## Cheesy flip fix:
+derot_cdm['I1'] = 3600.0 * np.abs(derot_cdm['I1'])
+derot_cdm['I2'] = 3600.0 * np.abs(derot_cdm['I2'])
 
 
 ## Scatter in the CD matrix values:
 ch1_cdm_med, ch1_cdm_iqr = rs.calc_ls_med_IQR(derot_cdm['I1'], axis=0)
 ch2_cdm_med, ch2_cdm_iqr = rs.calc_ls_med_IQR(derot_cdm['I2'], axis=0)
+
+ch1_cdm_med_arcsec = 3600.0 * ch1_cdm_med
+ch1_cdm_iqr_arcsec = 3600.0 * ch1_cdm_iqr
+ch2_cdm_med_arcsec = 3600.0 * ch2_cdm_med
+ch2_cdm_iqr_arcsec = 3600.0 * ch2_cdm_iqr
+
+## Compare many-source and sparse-source pixel scales:
+fulldiv = 80 * '-'
+ch1_cutoff = 25
+ch2_cutoff = 20
+
+sys.stderr.write("%s\n" % fulldiv)
+sys.stderr.write("ch1 median CD11 (everything): %.6f +/- %.6f\n"
+        % (ch1_cdm_med[0], ch1_cdm_iqr[0]))
+sys.stderr.write("ch1 median CD22 (everything): %.6f +/- %.6f\n"
+        % (ch1_cdm_med[3], ch1_cdm_iqr[3]))
+keep = (derot_obj['I1'] > ch1_cutoff)
+hq_ch1_cdm_med, hq_ch1_cdm_iqr = rs.calc_ls_med_IQR(derot_cdm['I1'][keep], axis=0)
+sys.stderr.write("\n")
+sys.stderr.write("ch1 median CD11 (manysource): %.6f +/- %.6f\n"
+        % (hq_ch1_cdm_med[0], hq_ch1_cdm_iqr[0]))
+sys.stderr.write("ch1 median CD22 (manysource): %.6f +/- %.6f\n"
+        % (hq_ch1_cdm_med[3], hq_ch1_cdm_iqr[3]))
+
+
+
+sys.stderr.write("%s\n" % fulldiv)
+sys.stderr.write("ch2 median CD11 (everything): %.6f +/- %.6f\n"
+        % (ch2_cdm_med[0], ch2_cdm_iqr[0]))
+sys.stderr.write("ch2 median CD22 (everything): %.6f +/- %.6f\n"
+        % (ch2_cdm_med[3], ch2_cdm_iqr[3]))
+keep = (derot_obj['I2'] > ch2_cutoff)
+hq_ch2_cdm_med, hq_ch2_cdm_iqr = rs.calc_ls_med_IQR(derot_cdm['I2'][keep], axis=0)
+sys.stderr.write("\n")
+sys.stderr.write("ch2 median CD11 (manysource): %.6f +/- %.6f\n"
+        % (hq_ch2_cdm_med[0], hq_ch2_cdm_iqr[0]))
+sys.stderr.write("ch2 median CD22 (manysource): %.6f +/- %.6f\n"
+        % (hq_ch2_cdm_med[3], hq_ch2_cdm_iqr[3]))
 
 
 #all_data = append_fields(all_data, ('ra', 'de'), 
@@ -252,136 +359,6 @@ ch2_cdm_med, ch2_cdm_iqr = rs.calc_ls_med_IQR(derot_cdm['I2'], axis=0)
 #vot_file = 'neato.xml'
 #vot_data = av.parse_single_table(vot_file)
 #vot_data = av.parse_single_table(vot_file).to_table()
-
-##--------------------------------------------------------------------------##
-## Timestamp modification:
-#def time_warp(jdutc, jd_offset, scale):
-#    return (jdutc - jd_offset) * scale
-
-## Self-consistent time-modification for plotting:
-#tfudge = partial(time_warp, jd_offset=tstart.jd, scale=24.0)    # relative hrs
-#tfudge = partial(time_warp, jd_offset=tstart.jd, scale=1440.0)  # relative min
-
-##--------------------------------------------------------------------------##
-## Quick FITS I/O:
-#data_file = 'image.fits'
-#img_vals = pf.getdata(data_file)
-#hdr_keys = pf.getheader(data_file)
-#img_vals, hdr_keys = pf.getdata(data_file, header=True)
-#img_vals, hdr_keys = pf.getdata(data_file, header=True, uint=True) # USHORT
-#img_vals, hdr_keys = fitsio.read(data_file, header=True)
-
-#date_obs = hdr_keys['DATE-OBS']
-#site_lat = hdr_keys['LATITUDE']
-#site_lon = hdr_keys['LONGITUD']
-
-## Initialize time:
-#img_time = astt.Time(hdr_keys['DATE-OBS'], scale='utc', format='isot')
-#img_time += astt.TimeDelta(0.5 * hdr_keys['EXPTIME'], format='sec')
-#jd_image = img_time.jd
-
-## Initialize location:
-#observer = ephem.Observer()
-#observer.lat = np.radians(site_lat)
-#observer.lon = np.radians(site_lon)
-#observer.date = img_time.datetime
-
-#pf.writeto('new.fits', img_vals)
-#qsave('new.fits', img_vals)
-#qsave('new.fits', img_vals, header=hdr_keys)
-
-##--------------------------------------------------------------------------##
-## Misc:
-#def log_10_product(x, pos):
-#   """The two args are the value and tick position.
-#   Label ticks with the product of the exponentiation."""
-#   return '%.2f' % (x)  # floating-point
-#
-#formatter = plt.FuncFormatter(log_10_product) # wrap function for use
-
-## Convenient, percentile-based plot limits:
-#def nice_limits(vec, pctiles=[1,99], pad=1.2):
-#    ends = np.percentile(vec[~np.isnan(vec)], pctiles)
-#    middle = np.average(ends)
-#    return (middle + pad * (ends - middle))
-
-## Convenient plot limits for datetime/astropy.Time content:
-#def nice_time_limits(tvec, buffer=0.05):
-#    lower = tvec.min()
-#    upper = tvec.max()
-#    ndays = upper - lower
-#    return ((lower - 0.05*ndays).datetime, (upper + 0.05*ndays).datetime)
-
-## Convenient limits for datetime objects:
-#def dt_limits(vec, pad=0.1):
-#    tstart, tstop = vec.min(), vec.max()
-#    trange = (tstop - tstart).total_seconds()
-#    tpad = dt.timedelta(seconds=pad*trange)
-#    return (tstart - tpad, tstop + tpad)
-
-##--------------------------------------------------------------------------##
-## Solve prep:
-#ny, nx = img_vals.shape
-#x_list = (0.5 + np.arange(nx)) / nx - 0.5            # relative (centered)
-#y_list = (0.5 + np.arange(ny)) / ny - 0.5            # relative (centered)
-#xx, yy = np.meshgrid(x_list, y_list)                 # relative (centered)
-#xx, yy = np.meshgrid(nx*x_list, ny*y_list)           # absolute (centered)
-#xx, yy = np.meshgrid(np.arange(nx), np.arange(ny))   # absolute
-#yy, xx = np.meshgrid(np.arange(ny), np.arange(nx), indexing='ij') # absolute
-#yy, xx = np.nonzero(np.ones_like(img_vals))          # absolute
-#yy, xx = np.mgrid[0:ny,   0:nx].astype('uint16')     # absolute (array)
-#yy, xx = np.mgrid[1:ny+1, 1:nx+1].astype('uint16')   # absolute (pixel)
-
-## 1-D vectors:
-#x_pix, y_pix, ivals = xx.flatten(), yy.flatten(), img_vals.flatten()
-#w_vec = np.ones_like(ivals)            # start with uniform weights
-#design_matrix = np.column_stack((np.ones(x_pix.size), x_pix, y_pix))
-
-## Image fitting (statsmodels etc.):
-#data = sm.datasets.stackloss.load()
-#ols_res = sm.OLS(ivals, design_matrix).fit()
-#rlm_res = sm.RLM(ivals, design_matrix).fit()
-#rlm_model = sm.RLM(ivals, design_matrix, M=sm.robust.norms.HuberT())
-#rlm_res = rlm_model.fit()
-#data = pd.DataFrame({'xpix':x_pix, 'ypix':y_pix})
-#rlm_model = sm.RLM.from_formula("ivals ~ xpix + ypix", data)
-
-##--------------------------------------------------------------------------##
-## Theil-Sen line-fitting (linear):
-#model = ts.linefit(xvals, yvals)
-#icept, slope = ts.linefit(xvals, yvals)
-
-## Theil-Sen line-fitting (loglog):
-#xvals, yvals = np.log10(original_xvals), np.log10(original_yvals)
-#xvals, yvals = np.log10(df['x'].values), np.log10(df['y'].values)
-#llmodel = ts.linefit(np.log10(xvals), np.log10(yvals))
-#icept, slope = ts.linefit(xvals, yvals)
-#fit_exponent = slope
-#fit_multiplier = 10**icept
-#bestfit_x = np.arange(5000)
-#bestfit_y = fit_multiplier * bestfit_x**fit_exponent
-
-## Log-log evaluator:
-#def loglog_eval(xvals, model):
-#    icept, slope = model
-#    return 10**icept * xvals**slope
-#def loglog_eval(xvals, icept, slope):
-#    return 10**icept * xvals**slope
-
-##--------------------------------------------------------------------------##
-## KDE:
-#kde_pnts, kde_vals = mk.go(data_vec)
-
-##--------------------------------------------------------------------------##
-## Vaex plotting:
-#ds = vaex.open('big_file.hdf5')
-#ds = vaex.from_arrays(x=x, y=y)     # load from arrays
-#ds = vaex.from_csv('mydata.csv')
-
-## Stats:
-#ds.mean("x"), ds.std("x"), ds.correlation("vx**2+vy**2+vz**2", "E")
-#ds.plot(....)
-#http://vaex.astro.rug.nl/latest/tutorial_ipython_notebook.html
 
 ##--------------------------------------------------------------------------##
 ## Plot config:
@@ -421,13 +398,66 @@ ax2.grid(True)
 
 skw = {'lw':0}
 if len(derot_cdm['I1']):
-    ax1.scatter(derot_tdb['I1'], derot_cdm['I1'][:,0], label='ch1', **skw)
-    ax1.axvline(_cryo_warm_cutoff, ls='--', c='r')
+    ch1_cd11_lab = '%.5f arcsec' % ch1_cdm_med[0]
+    ax1.scatter(derot_tdb['I1'], derot_cdm['I1'][:,0], label='ch1 CD11', **skw)
+    ax1.scatter(derot_tdb['I1'], derot_cdm['I1'][:,3], label='ch1 CD22', **skw)
+    ax1.axvline(_cryo_warm_cutoff, ls='--', c='r', label='cryo/warm')
+    ax1.axhline(ch1_cdm_med[0], ls='--', c='g', label=ch1_cd11_lab)
+    ax1.set_ylabel('Plate Scale (arcsec / pix)')
     ax1.legend(loc='upper right')
 if len(derot_cdm['I2']):
-    ax2.scatter(derot_tdb['I2'], derot_cdm['I2'][:,0], label='ch2', **skw)
-    ax2.axvline(_cryo_warm_cutoff, ls='--', c='r')
+    ch2_cd11_lab = '%.5f arcsec' % ch2_cdm_med[0]
+    ax2.scatter(derot_tdb['I2'], derot_cdm['I2'][:,0], label='ch2 CD11', **skw)
+    ax2.scatter(derot_tdb['I2'], derot_cdm['I2'][:,3], label='ch2 CD22', **skw)
+    ax2.axvline(_cryo_warm_cutoff, ls='--', c='r', label='cryo/warm')
+    ax2.axhline(ch2_cdm_med[0], ls='--', c='g', label=ch2_cd11_lab)
+    ax2.set_ylabel('Plate Scale (arcsec / pix)')
     ax2.legend(loc='upper right')
+
+ax2.set_xlabel("JD (TDB)")
+
+plot_name = 'joint_results.png'
+fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
+plt.draw()
+fig.savefig(plot_name, bbox_inches='tight')
+
+## ----------------------------------------------------------------------- ##
+## ----------------------------------------------------------------------- ##
+## ----------------------------------------------------------------------- ##
+
+fig2 = plt.figure(2, figsize=fig_dims)
+fig2.clf()
+ax1 = fig2.add_subplot(211)
+ax2 = fig2.add_subplot(212, sharex=ax1)
+ax1.grid(True)
+ax2.grid(True)
+
+
+if len(derot_cdm['I1']):
+    ch1_cd11_lab = '%.5f arcsec' % ch1_cdm_med[0]
+    ax1.scatter(derot_obj['I1'], derot_cdm['I1'][:,0], label='ch1 CD11', **skw)
+    ax1.scatter(derot_obj['I1'], derot_cdm['I1'][:,3], label='ch1 CD22', **skw)
+    #ax1.axvline(_cryo_warm_cutoff, ls='--', c='r', label='cryo/warm')
+    ax1.axhline(hq_ch1_cdm_med[0], ls='--', c='g', label=ch1_cd11_lab)
+    ax1.set_ylabel('Plate Scale (arcsec / pix)')
+    ax1.legend(loc='upper right')
+if len(derot_cdm['I2']):
+    ch2_cd11_lab = '%.5f arcsec' % ch2_cdm_med[0]
+    ax2.scatter(derot_obj['I2'], derot_cdm['I2'][:,0], label='ch2 CD11', **skw)
+    ax2.scatter(derot_obj['I2'], derot_cdm['I2'][:,3], label='ch2 CD22', **skw)
+    #ax2.axvline(_cryo_warm_cutoff, ls='--', c='r', label='cryo/warm')
+    ax2.axhline(hq_ch2_cdm_med[0], ls='--', c='g', label=ch2_cd11_lab)
+    ax2.set_ylabel('Plate Scale (arcsec / pix)')
+    ax2.legend(loc='upper right')
+
+#ax2.set_xlabel('Objects')
+ax2.set_xlabel(nobj_label)
+
+#plot_name = 'joint_results_nobj.png'
+fig2.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
+plt.draw()
+fig2.savefig(nobj_plot, bbox_inches='tight')
+
 
 ## For polar axes:
 #ax1.set_rmin( 0.0)                  # if using altitude in degrees
@@ -491,10 +521,6 @@ if len(derot_cdm['I2']):
 #cbar = fig.colorbar(scm, ticks=cs.levels, orientation='vertical') # contours
 #cbar.formatter.set_useOffset(False)
 #cbar.update_ticks()
-
-fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
-plt.draw()
-#fig.savefig(plot_name, bbox_inches='tight')
 
 # cyclical colormap ... cmocean.cm.phase
 # cmocean: https://matplotlib.org/cmocean/
