@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2023-04-13
-# Last modified: 2023-04-13
+# Last modified: 2023-04-25
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 ## Python version-agnostic module reloading:
 try:
@@ -157,7 +157,7 @@ class NoiseModHelper(object):
         hdrtxt = delim.join(cnames)
         with open(filename, 'w') as ff:
             ff.write(hdrtxt + '\n')
-            for stuff in self.storage:
+            for stuff in sorted(self.storage):
                 ff.write("%s\n" % delim.join([str(x) for x in stuff]))
                 pass
             pass
