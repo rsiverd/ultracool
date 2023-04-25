@@ -46,5 +46,7 @@
 output format:
 catalog of trend stars and target
 * capture gaia ID for relevant stars
-
+* ngaia_image -- gaia stars detected/used from this image
+* ngaia_joint -- gaia stars detected/used in a joint fitting
+* ngaia_known -- ?? total gaia stars known in image
 
