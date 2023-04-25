@@ -132,7 +132,7 @@ import copy
 ##--------------------------------------------------------------------------##
 ## Columns to pull from a standardized dataset:
 _noise_model_cols = ['instrument', 'signal', 'ngaia', 'ngaor',
-              'fit_resid_ra_mas', 'fit_resid_de_mas']
+              'fit_resid_ra_mas', 'fit_resid_de_mas', 'iname']
 
 ##--------------------------------------------------------------------------##
 ##------------------     Data Collection/Saving Module      ----------------##
