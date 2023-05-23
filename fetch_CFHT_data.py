@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 # vim: set fileencoding=utf-8 ts=4 sts=4 sw=4 et tw=80 :
 #
-# Fetch Spitzer Heritage Archive data relevant to specified object.
+# Fetch Canada-France-Hawaii Telescope (CFHT) images from the Canadian
+# Astronomy Data Centre (CADC).
 #
 # Rob Siverd
 # Created:       2020-03-02
-# Last modified: 2020-03-04
+# Last modified: 2023-05-23
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.3.0"
+__version__ = "0.1.5"
 
 ## Python version-agnostic module reloading:
 try:
@@ -142,7 +143,7 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------
     prog_name = os.path.basename(__file__)
     descr_txt = """
-    Download data from Spitzer Heritage Archive by sky coordinate.
+    Download CFHT data from CADC by sky coordinate.
     
     Version: %s
     """ % __version__
@@ -430,8 +431,13 @@ for nn,tinfo in enumerate(targets, 1):
 
 
 ######################################################################
-# CHANGELOG (fetch_hsa_data.py):
+# CHANGELOG (fetch_CFHT_data.py):
 #---------------------------------------------------------------------
+#
+#  2023-05-23:
+#     -- Increased __version__ to 0.1.5.
+#     -- Tested working with calib1/calib2 and target fields.
+#     -- Fixed comments in help menu.
 #
 #  2020-03-02:
 #     -- Increased __version__ to 0.1.0.
