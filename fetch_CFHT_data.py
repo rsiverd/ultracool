@@ -12,7 +12,7 @@
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.1.5"
+__version__ = "0.2.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -167,9 +167,11 @@ if __name__ == '__main__':
     iogroup.add_argument('-f', '--fetch_list', required=False, default=None,
             help='save list of download(ed) files to FILE', type=str)
     iogroup.add_argument('-o', '--output_dir', required=True, default=None,
-            help='output folder for retrieved files', type=str)
+            help='output folder for CADC files', type=str)
     iogroup.add_argument('-t', '--target_list', required=True, default=None,
             help='input list of target coordinates', type=str)
+    iogroup.add_argument('--subdirectory', required=False, default=None,
+            help='subfolder (within target) for downloads', type=str)
     iogroup.add_argument('--temp_folder', required=False, default='/tmp',
             help='where to store in-process downloads')
     #iogroup.add_argument('-o', '--output_file', default=None, required=True,
@@ -294,7 +296,7 @@ max_objs = 0
 
 ## How to select things 
 instr_names = ['WIRCam'] #, 'jeffcam']
-prod_suffix = ['p', 's']
+prod_suffix = ['o', 'p', 's']
 ntodo = 0
 chunksize = 50
 tmp_dl_base = 'tmpfetch.%d.fits' % os.getpid()
@@ -307,7 +309,8 @@ def pick_favorites(results):
     hits = results.copy()
 
     # select desired instruments:
-    hits = apt.vstack([hits[(hits['instrument_name'] == x)] for x in instr_names])
+    hits = apt.vstack([hits[(hits['instrument_name'] == x)] \
+            for x in instr_names])
 
     # select desired productID suffixes:
     which = np.array([any([pp.endswith(x) for x in prod_suffix]) \
@@ -375,13 +378,24 @@ def download_from_cadc(dlspec, stream=sys.stderr):
 ##------------------         Download Everything            ----------------##
 ##--------------------------------------------------------------------------##
 
+## Allow saving of CADC query results for debugging:
+save_cadc_hits = False
+cadc_hits_file = 'cadc_hits.pickle'
+
+## Iterate over targets:
 for nn,tinfo in enumerate(targets, 1):
     targ, tname = tinfo
     sys.stderr.write("%s\n" % fulldiv)
     sys.stderr.write("Target %d of %d: %s\n" % (nn, len(targets), tname))
 
-    # ensure output folder exists:
+    # ensure root output folder exists:
     save_dir = os.path.join(context.output_dir, tname)
+    if not os.path.isdir(save_dir):
+        os.mkdir(save_dir)
+
+    # set and create subfolder, if requested:
+    if context.subdirectory:
+        save_dir = os.path.join(save_dir, context.subdirectory)
     if not os.path.isdir(save_dir):
         os.mkdir(save_dir)
 
@@ -392,12 +406,26 @@ for nn,tinfo in enumerate(targets, 1):
     hits.sort('productID')
     sys.stderr.write("done.\n")
 
+    # save results payload for inspection:
+    if save_cadc_hits:
+        import pickle
+        #import pdb; pdb.set_trace()
+        with open(cadc_hits_file, 'wb') as chp:
+            pickle.dump(hits, chp)
+        sys.exit(1)
+        ### reload with:
+        ##with open(cadc_hits_file, 'rb') as chp:
+        ##    hits = pickle.load(chp)
+
     # select useful subset:
     sys.stderr.write("Selecting useful subset ... ")
     useful = pick_favorites(hits)
     useful['ibase'] = ['%s.fits.fz'%x for x in useful['productID']]
     useful['isave'] = [os.path.join(save_dir, x) for x in useful['ibase']]
     sys.stderr.write("done. Identified %d images.\n" % len(useful))
+    if len(useful) < 1:
+        sys.stderr.write("Nothing to fetch!\n")
+        continue
 
     # exclude images already retrieved:
     already_have = np.array([os.path.isfile(x) for x in useful['isave']])
@@ -435,7 +463,10 @@ for nn,tinfo in enumerate(targets, 1):
 #---------------------------------------------------------------------
 #
 #  2023-05-23:
-#     -- Increased __version__ to 0.1.5.
+#     -- Increased __version__ to 0.2.0.
+#     -- Added ability to specify raw downloads subfolder.
+#     -- Now skip download loop when useful subset has zero length.
+#     -- Added 'o' type products to download queue.
 #     -- Tested working with calib1/calib2 and target fields.
 #     -- Fixed comments in help menu.
 #
