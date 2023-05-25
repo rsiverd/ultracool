@@ -6,13 +6,13 @@
 #
 # Rob Siverd
 # Created:       2020-03-02
-# Last modified: 2023-05-23
+# Last modified: 2023-05-24
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 ## Python version-agnostic module reloading:
 try:
@@ -73,6 +73,7 @@ sys.stderr = Unbuffered(sys.stderr)
 ## Various from astropy:
 try:
     import astropy.table as apt
+    import astropy.time as astt
     import astropy.io.fits as pf
     from astroquery.cadc import Cadc
     cadc = Cadc()
@@ -405,6 +406,7 @@ for nn,tinfo in enumerate(targets, 1):
     hits = cadc.query_region(targ, radius=srch_deg, collection='CFHT')
     hits.sort('productID')
     sys.stderr.write("done.\n")
+    sys.stderr.write("Found %d products at position.\n" % len(hits))
 
     # save results payload for inspection:
     if save_cadc_hits:
@@ -427,14 +429,33 @@ for nn,tinfo in enumerate(targets, 1):
         sys.stderr.write("Nothing to fetch!\n")
         continue
 
+    # exclude not-yet-public data (will not work in this script):
+    #isot_format = '%Y-%m-%dT%H:%M:%S'
+    #public_date = useful['dataRelease']
+    #dt.datetime.strptime(public_date[-1].split('.')[0], isot_format)
+    pub_date = astt.Time(useful['dataRelease'], scale='utc', format='isot')
+    now_sec  = time.time()
+    private  = (time.time() < pub_date.unix)
+    n_priv   = np.sum(private)
+    useful   = useful[~private]
+    n_remain = len(useful)
+    sys.stderr.write("Dropping %d not-yet-public images.\n" % np.sum(private))
+    sys.stderr.write("Have %d public images remaining.\n" % n_remain)
+    if (n_remain == 0):
+        sys.stderr.write("Nothing to do, next object!\n")
+        continue
+
+
     # exclude images already retrieved:
     already_have = np.array([os.path.isfile(x) for x in useful['isave']])
     nfound = np.sum(already_have)
     sys.stderr.write("Excluding %d already-retrieved images.\n" % nfound)
     useful = useful[~already_have]
-    if (len(useful) == 0):
+    n_remain = len(useful)
+    if (n_remain == 0):
         sys.stderr.write("Nothing to do, next object!\n")
         continue
+    sys.stderr.write("Found %d images to fetch.\n" % n_remain)
 
     if (ntodo > 0):
         useful = useful[:ntodo]
@@ -449,6 +470,13 @@ for nn,tinfo in enumerate(targets, 1):
         sys.stderr.write("Chunk %d of %d ...\n" % (ii, nchunks))
         snag = useful[cidx]
         imurls = cadc.get_data_urls(snag)
+        if len(imurls) != len(snag):
+            sys.stderr.write("Mismatch in download URL list!\n")
+            # SEEN WITH:
+            # ['https://ws.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/raven/files/cadc:CFHT/2245332o.fits',
+            #  'https://ws.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/raven/files/cadc:CFHT/2245332o.fits.fz']
+            #
+            continue
         dlspec = [(uu, ss, tmp_dl_path) for uu,ss in zip(imurls, snag['isave'])]
         #fdl.smart_fetch_bulk(dlspec)
         download_from_cadc(dlspec)
@@ -461,6 +489,11 @@ for nn,tinfo in enumerate(targets, 1):
 ######################################################################
 # CHANGELOG (fetch_CFHT_data.py):
 #---------------------------------------------------------------------
+#
+#  2023-05-24:
+#     -- Increased __version__ to 0.2.1.
+#     -- Added warning for weird mismatch in URLs from CADC.
+#     -- Now exclude not-yet-public images from download list.
 #
 #  2023-05-23:
 #     -- Increased __version__ to 0.2.0.
