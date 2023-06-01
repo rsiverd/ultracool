@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2021-02-01
-# Last modified: 2023-01-19
+# Last modified: 2023-05-31
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -139,7 +139,7 @@ if __name__ == '__main__':
     imtype.add_argument('--cbcd', required=False, action='store_const',
             dest='imtype', const='cbcd', help='use cbcd images')
     imtype.add_argument('--hcfix', required=False, action='store_const',
-            dest='imtype', const='hcfix', help='use clean images')
+            dest='imtype', const='hcfix', help='use hot column-fixed images')
     imtype.add_argument('--clean', required=False, action='store_const',
             dest='imtype', const='clean', help='use clean images')
     #iogroup.add_argument('-R', '--ref_image', default=None, required=True,
