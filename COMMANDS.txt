@@ -78,6 +78,10 @@ done
 ./fetch_gaia_nearby.py -R 0.3 271.14730000  +31.28515000 -o csv/gaia_wise1804.csv
 ./fetch_gaia_nearby.py -R 0.3 314.12055000  +14.99824000 -o csv/gaia_wise2056.csv
 
+# CFHT calibration fields:
+./fetch_gaia_nearby.py -R 0.3 294.70280000  +35.21010000 -o csv/gaia_calib1_NE.csv
+./fetch_gaia_nearby.py -R 0.3 103.73740000  +12.15810000 -o csv/gaia_calib2.csv
+
 # ----------------------------------------------------------------------- 
 
 # retrieve SST ephemeris data before preprocessing:
