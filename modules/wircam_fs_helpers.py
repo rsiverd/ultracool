@@ -121,10 +121,10 @@ def get_files_walk(targ_root, flavor):
 
 
 ######################################################################
-# CHANGELOG (cfht_fs_helpers.py):
+# CHANGELOG (wircam_fs_helpers.py):
 #---------------------------------------------------------------------
 #
 #  2023-05-31:
 #     -- Increased __version__ to 0.1.0.
-#     -- First created cfht_fs_helpers.py.
+#     -- First created wircam_fs_helpers.py.
 #
