@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # vim: set fileencoding=utf-8 ts=4 sts=4 sw=4 et tw=80 :
 #
 # Extract and save extended object catalogs from the specified data and
