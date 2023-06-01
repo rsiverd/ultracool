@@ -1,0 +1,12 @@
+
+
+# retrieve SST ephemeris data before preprocessing:
+./01_get_SST_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_targets/2m0415/ \
+     -o  /home/rsiverd/ucd_project/ucd_targets/2m0415/sst_eph_2m0415.csv
+
+# retrieve CFHT ephemeris data before preprocessing:
+./02_get_CFHT_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid -o /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/cfht_eph_calib1_p_NE.csv
+
+# Do a test extraction of a bunch of images:
+./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15 
+
