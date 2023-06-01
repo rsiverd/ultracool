@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # vim: set fileencoding=utf-8 ts=4 sts=4 sw=4 et tw=80 :
 #
 # This script retrieves barycentric XYZ coordinates from JPL HORIZONS for the 
@@ -69,14 +69,23 @@ import numpy as np
 #import itertools as itt
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
+### Spitzer pipeline filesystem helpers:
+#try:
+#    import spitz_fs_helpers
+#    reload(spitz_fs_helpers)
+#except ImportError:
+#    logger.error("failed to import spitz_fs_helpers module!")
+#    sys.exit(1)
+#sfh = spitz_fs_helpers
+
 ## Spitzer pipeline filesystem helpers:
 try:
-    import spitz_fs_helpers
-    reload(spitz_fs_helpers)
+    import wircam_fs_helpers
+    reload(wircam_fs_helpers)
 except ImportError:
-    logger.error("failed to import spitz_fs_helpers module!")
+    logger.error("failed to import wircam_fs_helpers module!")
     sys.exit(1)
-sfh = spitz_fs_helpers
+wfh = wircam_fs_helpers
 
 ## HORIZONS ephemeris interaction:
 try:
@@ -221,8 +230,8 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------
     prog_name = os.path.basename(__file__)
     descr_txt = """
-    Retrieve HORIZONS ephemeris positions for Spitzer images.
-    
+    Retrieve HORIZONS ephemeris positions for CFHT WIRCam images.
+
     Version: %s
     """ % __version__
     parser = MyParser(prog=prog_name, description=descr_txt,
@@ -239,11 +248,11 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------
     iogroup = parser.add_argument_group('File I/O')
     iogroup.add_argument('-I', '--image_folder', default=None, required=True,
-            help='where to find CBCD images', type=str)
+            help='where to find WIRCam images', type=str)
     iogroup.add_argument('-o', '--output_file', required=True, default=None,
-            help='where to save retrieved ephemeris data', type=str)
+            help='where to save retrieved ephemeris data (CSV)', type=str)
     iogroup.add_argument('-W', '--walk', default=False, action='store_true',
-            help='recursively walk subfolders to find CBCD images')
+            help='recursively walk subfolders to find WIRCam images')
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
     # Miscellany:
@@ -271,29 +280,43 @@ if not os.path.isdir(context.image_folder):
     sys.exit(1)
 
 ## Get list of CBCD files:
-iflav = 'cbcd'
+iflav = 'p'
 if context.walk:
-    all_cbcd_files = sfh.get_files_walk(context.image_folder, flavor=iflav)
+    all_cfht_files = wfh.get_files_walk(context.image_folder, flavor=iflav)
 else:
-    all_cbcd_files = sfh.get_files_single(context.image_folder, flavor=iflav)
-sys.stderr.write("Identified %d '%s' FITS images.\n"
-        % (len(all_cbcd_files), iflav))
+    all_cfht_files = wfh.get_files_single(context.image_folder, flavor=iflav)
+n_images = len(all_cfht_files)
+sys.stderr.write("Identified %d '%s' FITS images.\n" % (n_images, iflav))
 
-sys.exit(0)
 ## Retrieve FITS headers:
 if context.gather_headers:
-    sys.stderr.write("Loading FITS headers for all files ... ")
-    #cbcd_headers = {x:pf.getheader(x) for x in all_cbcd_files}
-    all_cbcd_headers = [pf.getheader(x) for x in all_cbcd_files]
+    sys.stderr.write("Loading FITS headers for all files ...\n")
+    #tik = time.time()
+    #all_cfht_headers = [pf.getheader(x, extname='HAWAII-2RG-#60') \
+    #        for x in all_cfht_files]
+    #tok = time.time()
+
+    tik = time.time()
+    all_cfht_headers = []
+    for i,ipath in enumerate(all_cfht_files, 1):
+        sys.stderr.write("\rLoading header %d of %d ... " % (i, n_images))
+        ihdr = pf.getheader(ipath, extname='HAWAII-2RG-#60')
+        all_cfht_headers.append(ihdr)
+    tok = time.time()
+
     sys.stderr.write("done.\n")
+    sys.stderr.write("Header load took %.3f seconds.\n" % (tok - tik))
 
 ## Make list of base names for storage:
-img_bases  = [os.path.basename(x) for x in all_cbcd_files]
+img_bases  = [os.path.basename(x) for x in all_cfht_files]
+
 
 ## Extract observation timestamps:
-obs_dates  = [x['DATE_OBS'] for x in all_cbcd_headers]
-exp_times  = [x['EXPTIME']  for x in all_cbcd_headers]
-timestamps = astt.Time(obs_dates, scale='utc', format='isot') \
+#obs_dates  = [x['DATE-OBS'] for x in all_cfht_headers]
+#obs_dates  = [x['DATE-OBS'] for x in all_cfht_headers]
+mjd_start  = [x['MJD-OBS']  for x in all_cfht_headers]
+exp_times  = [x['EXPTIME']  for x in all_cfht_headers]
+timestamps = astt.Time(mjd_start, scale='utc', format='mjd') \
                 + 0.5 * astt.TimeDelta(exp_times, format='sec')
 
 ## Sort bases and timestamps by timestamp:
@@ -301,13 +324,26 @@ order = np.argsort(timestamps.tdb.jd)
 timestamps = timestamps[order]
 img_bases = [img_bases[x] for x in order]
 
+#ntodo = 30
+#timestamps = timestamps[:ntodo]
+#img_bases  = img_bases[:ntodo]
+
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
+## For more information about how to specify the observing site, visit:
+## https://ssd.jpl.nasa.gov/horizons/manual.html#center
+
+#sys.exit(0)
 ## Retrieve Spitzer ephemeris:
-spitzkw = {'id':'Spitzer Space Telescope', 'id_type':'id'}
-fhe.set_target(spitzkw)
+#spitzkw = {'id':'Spitzer Space Telescope', 'id_type':'id'}
+#cfht_kw = {'id':'Spitzer Space Telescope', 'id_type':'id'}
+#cfht_kw = {'id':'CFH@399', 'id_type':None}
+cfht_kw = {'id':'399', 'id_type':None}
+#cfht_kw = {'id':'267@399', 'id_type':None}
+#cfht_kw = {'id':'CFH', 'id_type':None}
+fhe.set_target(cfht_kw)
 fhe.set_imdata(img_bases, timestamps)
 sst_table = fhe.get_ephdata()
 
