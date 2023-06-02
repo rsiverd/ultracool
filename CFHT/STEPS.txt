@@ -1,0 +1,57 @@
+This is a brief overview of the steps to collect necessary metadata and
+then execute the still-in-development WIRCam pipeline.
+
+0) Choose a location on your computer for data files. Things we download
+and use multiple times include:
+* processed WIRCam data from the CADC at the calib1 location
+* a portion of the Gaia source catalog near the calib1 location
+
+1) Download data. This was previously completed by RJS using standard
+download scripts from the ultracool repository. Commands used:
+$ source ~/anaconda3/bin/activate; conda activate astrom
+$ cd ~/ucd_project/ultracool                                                          # cd into base repo folder
+$ source ENVIRONMENT.sh                                                               # update PYTHONPATH
+$ ./fetch_CFHT_data.py -t etc/WIRCam/calib_fields.txt -o ~/ucd_project/ucd_cfh_data   # creates calib1 folder
+
+2) Select NE quadrant, organize by observing night.
+RJS did this using command-line (non-Python) tools 
+outside the repository. Steps to reproduce:
+$ mkdir -p /home/rsiverd/ucd_project/ucd_cfh_data/for_abby
+$ cd /home/rsiverd/ucd_project/ucd_cfh_data/for_abby
+$ ./01_snip_calib1.sh    --START
+$ ./02_header_listing.sh --START
+$ ./03_make_symlinks.sh  --START
+
+Data were transferred to AC laptop using rsync.
+
+NOTE: data are stored by observing night in subfolders within:
+--> /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid
+
+The FITS files themselves all live in the following folder:
+--> /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/download
+
+# -----------------------------------------------------------------------
+# Abby to begin here ...
+
+3) Retrieve Gaia catalog subset for NE quadrant of calib1 field. Keep
+track of where this is stored because it will be used in later steps.
+The ultracool repo contains a script that queries the Gaia catalog and
+stores the results as CSV. Commands:
+$ source ~/anaconda3/bin/activate; conda activate astrom
+$ cd ~/ucd_project/ultracool                                                          # cd into base repo folder
+$ source ENVIRONMENT.sh                                                               # update PYTHONPATH
+$ ./fetch_gaia_nearby.py -R 0.3 294.70280000  +35.21010000 \
+   -o /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
+
+$ wc -l /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv            # make sure it has data
+
+4) Retrieve Earth barycenter (we need to update this for the CFHT telescope
+in the future) ephemeris corresponding to the dates/times of images we
+downloaded. A script in the ultracool repository handles this. Commands:
+$ source ~/anaconda3/bin/activate; conda activate astrom
+$ cd ~/ucd_project/ultracool                                                          # cd into base repo folder
+$ source ENVIRONMENT.sh                                                               # update PYTHONPATH
+$ ./02_get_CFHT_ephemeris.py -W \
+   -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid \
+   -o /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/cfht_eph_calib1_p_NE.csv
+
