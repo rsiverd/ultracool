@@ -132,7 +132,8 @@ def xycd2radec(cdmat, rel_xx, rel_yy, crval1, crval2, debug=False):
     thisCD = np.array(cdmat).reshape(2, 2)
     #rel_xx = xpix - _aks_crpix1
     #rel_yy = ypix - _aks_crpix2
-    relpix = np.array([xpix - _aks_crpix1, ypix - _aks_crpix2])
+    #relpix = np.array([xpix - _aks_crpix1, ypix - _aks_crpix2])
+    relpix = np.array([rel_xx, rel_yy])
     prj_xx, prj_yy = np.matmul(thisCD, relpix)
     return _wcs_tan_compute(thisCD, relpix, crval1, crval2, debug=debug)
 
