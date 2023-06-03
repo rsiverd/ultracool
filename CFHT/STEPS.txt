@@ -55,3 +55,15 @@ $ ./02_get_CFHT_ephemeris.py -W \
    -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid \
    -o /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/cfht_eph_calib1_p_NE.csv
 
+
+5) Extract initial catalogs from images in a particular directory (or all 
+directories). This uses an existing script based ~entirely on Spitzer
+analysis code. Steps to perform:
+$ source ~/anaconda3/bin/activate; conda activate astrom
+$ cd ~/ucd_project/ultracool                                                          # cd into base repo folder
+$ source ENVIRONMENT.sh
+$ cd CFHT
+$ ./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15   # some
+$ ./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/         # all
+
+
