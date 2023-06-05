@@ -91,6 +91,10 @@ def wcs_par_evaluator(wcs_params, matches):
     # a handy way to convert the match list into numpy arrays:
     cxx, cyy, gra, gde = (np.array(x) for x in zip(*matches))
 
+    # shift to relative X,Y coordinates:
+    cxx -= header['CRPIX1']
+    cyy -= header['CRPIX2']
+
     # first, compute the test RA/DE from X,Y positions:
     cra, cde = tp.xycd2radec(cdmat, cxx, cyy, cv1, cv2)
 
