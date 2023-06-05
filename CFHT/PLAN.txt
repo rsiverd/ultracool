@@ -1,0 +1,20 @@
+# Thoughts for the CFHT data processing (images to source RA/DE) pipeline
+
+WIRCam is removed and reinstalled frequently on the telescope. It would
+be helpful to know what the mechanical and optical tolerances are on
+this procedure. Specifically, how much can the camera sensors ultimately
+shift and rotate within the focal plane?
+It may not be reasonable to expect a single distortion solution for the
+entire data set. Any distortion components that arise within the WIRCam
+itself would likely stay constant (provided no disassembly etc). But
+distortion in the focal plane itself due to telescope optics may shift
+relative to the detector pixels. In that case, would we separate 
+distortion components from the telescope and detector?  
+
+Things to learn:
+* is there CAD?
+* can I get a hold of laboratory measurements or raytraces that
+   might inform our choice of projection?
+
+-----------------------------------------------------------------------
+

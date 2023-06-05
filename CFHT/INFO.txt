@@ -1,0 +1,18 @@
+# Telescope:
+* 3.6-meter aperture (3592 mm clear)
+* f/3.77 parabolic primary (focal length 13533 mm)
+* FOV of 20 square arcmin
+* nominal NIR seeing of 0.8 arcsec
+
+# WIRCam detector:
+* HAWAII 2RG sensor mosaic
+* 0.3 arcsec / pixel
+* 14x14 pixel guide region
+* 10.3 x 10.3 arcmin FOV per sensor (21 x 21 arcmin mosaic)
+
+# Teledyne HAWAII 2RG sensor:
+* HgCdTe (mer cad tel) design
+* 2048 x 2048 array, 18 x 18 micron pixels
+* total area 36.9 x 36.9 mm
+* guide window output
+

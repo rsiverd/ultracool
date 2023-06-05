@@ -1,0 +1,19 @@
+# CFHT official homepage:
+https://www.cfht.hawaii.edu/
+
+# Teledyne Imaging -- HAWAII 2RG :
+https://www.teledyneimaging.com/en/aerospace-and-defense/products/sensors-overview/infrared-hgcdte-mct/hawaii-2rg/
+
+# -----------------------------------------------------------------------
+
+# WIRCam quick info:
+https://www.cfht.hawaii.edu/Instruments/Imaging/WIRCam/quickinformation.html
+
+# -----------------------------------------------------------------------
+
+# CFHT Observatory Manual:
+https://www.cfht.hawaii.edu/Instruments/ObservatoryManual/CFHT_Observatory_Manual_TOC.html
+
+# CFHT Observatory Manual - Sec 4 - TELESCOPE:
+https://www.cfht.hawaii.edu/Instruments/ObservatoryManual/CFHT_ObservatoryManual_%28Sec_4%29.html
+https://www.cfht.hawaii.edu/Instruments/ObservatoryManual/CFHT_ObservatoryManual_%28Sec_4%29.html#:~:text=General%20Characteristics,-This%20is%20a&text=The%20f%2Fratio%20is%20f,of%20139.4%20m%20per%20arcsecond.
