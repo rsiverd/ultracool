@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2023-05-31
-# Last modified: 2023-05-31
+# Last modified: 2023-06-05
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 ## Modules:
 #import shutil
@@ -46,7 +46,7 @@ _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
 def get_files_single(dirpath, flavor):
     want_suffix = '%s.fits.fz' % flavor
-    im_wildpath = '%s/wircam*_%s' % (dirpath, want_suffix)
+    im_wildpath = '%s/wircam_*%s' % (dirpath, want_suffix)
     return sorted(glob.glob(im_wildpath))
 
 def get_files_walk(targ_root, flavor):
@@ -123,6 +123,10 @@ def get_files_walk(targ_root, flavor):
 ######################################################################
 # CHANGELOG (wircam_fs_helpers.py):
 #---------------------------------------------------------------------
+#
+#  2023-06-05:
+#     -- Increased __version__ to 0.1.1.
+#     -- Fixed mis-ordered underscore and asterisk in non-walk listing method.
 #
 #  2023-05-31:
 #     -- Increased __version__ to 0.1.0.
