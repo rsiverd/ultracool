@@ -83,10 +83,10 @@ def find_gaia_matches(stars, tol_arcsec, ra_col='dra', de_col='dde',
 # * parameter order is [CD1_1, CD1_2, CD2_1, CD2_2, CRVAL1, CRVAL2]
 # * X,Y,RA,DE variable names have convention that c='catalog' and g='gaia'
 def wcs_par_evaluator(wcs_params, matches):
-    cdmat = params[:4]
-    #crval = params[4:].reshape(-1, 2)
-    cv1 = params[4]
-    cv2 = params[5]
+    cdmat = wcs_params[:4]
+    #crval = wcs_params[4:].reshape(-1, 2)
+    cv1   = wcs_params[4]
+    cv2   = wcs_params[5]
 
     # a handy way to convert the match list into numpy arrays:
     cxx, cyy, gra, gde = (np.array(x) for x in zip(*matches))
