@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2023-05-31
-# Last modified: 2023-05-31
+# Last modified: 2023-06-05
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 ## Python version-agnostic module reloading:
 try:
@@ -140,6 +140,9 @@ if __name__ == '__main__':
     iogroup = parser.add_argument_group('File I/O')
     iogroup.add_argument('--overwrite', required=False, dest='skip_existing',
             action='store_false', help='overwrite existing catalogs')
+    iogroup.add_argument('-F', '--failure_list',
+            default='failures.txt', type=str,
+            help='output list of processing failures [def: %(default)s]')
     iogroup.add_argument('-I', '--input_folder', default=None, required=True,
             help='where to find input images', type=str)
     iogroup.add_argument('-O', '--output_folder', default=None, required=False,
@@ -196,10 +199,12 @@ if not os.path.isdir(context.input_folder):
 context.imtype = "p"
 if context.walk:
     #img_files = sfh.get_files_walk(context.input_folder, flavor=context.imtype)
-    img_files = wfh.get_files_walk(context.input_folder, flavor=context.imtype)
+    img_files = wfh.get_files_walk(context.input_folder,
+            flavor=context.imtype)
 else:
     #img_files = sfh.get_files_single(context.input_folder, flavor=context.imtype)
-    img_files = wfh.get_files_single(context.input_folder, flavor=context.imtype)
+    img_files = wfh.get_files_single(context.input_folder,
+            flavor=context.imtype)
 sys.stderr.write("done.\n")
 
 ## Abort in case of no input:
@@ -248,8 +253,13 @@ for ii,img_ipath in enumerate(img_files, 1):
     nproc += 1
     spf.use_images(ipath=img_ipath, upath=unc_ipath)
     #result = spf.find_stars(context.sigthresh, include_akp=True)
-    result = spf.find_stars(context.sigthresh, include_akp=False)
-    result.save_as_fits(cat_fpath, overwrite=True)
+    try:
+        result = spf.find_stars(context.sigthresh, include_akp=False)
+        result.save_as_fits(cat_fpath, overwrite=True)
+    except:
+        sys.stderr.write("An error occurred during analysis ... check image.\n")
+        with open(context.failure_list, 'a') as fails:
+            fails.write("%s\n" % img_ipath)
     if (ntodo > 0) and (nproc >= ntodo):
         break
 
