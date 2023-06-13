@@ -1,6 +1,7 @@
 __pycache__
 .*.swp
 *.pyc
+*.pickle
 plots
 old_root_unsorted
 old_root_working
