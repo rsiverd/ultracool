@@ -1,0 +1,21 @@
+I want to keep an example of the results I get from vizquery when scanning
+for WIRCam images from the CADC. I hacked fetch_CFHT_data.py to save a
+result set as a pickle object for further inspection. This could be done
+again in the future by uncommenting the appropriate lines (near line 400)
+and running again. 
+
+The stored result is:
+> cadc_hits.pickle
+
+File 01_load_hits.py can be used to recover data into ipython.
+
+
+import astropy.table as apt  # just in case
+import pickle
+save_hits = 'cadc_hits.pickle'
+
+with open(save_hits, 'rb') as chp:
+    hits = pickle.load(chp)
+
+
+
