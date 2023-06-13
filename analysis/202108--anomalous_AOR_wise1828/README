@@ -1,0 +1,41 @@
+One of the AORs (ch2 data) seems to produce highly deviant positions. This
+deviation is present not only in the target, but also in at least one
+neighbor ('277.1377510+26.8663015').
+
+Discrepant dates include:
+[2458089.333706066,
+ 2458089.334159712,
+ 2458089.332817166,
+ 2458089.33234955,
+ 2457716.728224398,
+ 2458089.331882027,
+ 2458089.33325698,
+ 2455387.837069929,
+ 2458089.33094999,
+ 2458135.628423165]
+
+# Identify bad dates with:
+bad_jds = ntime[np.argsort(nde_res)[::-1]][:10]
+bad_imgs = []
+for when in bad_jds:
+    match = (tdata['ch2']['jdtdb'] == when)
+    iname = tdata['ch2']['iname'][match]
+    bad_imgs.extend(iname.tolist())
+
+bad_aors = [x.split('_')[2] for x in bad_imgs]
+bad_aors
+['61245440',
+ '61245440',
+ '61245440',
+ '61245440',
+ '61246976',
+ '61245440',
+ '61245440',
+ '39526912',
+ '61245440',
+ '61241088']
+
+
+--> 61245440 seems to be the culprit:
+/home/rsiverd/ucd_project/ucd_targets/wise1828/r61245440
+
