@@ -1,0 +1,4 @@
+2MASSI_J0908380n503208 --> lots (892) of bcd without cbcd
+
+2MASS_J13243553n6358281 --> data but not processed ...
+
