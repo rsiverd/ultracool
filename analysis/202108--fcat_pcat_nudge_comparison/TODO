@@ -1,0 +1,8 @@
+
+In this folder, look at RA/Dec differences for matching stars. Maybe write a
+script that takes a pair of files and test it on a whole bunch of cases.
+
+
+Elsewhere, try running the 13_solver using fcat data and see what happens. Note
+whether results are different from the pcat case (for the target in particular).
+
