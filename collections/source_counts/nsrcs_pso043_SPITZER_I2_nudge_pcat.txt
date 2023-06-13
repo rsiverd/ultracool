@@ -1,0 +1,15 @@
+/home/rsiverd/ucd_project/ucd_targets/pso043/r40831488/SPITZER_I2_40831488_0001_0000_2_nudge.fits.pcat[CATALOG] 53
+/home/rsiverd/ucd_project/ucd_targets/pso043/r40831488/SPITZER_I2_40831488_0002_0000_2_nudge.fits.pcat[CATALOG] 52
+/home/rsiverd/ucd_project/ucd_targets/pso043/r40831488/SPITZER_I2_40831488_0003_0000_2_nudge.fits.pcat[CATALOG] 58
+/home/rsiverd/ucd_project/ucd_targets/pso043/r40831488/SPITZER_I2_40831488_0004_0000_2_nudge.fits.pcat[CATALOG] 54
+/home/rsiverd/ucd_project/ucd_targets/pso043/r40831488/SPITZER_I2_40831488_0005_0000_2_nudge.fits.pcat[CATALOG] 48
+/home/rsiverd/ucd_project/ucd_targets/pso043/r41533952/SPITZER_I2_41533952_0001_0000_2_nudge.fits.pcat[CATALOG] 66
+/home/rsiverd/ucd_project/ucd_targets/pso043/r41533952/SPITZER_I2_41533952_0002_0000_2_nudge.fits.pcat[CATALOG] 58
+/home/rsiverd/ucd_project/ucd_targets/pso043/r41533952/SPITZER_I2_41533952_0003_0000_2_nudge.fits.pcat[CATALOG] 60
+/home/rsiverd/ucd_project/ucd_targets/pso043/r41533952/SPITZER_I2_41533952_0004_0000_2_nudge.fits.pcat[CATALOG] 64
+/home/rsiverd/ucd_project/ucd_targets/pso043/r41533952/SPITZER_I2_41533952_0005_0000_2_nudge.fits.pcat[CATALOG] 67
+/home/rsiverd/ucd_project/ucd_targets/pso043/r44583680/SPITZER_I2_44583680_0001_0000_2_nudge.fits.pcat[CATALOG] 73
+/home/rsiverd/ucd_project/ucd_targets/pso043/r44583680/SPITZER_I2_44583680_0002_0000_2_nudge.fits.pcat[CATALOG] 60
+/home/rsiverd/ucd_project/ucd_targets/pso043/r44583680/SPITZER_I2_44583680_0003_0000_2_nudge.fits.pcat[CATALOG] 62
+/home/rsiverd/ucd_project/ucd_targets/pso043/r44583680/SPITZER_I2_44583680_0004_0000_2_nudge.fits.pcat[CATALOG] 66
+/home/rsiverd/ucd_project/ucd_targets/pso043/r44583680/SPITZER_I2_44583680_0005_0000_2_nudge.fits.pcat[CATALOG] 70
