@@ -1,0 +1,7 @@
+
+mkdir -p nearest_wise
+./check_all.sh wise1828 collections/wise1828_clean_fcat.txt nearest_wise/clean_fcat.txt
+./check_all.sh wise1828 collections/wise1828_clean_pcat.txt
+./check_all.sh wise1828 collections/wise1828_hcfix_fcat.txt
+./check_all.sh wise1828 collections/wise1828_hcfix_pcat.txt
+
