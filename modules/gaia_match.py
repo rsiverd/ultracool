@@ -117,18 +117,15 @@ class GaiaMatch(object):
         return
 
     def nearest_star_dumb(self, ra, dec):
-        #, toler=None):
         """
         Identify the source closest to the given position. RA and DE must
         be given in decimal degrees. No accelerated look-up is performed
-        but a match is guaranteed.
+        but a match is guaranteed. Matches may not be exclusive.
 
         Params:
         -------
         ra      -- R.A. in decimal degrees
         dec     -- Dec in decimal degrees
-        toler   -- [optional] maximum matching distance. If not specified,
-                        the auto-computed angdev is used for this.
  
         Returns:
         --------
@@ -157,7 +154,7 @@ class GaiaMatch(object):
         -------
         ra      -- R.A. in decimal degrees
         dec     -- Dec in decimal degrees
-        toler   -- maximum matching distance in degrees
+        tol_deg -- maximum matching distance in degrees
  
         Returns dictionary containing:
         ------------------------------
