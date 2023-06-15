@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2019-09-09
-# Last modified: 2019-09-11
+# Last modified: 2023-06-14
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 ## Python version-agnostic module reloading:
 try:
@@ -97,6 +97,11 @@ class GaiaMatch(object):
 
     def _have_sources(self):
         return True if isinstance(self._srcdata, pd.DataFrame) else False
+
+    def get_gaia_columns(self):
+        if not self._have_sources():
+            logging.error("No sources loaded. Load data and try again.")
+        return self._srcdata.keys()
 
     def load_sources_csv(self, filename):
         # error if file not present:
