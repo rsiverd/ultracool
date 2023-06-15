@@ -94,7 +94,7 @@ _gaia_dr2_epoch = astt.Time(2457206.375, scale='tcb', format='jd')
 ## Gaia catalog values. We use this to propagate Gaia catalog positions to
 ## the epoch of the observations before matching.
 _gaia_epoch_lookup = {
-        2015.5 : gaia_dr2_epoch,
+        2015.5 : _gaia_dr2_epoch,
 }
 
 ##--------------------------------------------------------------------------##
