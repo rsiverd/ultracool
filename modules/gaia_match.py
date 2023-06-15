@@ -11,7 +11,7 @@
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 ## Python version-agnostic module reloading:
 try:
@@ -43,6 +43,9 @@ import pandas as pd
 import logging
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
+## Time system handling from astropy:
+import astropy.time as astt
+
 ## Spherical and angular math routines:
 import angle
 reload(angle)
@@ -73,6 +76,26 @@ reload(angle)
 
 
 
+
+##--------------------------------------------------------------------------##
+##------------------    Reference Epoch Date Conversions    ----------------##
+##--------------------------------------------------------------------------##
+
+## From the Gaia DR2 (Lindegren et al. 2018) paper, section 3.1:
+## "The astrometric parameters in Gaia DR2 refer to the reference epoch 
+## J2015.5 = JD 2457 206.375 (TCB) = 2015 July 2, 21:00:00 (TCB). The
+## positions and proper motions refer to the ICRS thanks to the special
+## frame alignment procedure (Sect. 5.1)."
+_gaia_dr2_epoch = astt.Time(2457206.375, scale='tcb', format='jd')
+
+
+## The following lookup table provides astropy Time objects that can be used
+## to reliably calculate time differences between the test observations and
+## Gaia catalog values. We use this to propagate Gaia catalog positions to
+## the epoch of the observations before matching.
+_gaia_epoch_lookup = {
+        2015.5 : gaia_dr2_epoch,
+}
 
 ##--------------------------------------------------------------------------##
 ##------------------    Load and Match to Gaia CSV Stars    ----------------##
