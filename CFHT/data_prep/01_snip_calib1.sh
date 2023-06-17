@@ -79,8 +79,11 @@ fi
 ##==========================================================================##
 ##--------------------------------------------------------------------------##
 
+## Retrieve shared config:
+cmde "source config.sh" || exit $?
+
 ## Which quadrant to work with:
-use_quad="NE"
+#use_quad="SW"
 
 ## Folders:
 data_dir="/home/rsiverd/ucd_project/ucd_cfh_data/calib1/download"
@@ -116,7 +119,7 @@ total=$(cat $foo | wc -l)
 fopts="--bitpix -q -H"
 
 ## Snip files:
-ntodo=20
+ntodo=42
 count=0
 nproc=0
 exec 10<$foo
