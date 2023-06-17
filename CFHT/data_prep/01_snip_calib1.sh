@@ -79,21 +79,33 @@ fi
 ##==========================================================================##
 ##--------------------------------------------------------------------------##
 
+## Which quadrant to work with:
+use_quad="NE"
+
 ## Folders:
 data_dir="/home/rsiverd/ucd_project/ucd_cfh_data/calib1/download"
 [ -d $data_dir ] || PauseAbort "Can't find directory: $data_dir"
-save_dir="./calib1_p_NE/download"
+save_dir="./calib1_p_${use_quad}/download"
 cmde "mkdir -p $save_dir" || exit $?
 
-## Which quadrant:
-nw_quad="77"
-nw_qext="HAWAII-2RG-#77"
-sw_quad="52"
-sw_qext="HAWAII-2RG-#52"
-nw_quad="54"
-nw_qext="HAWAII-2RG-#54"
-ne_quad="60"
-ne_qext="HAWAII-2RG-#60"
+## Sensor orientation and ID:
+NW_quad="77"
+NW_qext="HAWAII-2RG-#77"
+SW_quad="52"
+SW_qext="HAWAII-2RG-#52"
+NW_quad="54"
+NW_qext="HAWAII-2RG-#54"
+NE_quad="60"
+NE_qext="HAWAII-2RG-#60"
+
+## Which quadrant to use:
+#use_qext="$ne_qext"
+
+echo "use_quad: $use_quad"
+quad_var="${use_quad}_qext"
+echo "quad_var: $quad_var"
+use_qext="${!quad_var}"
+echo "use_qext: $use_qext"
 
 ##--------------------------------------------------------------------------##
 ## List files:
@@ -104,7 +116,7 @@ total=$(cat $foo | wc -l)
 fopts="--bitpix -q -H"
 
 ## Snip files:
-ntodo=0
+ntodo=20
 count=0
 nproc=0
 exec 10<$foo
@@ -127,7 +139,7 @@ while read ipath <&10; do
    (( nproc++ ))
 
    # snip quadrant:
-   cmde "fitsarith $fopts -i '${ipath}[${ne_qext}]' -o '!$baz'"   || exit $?
+   cmde "fitsarith $fopts -i '${ipath}[${use_qext}]' -o '!$baz'"   || exit $?
 
    # re-compress:
    #cmde "fpack -F -q0 -1 $baz"                              || exit $?
