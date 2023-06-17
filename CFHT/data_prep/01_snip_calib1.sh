@@ -86,6 +86,12 @@ save_dir="./calib1_p_NE/download"
 cmde "mkdir -p $save_dir" || exit $?
 
 ## Which quadrant:
+nw_quad="77"
+nw_qext="HAWAII-2RG-#77"
+sw_quad="52"
+sw_qext="HAWAII-2RG-#52"
+nw_quad="54"
+nw_qext="HAWAII-2RG-#54"
 ne_quad="60"
 ne_qext="HAWAII-2RG-#60"
 
