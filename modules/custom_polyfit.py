@@ -47,7 +47,7 @@ class CustomPolyFit2D(object):
         return self._model
 
     def _have_model(self):
-        return isinstance(self._model, np.array)
+        return isinstance(self._model, np.ndarray)
 
     # make exponents list:
     @staticmethod
@@ -63,7 +63,7 @@ class CustomPolyFit2D(object):
         G = np.zeros((x.size, len(ij)), dtype=np.float)
         for k, (i,j) in enumerate(ij):
             G[:,k] = x.flatten()**i * y.flatten()**j
-        m, _, _, _ = np.linalg.lstsq(G, z.flatten())
+        m, _, _, _ = np.linalg.lstsq(G, z.flatten(), rcond=None)
         self._model = m
         #return m
         return
