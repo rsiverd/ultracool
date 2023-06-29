@@ -38,9 +38,10 @@ class CustomPolyFit2D(object):
         return
 
     def set_degree(self, deg1, deg2):
-        self._deg1 = deg1
-        self._deg2 = deg2
-        self._ij   = self._powlist(deg1, deg2)
+        self._deg1  = deg1
+        self._deg2  = deg2
+        self._ij    = self._powlist(deg1, deg2)
+        self._model = None
         return
 
     def get_model(self):
