@@ -45,7 +45,7 @@ class CustomPolyFit2D(object):
         return
 
     def get_model(self):
-        return self._model
+        return np.copy(self._model) if self._have_model() else None
 
     def _have_model(self):
         return isinstance(self._model, np.ndarray)
