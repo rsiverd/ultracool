@@ -8,8 +8,8 @@
 # low-order terms.
 #
 # Rob Siverd
-# Created:       2018-01-21
-# Last modified: 2019-03-26
+# Created:       2023-06-29
+# Last modified: 2023-06-29
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -80,7 +80,7 @@ class CustomPolyFit2D(object):
         if (len(ij) != m.size):
             sys.stderr.write("%s: model does not match degree!\n" % funcname)
             return
-        z = np.zeros_like(x, dtype=np.float)
+        z = np.zeros_like(x, dtype='float')
         for a, (i,j) in zip(m, ij):
             z += a * x**i * y**j
         return z
@@ -90,7 +90,7 @@ class CustomPolyFit2D(object):
 # CHANGELOG (custom_polyfit.py):
 #---------------------------------------------------------------------
 #
-#  2019-03-26:
+#  2023-06-29:
 #     -- Increased __version__ to 0.1.0.
 #     -- Include CustomPolyFit2D based on PolyFit2D
 #     -- First created custom_polyfit.py.
