@@ -61,7 +61,7 @@ class CustomPolyFit2D(object):
     #def fit(self, x, y, z, degree):
     def fit(self, x, y, z):
         ij = self._ij
-        G = np.zeros((x.size, len(ij)), dtype=np.float)
+        G = np.zeros((x.size, len(ij)), dtype='float')
         for k, (i,j) in enumerate(ij):
             G[:,k] = x.flatten()**i * y.flatten()**j
         m, _, _, _ = np.linalg.lstsq(G, z.flatten(), rcond=None)
