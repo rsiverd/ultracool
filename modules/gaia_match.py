@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2019-09-09
-# Last modified: 2023-06-22
+# Last modified: 2023-07-10
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 ## Python version-agnostic module reloading:
 try:
@@ -223,7 +223,8 @@ class GaiaMatch(object):
 
         # accept user epoch, update time difference:
         self._ep_user  = epoch
-        self._tdiff_yr = (self._ep_gaia.tdb.jd - self._ep_user.tdb.jd) / 365.25
+        #self._tdiff_yr = (self._ep_gaia.tdb.jd - self._ep_user.tdb.jd) / 365.25
+        self._tdiff_yr = (self._ep_user.tdb.jd - self._ep_gaia.tdb.jd) / 365.25
         self._apply_gaia_tdiff()
         return
 
