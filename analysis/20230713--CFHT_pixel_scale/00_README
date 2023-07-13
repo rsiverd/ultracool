@@ -1,0 +1,4 @@
+We want to know the appropriate pixel scale to for Abby's initial polynomial
+distortion solution. We will try to measure it from the set of final,
+full-frame tangent projection CD matrices.
+
