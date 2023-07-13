@@ -1,0 +1,12 @@
+This is a quick illustration of the difference between windowed
+and unwindowed position measurements using whatever smoothing
+window I had by default (probably not ideal). 
+
+The distribution of differences is very similar in X and Y (good).
+Values we see are effectively:
+* -0.1 ~ 25th percentile
+*  0.0 ~ median
+* +0.1 ~ 75th percentile
+
+The IQR scaled to normal is ~0.073 in X and ~0.075 in Y.
+
