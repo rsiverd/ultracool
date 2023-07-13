@@ -1,0 +1,11 @@
+By plotting the raw X,Y positions of detections across the entire 10-year
+data set, we can see a few things:
+
+1) The dither pattern used for collecting observations. This may not be
+visible in individual cells, but would be seen in an autocorrelation of
+X, Y position measurements.
+
+2) Evidence for instrument rotation changes. Individual sources form loci
+of points that spread out along ~linear tracks. These tracks run ~perpendicular
+to the direction to the focal plane center, indicating rotation.
+
