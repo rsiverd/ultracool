@@ -117,5 +117,27 @@ cr_sx, cr_sy, cr_sra, cr_sde, cr_gra, cr_gde = np.array(comm_ref_hits).T
 ci_seps = angle.dAngSep(ci_sra, ci_sde, ci_gra, ci_gde)
 cr_seps = angle.dAngSep(cr_sra, cr_sde, cr_gra, cr_gde)
 
+# average match distance at image and reference epochs:
+sys.stderr.write("\n------------------------------------\n")
+avg_ci_sep = 3600.0 * np.average(ci_seps)
+avg_cr_sep = 3600.0 * np.average(cr_seps)
+sys.stderr.write("average ref epoch sep: %.8f arcsec\n" % avg_cr_sep)
+sys.stderr.write("average img epoch sep: %.8f arcsec\n" % avg_ci_sep)
+
+
+# median match distance at image and reference epochs:
+sys.stderr.write("\n------------------------------------\n")
+med_ci_sep = 3600.0 * np.median(ci_seps)
+med_cr_sep = 3600.0 * np.median(cr_seps)
+sys.stderr.write("median  ref epoch sep: %.8f arcsec\n" % med_cr_sep)
+sys.stderr.write("median  img epoch sep: %.8f arcsec\n" % med_ci_sep)
+
+# median improvement (reduction) in match distance by switching to
+# image epoch:
+sys.stderr.write("\n------------------------------------\n")
+med_ri_improvement = 3600.0 * np.median(cr_seps - ci_seps)
+sys.stderr.write("median improvement (ref_sep - img_sep): %.6f arcsec\n"
+        % med_ri_improvement)
+
 sys.exit(0)
 
