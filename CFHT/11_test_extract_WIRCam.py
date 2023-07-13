@@ -87,11 +87,11 @@ wfh = wircam_fs_helpers
 
 ## Spitzer star detection routine:
 try:
-    import spitz_extract
-    reload(spitz_extract)
-    spf = spitz_extract.SpitzFind()
+    import wircam_extract
+    reload(wircam_extract)
+    wcf = wircam_extract.WIRCamFind()
 except ImportError:
-    logger.error("spitz_extract module not found!")
+    logger.error("wircam_extract module not found!")
     sys.exit(1)
 
 
@@ -251,10 +251,10 @@ for ii,img_ipath in enumerate(img_files, 1):
 
     # perform extraction:
     nproc += 1
-    spf.use_images(ipath=img_ipath, upath=unc_ipath)
+    wcf.use_images(ipath=img_ipath, upath=unc_ipath)
     #result = spf.find_stars(context.sigthresh, include_akp=True)
     try:
-        result = spf.find_stars(context.sigthresh, include_akp=False)
+        result = wcf.find_stars(context.sigthresh, include_poly=False)
         result.save_as_fits(cat_fpath, overwrite=True)
     except:
         sys.stderr.write("An error occurred during analysis ... check image.\n")
