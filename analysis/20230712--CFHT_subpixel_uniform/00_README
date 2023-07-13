@@ -1,0 +1,4 @@
+I want to quickly check whether or not there is significant evidence
+of sub-pixel inhomogeneity in the WIRCam pixels. To do this, we use
+a large collection of measured X,Y positions and histogram the
+fractional portion of them.
