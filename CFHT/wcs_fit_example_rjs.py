@@ -32,15 +32,26 @@
 # these examples. You may need to modify some of this code to make it work
 # correctly. The imports:
 
+from importlib import reload
 import os, sys, time
 import numpy as np
 import scipy.optimize as opti
 from functools import partial
-import gaia_match
-import extended_catalog
-import angle
-import tangent_proj as tp
 from numpy.lib.recfunctions import append_fields
+import astropy.time as astt
+
+# Imports of my own code:
+import gaia_match
+reload(gaia_match)
+import extended_catalog
+reload(extended_catalog)
+import angle
+reload(angle)
+import tangent_proj
+reload(tangent_proj)
+
+# Short-hand:
+tp = tangent_proj
 
 # Make instances of the classes we plan to use:
 gm  = gaia_match.GaiaMatch()
@@ -49,11 +60,10 @@ ecl = extended_catalog.ExtendedCatalog()
 def instmag(counts, zeropt=25.0):
     return (zeropt - 2.5 * np.log10(counts))
 
-
 # -----------------------------------------------------------------------
 # Next, we need to make sure that we have appropriate functions for Gaia
 # matching and for WCS parameter optimization. The optimization will make
-# use of X,Y positions of stars and RA,DE positions from Gaia. For now,
+# use of X,Y posi 8ons of stars and RA,DE positions from Gaia. For now,
 # we don't need to worry about errors in any of those measurements.
 # -----------------------------------------------------------------------
 
@@ -94,7 +104,8 @@ def find_gaia_matches_with_mags(stars, tol_arcsec, ra_col='dra', de_col='dde',
             gcoords = [result['record'][x].values[0] \
                     for x in ('ra', 'dec', 'phot_rp_mean_mag')]
             gmag = result['record']['phot_rp_mean_mag'].values[0]
-            matches.append((smag, gmag))
+            if not np.isnan(gmag):
+                matches.append((smag, gmag))
             #matches.append((sxx, syy, sra, sde, *gcoords))
             pass
         pass
@@ -113,7 +124,7 @@ def find_gaia_matches_with_mags(stars, tol_arcsec, ra_col='dra', de_col='dde',
 # * X,Y,RA,DE variable names have convention that c='catalog' and g='gaia'
 def project_pars(wcs_params, xrel, yrel):
     cdmat = wcs_params[:4]
-    cv1   = wcs_params[4]
+    a_NaNsgv1   = wcs_params[4]
     cv2   = wcs_params[5]
     pra, pde = tp.xycd2radec(cdmat, xrel, yrel, cv1, cv2)
     return (pra % 360.0, pde)
@@ -158,16 +169,43 @@ path_to_catalog = "/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/b
 gaia_csv_path = '/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv'
 gm.load_sources_csv(gaia_csv_path)
 
+#print("initially: gm._ep_col is '%s'" % gm._ep_col)
+#gaia_match._gaia_epoch_colname = 'steve'
+#gm  = gaia_match.GaiaMatch()
+#print("adjusted:  gm._ep_col is '%s'" % gm._ep_col)
+#gm.load_sources_csv(gaia_csv_path)
+#
+#sys.exit(0)
+
 # Load up the catalog, retrieve stars and header:
 ecl.load_from_fits(path_to_catalog)
 stars = ecl.get_catalog()
 header = ecl.get_header()
 
+# The epoch of this image:
+obs_time = astt.Time(header['MJD-OBS'], scale='utc', format='mjd') \
+        + 0.5 * astt.TimeDelta(header['EXPTIME'], format='sec')
+
+#sys.exit(0)
 # Pre-create bestra, bestde columns:
 stars = append_fields(stars, ('bestra', 'bestde'), 
                             (stars['dra'], stars['dde']), usemask=False)
 imags = instmag(stars['flux'])
 stars = append_fields(stars, 'instmag', imags, usemask=False)
+
+
+# find matches with reference epoch:
+ref_gaia_matches = find_gaia_matches(stars, 2.0, xx_col='x', yy_col='y')
+ref_sx, ref_sy, ref_sra, ref_sde, ref_gra, ref_gde = zip(*ref_gaia_matches)
+
+# find matches with adjusted epoch:
+sys.stderr.write("Setting epoch ...\n")
+gm.set_epoch(obs_time)
+
+img_gaia_matches = find_gaia_matches(stars, 2.0, xx_col='x', yy_col='y')
+img_sx, img_sy, img_sra, img_sde, img_gra, img_gde = zip(*img_gaia_matches)
+
+sys.exit(0)
 
 # We are interested in several of the WCS parameters. Specifically we want
 # the CD matrix (rotation/scale/skew) and the CRVALs (RA, Dec zero-point):
@@ -219,9 +257,57 @@ initial_guess = np.array(header_wcs_params)
 #sys.exit(0)
 
 # Do an initial round of gaia matching:
-match_tol_arcsec = 3.0
+match_tol_arcsec = 5.0
+tik = time.time()
 gaia_matches = find_gaia_matches(stars, match_tol_arcsec, xx_col='xrel', yy_col='yrel')
+tok = time.time()
+sys.stderr.write("First dumb cross-match took %.3f seconds.\n" % (tok-tik))
+tik = time.time()
 gaia_matches_mag = find_gaia_matches_with_mags(stars, match_tol_arcsec, xx_col='xrel', yy_col='yrel')
+tok = time.time()
+sys.stderr.write("First mags cross-match took %.3f seconds.\n" % (tok-tik))
+
+tmag, gmag = np.array(gaia_matches_mag).T
+mdiff = gmag - tmag
+mcorr = np.median(mdiff)
+
+
+tik = time.time()
+test_matches = gm.multipar_gaia_matches(stars, ra_col='dra', de_col='dde', tol_arcsec=match_tol_arcsec)
+tok = time.time()
+tmix, tmrec = test_matches
+sys.stderr.write("First multipar cross-match took %.3f seconds\n" % (tok-tik))
+
+gaia_mag_column = 'phot_rp_mean_mag'
+cfht_mag_column = 'instmag'
+gmags = tmrec[gaia_mag_column]
+smags = stars[tmix][cfht_mag_column]
+
+mag_diffs = gmags - smags
+instr_offset = np.median(mag_diffs)
+sys.stderr.write("instr_offset: %.3f\n" % instr_offset)
+mag_threshes = np.percentile(mag_diffs, [3, 97])
+sys.stderr.write("mag_threshes: %.3f, %.3f\n" % tuple(mag_threshes))
+
+# Build a constraint from the percentiles of the instrumental offset:
+constraints = [(cfht_mag_column, gaia_mag_column, *mag_threshes)]
+
+tik = time.time()
+tnew_matches = gm.multipar_gaia_matches(stars, ra_col='dra', de_col='dde',
+        tol_arcsec=match_tol_arcsec, constraints=constraints)
+#tmix, tmrec = zip(*test_matches)
+#tmix = np.array(tmix)
+tok = time.time()
+tnix, tnrec = tnew_matches
+sys.stderr.write("Constrained cross-match took %.4f seconds.\n" % (tok-tik))
+
+
+#gsrc = gm._rawdata
+#drpnan = ['pmra', 'pmdec', 'phot_rp_mean_mag']
+#tokeep = [~np.isnan(gsrc[cc]) for cc in drpnan]
+#functools.reduce(lambda x,y: x&y, tokeep)
+
+sys.exit(0)
 
 # I like to use the 'partial' routine to automagically handle the non-parameter
 # arguments to the evaluator function. The partial routine takes a function
@@ -248,9 +334,15 @@ de_err = 3600.0 * (gde - tde)
 
 # Look at it:
 import matplotlib.pyplot as plt
-fig_dims = (12, 11)
+fig_dims = (10,  8)
 fig = plt.figure(1, figsize=fig_dims)
 fig.clf()
+
+# Quiver plot kwargs:
+pixscale = 0.3                  # WIRCam, arcsec / pixel
+quivscale = 10.0 / pixscale
+qkw = {'scale':1.0, 'angles':'xy', 'scale_units':'xy'}
+
 
 ax1 = fig.add_subplot(221, aspect='equal')
 ax2 = fig.add_subplot(222, aspect='equal')
@@ -262,7 +354,11 @@ for ax in axlist:
 
 ax1.scatter(ra_err, de_err, lw=0, s=5)
 ax2.set_title("Gaia - bestfit")
-ax2.quiver(cxx, cyy, ra_err, de_err)
+
+dx = -1.0 * ra_err * quivscale
+dy =  1.0 * de_err * quivscale
+ax2.quiver(cxx, cyy, dx, dy, **qkw)
+#ax2.quiver(cxx, cyy, ra_err, de_err, **qkw)
 
 
 # Update bestra/bestde in catalog:
@@ -282,7 +378,10 @@ new_ra_err = 3600.0 * (ngra - ntra) * np.cos(np.radians(ngde))
 new_de_err = 3600.0 * (ngde - ntde)
 
 ax3.scatter(new_ra_err, new_de_err, lw=0, s=5)
-ax4.quiver(ncxx, ncyy, new_ra_err, new_de_err)
+new_dx = -1.0 * new_ra_err * quivscale
+new_dy =  1.0 * new_de_err * quivscale
+ax4.quiver(ncxx, ncyy, new_dx, new_dy, **qkw)
+#ax4.quiver(ncxx, ncyy, new_ra_err, new_de_err, **qkw)
 
 fig.tight_layout()
 plt.draw()
