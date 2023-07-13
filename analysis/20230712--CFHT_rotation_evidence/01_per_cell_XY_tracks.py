@@ -38,7 +38,7 @@ this_cell = get_cell_subset(xc, yc)[::5]    # every 5th element in the cell
 skw = {'lw':0, 's':2}
 
 # Make a figure with equal-aspect axes:
-fig = plt.figure(figsize=(8,7))
+fig = plt.figure(1, figsize=(8,7))
 fig.clf()
 ax1 = fig.add_subplot(111, aspect='equal')
 ax1.patch.set_facecolor((0.8, 0.8, 0.8))    # grayed plot background
