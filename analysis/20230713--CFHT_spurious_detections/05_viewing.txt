@@ -1,0 +1,5 @@
+
+
+ztf -r regions/wircam_H2_1799490p.fits.fz.reg examples/wircam_H2_1799490p.fits.fz \
+    -r /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.reg
+

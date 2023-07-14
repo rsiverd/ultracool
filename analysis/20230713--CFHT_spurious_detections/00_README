@@ -1,0 +1,4 @@
+I am curious about the frequency with which spurious detections (horizontal
+line artifacts and similar) may have matched erroneously to Gaia. As a spot
+check, we can create DS9 region files from the list of final matches that
+Abby produced for specific images and check.
