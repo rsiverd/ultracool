@@ -51,38 +51,6 @@ import pandas as pd
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
 ##--------------------------------------------------------------------------##
-
-## Home-brew robust statistics:
-#try:
-#    import robust_stats
-#    reload(robust_stats)
-#    rs = robust_stats
-#except ImportError:
-#    logger.error("module robust_stats not found!  Install and retry.")
-#    sys.stderr.write("\nError!  robust_stats module not found!\n"
-#           "Please install and try again ...\n\n")
-#    sys.exit(1)
-
-## Various from astropy:
-#try:
-#    import astropy.io.ascii as aia
-#    import astropy.io.fits as pf
-#    import astropy.io.votable as av
-#    import astropy.table as apt
-#    import astropy.time as astt
-#    import astropy.wcs as awcs
-#    from astropy import constants as aconst
-#    from astropy import coordinates as coord
-#    from astropy import units as uu
-#except ImportError:
-#    logger.error("astropy module not found!  Install and retry.")
-#    sys.stderr.write("\nError: astropy module not found!\n")
-#    sys.exit(1)
-
-##--------------------------------------------------------------------------##
-## New-style string formatting (more at https://pyformat.info/):
-
-##--------------------------------------------------------------------------##
 ## Quick ASCII I/O:
 data_file = '20230629--final_wcs_params.csv'
 #gftkw = {'encoding':None} if (_have_np_vers >= 1.14) else {}
@@ -94,30 +62,13 @@ data_file = '20230629--final_wcs_params.csv'
 #all_data = np.genfromtxt(fix_hashes(data_file), dtype=None, **gftkw)
 #all_data = aia.read(data_file)
 
-#all_data = append_fields(all_data, ('ra', 'de'), 
-#         np.vstack((ra, de)), usemask=False)
-#all_data = append_fields(all_data, cname, cdata, usemask=False)
-
 pdkwargs = {'skipinitialspace':True, 'low_memory':False}
 #pdkwargs.update({'delim_whitespace':True, 'sep':'|', 'escapechar':'#'})
 #all_data = pd.read_csv(data_file)
 all_data = pd.read_csv(data_file, **pdkwargs)
 #all_data = pd.read_table(data_file)
 #all_data = pd.read_table(data_file, **pdkwargs)
-#nskip, cnames = analyze_header(data_file)
-#all_data = pd.read_csv(data_file, names=cnames, skiprows=nskip, **pdkwargs)
-#all_data = pd.DataFrame.from_records(npy_data)
-#all_data = pd.DataFrame(all_data.byteswap().newbyteorder()) # for FITS tables
 
-#all_data.rename(columns={'old_name':'new_name'}, inplace=True)
-#all_data.reset_index()
-#firstrow = all_data.iloc[0]
-#for ii,row in all_data.iterrows():
-#    pass
-
-#vot_file = 'neato.xml'
-#vot_data = av.parse_single_table(vot_file)
-#vot_data = av.parse_single_table(vot_file).to_table()
 
 cd11 = all_data.CD11
 cd12 = all_data.CD12
