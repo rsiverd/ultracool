@@ -124,7 +124,7 @@ def find_gaia_matches_with_mags(stars, tol_arcsec, ra_col='dra', de_col='dde',
 # * X,Y,RA,DE variable names have convention that c='catalog' and g='gaia'
 def project_pars(wcs_params, xrel, yrel):
     cdmat = wcs_params[:4]
-    a_NaNsgv1   = wcs_params[4]
+    cv1   = wcs_params[4]
     cv2   = wcs_params[5]
     pra, pde = tp.xycd2radec(cdmat, xrel, yrel, cv1, cv2)
     return (pra % 360.0, pde)
