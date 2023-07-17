@@ -9,13 +9,13 @@
 #
 # Rob Siverd
 # Created:       2023-06-29
-# Last modified: 2023-06-29
+# Last modified: 2023-07-17
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 ## Modules:
 import os
@@ -46,6 +46,11 @@ class CustomPolyFit2D(object):
 
     def get_model(self):
         return np.copy(self._model) if self._have_model() else None
+
+    def set_model(self, model):
+        ### FIXME: this needs a check to make sure it matches the degree ...
+        self._model = np.copy(model)
+        return
 
     def _have_model(self):
         return isinstance(self._model, np.ndarray)
