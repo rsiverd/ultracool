@@ -10,3 +10,15 @@
 # Do a test extraction of a bunch of images:
 ./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15 
 
+# Do a test extraction of a bunch of images (NEW VERSION):
+./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15 -Q /home/rsiverd/ucd_project/ucd_reu_abby/20230629--final_wcs_params.csv
+
+# check before/after pixel positions:
+image="/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15/wircam_H2_1319400p.fits.fz"
+%run ./13_poly_regify.py /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15/wircam_H2_1319400p.fits.fz.fcat tmp.reg
+ztf -r tmp.reg /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15/wircam_H2_1319400p.fits.fz
+
+# check first image (faster test cycle):
+%run ./13_poly_regify.py /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15/wircam_H2_1319397p.fits.fz.fcat tmp.reg
+ztf -r tmp.reg /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15/wircam_H2_1319397p.fits.fz
+
