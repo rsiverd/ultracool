@@ -52,6 +52,9 @@ import numpy as np
 #np.set_printoptions(suppress=True, linewidth=160)
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
+## TESTING:
+import pandas as pd
+
 ##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
 class Unbuffered(object):
@@ -141,6 +144,8 @@ if __name__ == '__main__':
     iogroup = parser.add_argument_group('File I/O')
     iogroup.add_argument('--overwrite', required=False, dest='skip_existing',
             action='store_false', help='overwrite existing catalogs')
+    iogroup.add_argument('-Q', '--wcs_pars_path', required=True, type=str,
+            help='path to CSV file with companion WCS parameters')
     iogroup.add_argument('-F', '--failure_list',
             default='failures.txt', type=str,
             help='output list of processing failures [def: %(default)s]')
@@ -219,6 +224,18 @@ if not img_files:
 n_images = len(img_files)
 
 ##--------------------------------------------------------------------------##
+##------------------           Load WCS Parameters          ----------------##
+##--------------------------------------------------------------------------##
+
+wdata = pd.read_csv(context.wcs_pars_path)
+ibase = [os.path.basename(x) for x in wdata['Image Name']]
+iname = [x.split('.fcat')[0] for x in ibase]
+#wdata['iname'] = iname
+wplut = {}
+for ii,ww in wdata.iterrows():
+    wplut[iname[ii]] = tuple(ww[-6:])
+
+##--------------------------------------------------------------------------##
 ##------------------           Process All Images           ----------------##
 ##--------------------------------------------------------------------------##
 
@@ -231,6 +248,8 @@ for ii,img_ipath in enumerate(img_files, 1):
     #    sys.stderr.write("WARNING: file not found:\n--> %s\n" % unc_ipath)
     #    continue
     img_ibase = os.path.basename(img_ipath)
+
+    fskwargs = {'wpars':wplut[img_ibase]}
 
     # no uncertainty images exist for this test case:
     unc_ipath = None
@@ -258,7 +277,7 @@ for ii,img_ipath in enumerate(img_files, 1):
     #result = spf.find_stars(context.sigthresh, include_akp=True)
     try:
         #result = wcf.find_stars(context.sigthresh, include_poly=False)
-        result = wcf.find_stars(context.sigthresh, include_poly=True)
+        result = wcf.find_stars(context.sigthresh, include_poly=True, **fskwargs)
         result.save_as_fits(cat_fpath, overwrite=True)
     except:
         sys.stderr.write("An error occurred during analysis ... check image.\n")
