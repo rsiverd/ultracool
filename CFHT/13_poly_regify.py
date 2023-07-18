@@ -43,4 +43,8 @@ with open(save_reg, 'w') as sr:
     for cxx,cyy in zip(stars['xdw'], stars['ydw']):
         sr.write("image; annulus(%.3f, %.3f, %.1f, %.1f) # color=green\n"
                 % (cxx, cyy, image_r1_pix, image_r2_pix))
+    # dewarped ra,dec:
+    for cra,cde in zip(stars['dradw'] % 360.0, stars['ddedw']):
+        sr.write("fk5; annulus(%.6fd, %.6fd, %.4fd, %.4fd) # color=blue\n"
+                % (cra, cde, radec_r1_deg, radec_r2_deg))
 
