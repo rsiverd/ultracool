@@ -1,0 +1,4 @@
+This is a quick investigation into how well we can estimate pixel
+scale changes across an image directly from the X,Y pixel separations
+and the matched Gaia RA, Dec positions. The data set likely has some
+contamination, but the basic idea should still work.
