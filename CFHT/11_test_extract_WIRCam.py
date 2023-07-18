@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2023-05-31
-# Last modified: 2023-06-05
+# Last modified: 2023-07-17
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 ## Python version-agnostic module reloading:
 try:
@@ -254,7 +254,8 @@ for ii,img_ipath in enumerate(img_files, 1):
     wcf.use_images(ipath=img_ipath, upath=unc_ipath)
     #result = spf.find_stars(context.sigthresh, include_akp=True)
     try:
-        result = wcf.find_stars(context.sigthresh, include_poly=False)
+        #result = wcf.find_stars(context.sigthresh, include_poly=False)
+        result = wcf.find_stars(context.sigthresh, include_poly=True)
         result.save_as_fits(cat_fpath, overwrite=True)
     except:
         sys.stderr.write("An error occurred during analysis ... check image.\n")
