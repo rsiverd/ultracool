@@ -2,17 +2,21 @@
 
 csv_file="$1"
 reg_file="$2"
+#gmag_lim=22.0
+gmag_lim="$3"
 #inner_as="0.00025"
 #outer_as="0.00075"
 if [ $# -lt 2 ]; then
    echo "NOPE!"
-   echo "Syntax: $0 csv_file region_file"
+   echo -e "\nSyntax: $0 csv_file region_file gmag_limit"
+   echo -e "\n(Gmag ~ 23 is everything)\n"
    exit 1
 fi
 
+
 # SPITZER IRAC is ~1.2" / pixel
 # Useful column names are: ra, dec, phot_g_mean_mag
-awk -F, '
+awk -F, -v gmag_lim=$gmag_lim '
 BEGIN {
    # define columns of interest:
    rcname = "ra"
@@ -20,7 +24,9 @@ BEGIN {
    mcname = "phot_g_mean_mag"
 
    # magnitude limit for region file:
-   max_mag = 22.0
+   #max_mag = 22.0
+   #max_mag = 20.0
+   max_mag = gmag_lim
    
    # region file annulus size:
    pxscale = 1.2                 # arcsec  per pixel (IRAC)
