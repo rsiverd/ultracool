@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2019-09-09
-# Last modified: 2023-07-10
+# Last modified: 2023-07-17
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 
 ## Python version-agnostic module reloading:
 try:
@@ -142,6 +142,11 @@ class GaiaMatch(object):
         #self._ep_gaia  = None       # the Gaia catalog epoch
         #self._tdiff_yr = 0.0        # epoch diff (Julian yrs) for PM calc.
 
+        # by default, magnitude limits are broad:
+        self._g_mag_lim = 99.0
+        self._bpmag_lim = 99.0      # not used
+        self._rpmag_lim = 99.0      # not used
+
         # the list of columns we scour for NaNs:
         self._nancols  = [x for x in _drop_NaNs]
 
@@ -158,6 +163,7 @@ class GaiaMatch(object):
 
     def _reset_gaia_catalog(self):
         self._rawdata  = None       # Gaia catalog DataFrame
+        self._limdata  = None       # Gaia catalog DataFrame with user limits
         self._clndata  = None       # Gaia catalog DataFrame with NaNs purged
         self._srcdata  = None       # Gaia catalog DataFrame at user epoch
         self._ep_gaia  = None       # Gaia catalog reference epoch
@@ -228,6 +234,15 @@ class GaiaMatch(object):
         self._apply_gaia_tdiff()
         return
 
+    # Set limiting (faint) G magnitude for matching:
+    def set_Gmag_limit(self, gmag):
+        """Only match against sources with Gmag < gmag."""
+        self._g_mag_lim = gmag
+
+        # re-apply catalog limits and user epoch:
+        self._apply_user_limits()
+        return
+
     # ---------------------------------------
     # Gaia catalog loading and validation
     # ---------------------------------------
@@ -243,6 +258,7 @@ class GaiaMatch(object):
 
         # reset/initialize catalog info:
         self._reset_gaia_catalog()
+        self._reset_user_epoch()
 
         # load sources from CSV:
         try:
@@ -262,8 +278,11 @@ class GaiaMatch(object):
         #self._usedata = self._srcdata
         self._update_gaia_epoch()
 
+        # apply user limits:
+        self._apply_user_limits()
+
         # purge NaNs from identified columns:
-        self._purge_gaia_NaNs()
+        #self._purge_gaia_NaNs()
 
         # spread estimate:
         dde = self._srcdata[self._de_key].values
@@ -282,12 +301,30 @@ class GaiaMatch(object):
     def _have_gaia_epoch(self):
         return isinstance(self._ep_gaia, astt.Time)
 
-    # drop items from an array if NaNs are found in the specified column:
-    def _purge_gaia_NaNs(self):
-        keep_cols = [~np.isnan(self._rawdata[cc]) for cc in self._nancols]
-        keep_gaia = reduce(lambda x,y: x&y, keep_cols)
+    # impose limits on Gaia catalog (e.g., gmag, RA, Dec):
+    def _apply_user_limits(self):
+        # first, axe sources with NaNs in important columns:
+        conditions = [~np.isnan(self._rawdata[cc]) for cc in self._nancols]
+        # Gmag threshold:
+        gmag_okay = (self._rawdata[_gaia_g_mag_colname] <= self._g_mag_lim)
+        conditions.append(gmag_okay)
+
+        # ADD MORE CONDITIONS HERE
+
+        # joint ANDing of conditions:
+        keep_gaia = reduce(lambda x,y: x&y, conditions)
         self._clndata = self._rawdata[keep_gaia]
+
+        # Redo user epoch adjustment:
+        self._apply_gaia_tdiff()
         return
+
+    # drop items from an array if NaNs are found in the specified column:
+    #def _purge_gaia_NaNs(self):
+    #    keep_cols = [~np.isnan(self._rawdata[cc]) for cc in self._nancols]
+    #    keep_gaia = reduce(lambda x,y: x&y, keep_cols)
+    #    self._clndata = self._rawdata[keep_gaia]
+    #    return
 
     # compute updated Gaia positions for comparison using
     def _apply_gaia_tdiff(self):
