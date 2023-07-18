@@ -202,6 +202,8 @@ ref_sx, ref_sy, ref_sra, ref_sde, ref_gra, ref_gde = zip(*ref_gaia_matches)
 sys.stderr.write("Setting epoch ...\n")
 gm.set_epoch(obs_time)
 
+gm.set_Gmag_limit(99.0)
+
 img_gaia_matches = find_gaia_matches(stars, 2.0, xx_col='x', yy_col='y')
 img_sx, img_sy, img_sra, img_sde, img_gra, img_gde = zip(*img_gaia_matches)
 
