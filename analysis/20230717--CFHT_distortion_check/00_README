@@ -1,0 +1,3 @@
+I want to get a quick measure of the magnitude of Abby's distortion correction
+as a function of grid cell. This should be straightforard using the large CSV
+file with final Gaia matches and their coordinate differences.
