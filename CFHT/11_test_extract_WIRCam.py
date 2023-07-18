@@ -249,6 +249,9 @@ for ii,img_ipath in enumerate(img_files, 1):
     #    continue
     img_ibase = os.path.basename(img_ipath)
 
+    if not img_ibase in wplut.keys():
+        sys.stderr.write("Image '%s' not among WCS paramet solutions???\n" % img_ibase)
+        continue
     fskwargs = {'wpars':wplut[img_ibase]}
 
     # no uncertainty images exist for this test case:
