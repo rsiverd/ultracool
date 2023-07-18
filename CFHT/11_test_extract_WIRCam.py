@@ -131,6 +131,7 @@ if __name__ == '__main__':
     #parser.set_defaults(imtype=None) # 'cbcd', 'clean')
     parser.set_defaults(imtype='p') # 'cbcd', 'clean')
     parser.set_defaults(sigthresh=2.0)
+    parser.set_defaults(ntodo=0)
     # ------------------------------------------------------------------
     #parser.add_argument('firstpos', help='first positional argument')
     #parser.add_argument('-w', '--whatever', required=False, default=5.0,
@@ -164,6 +165,8 @@ if __name__ == '__main__':
     miscgroup = parser.add_argument_group('Miscellany')
     miscgroup.add_argument('--debug', dest='debug', default=False,
             help='Enable extra debugging messages', action='store_true')
+    miscgroup.add_argument('-n', '--ntodo', type=int, required=False,
+            help='maximum number of images to process [def: %(default)s]')
     miscgroup.add_argument('-q', '--quiet', action='count', default=0,
             help='less progress/status reporting')
     miscgroup.add_argument('-v', '--verbose', action='count', default=0,
@@ -219,7 +222,7 @@ n_images = len(img_files)
 ##------------------           Process All Images           ----------------##
 ##--------------------------------------------------------------------------##
 
-ntodo = 0
+ntodo = context.ntodo
 nproc = 0
 for ii,img_ipath in enumerate(img_files, 1):
     sys.stderr.write("%s\n" % fulldiv)
