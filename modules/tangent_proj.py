@@ -137,6 +137,16 @@ def xycd2radec(cdmat, rel_xx, rel_yy, crval1, crval2, debug=False):
     prj_xx, prj_yy = np.matmul(thisCD, relpix)
     return _wcs_tan_compute(thisCD, relpix, crval1, crval2, debug=debug)
 
+def make_cdmat(pa_deg, pscale):
+    pa_rad = np.radians(pa_deg)
+    thisCD = np.matmul(xflip_mat, rotation_matrix(pa_rad)) * (pscale / 3600.)
+    return thisCD
+    #rotmat = rotation_matrix(pa_rad)
+
+def xypas2radec(pa_deg, pscale, rel_xx, rel_yy, crval1, crval2):
+    thisCD = make_cdmat(pa_deg, pscale)
+    return xycd2radec(thisCD, rel_xx, rel_yy, crval1, crval2)
+
 ## Convert X,Y to RA, Dec (single-value), uses position angle and fixed pixel scale:
 #def xypa2radec(pa_deg, xpix, ypix, crval1, crval2, channel, debug=False):
 #def xypa2radec(pa_deg, rel_xx, rel_yy, crval1, crval2, channel, debug=False):
