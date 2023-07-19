@@ -1,0 +1,5 @@
+The ymin==ymax cut imposed on CFHT detections does not appear to be sufficient
+to eliminate some of the egregious cases of horizontal artifacts in WIRCam
+data. This investigation aims to determine whether there is a flux cutoff or
+other approach that can eliminate these spuriae.
+

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+ipath="/data/rsiverd/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/13AQ12/wircam_H2_1644696p.fits.fz"
+
+for rfile in example_?????.reg; do
+   echo "ztf -r $rfile $ipath"
+   echo
+done
+
