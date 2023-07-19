@@ -280,7 +280,7 @@ for ii,img_ipath in enumerate(img_files, 1):
     #result = spf.find_stars(context.sigthresh, include_akp=True)
     try:
         #result = wcf.find_stars(context.sigthresh, include_poly=False)
-        result = wcf.find_stars(context.sigthresh, prune_horiz=False,
+        result = wcf.find_stars(context.sigthresh, prune_horiz=True,
                 include_poly=True, **fskwargs)
         result.save_as_fits(cat_fpath, overwrite=True)
     except:
