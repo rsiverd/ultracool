@@ -296,6 +296,16 @@ class WIRCamFind(object):
         # also try calculating 
         return dataset
 
+    # a more sophisticated "hot row" detector/corrector:
+    def _prune_hot_rows(self, dataset, thresh):
+        cleaned  = np.copy(dataset)
+        rpk_pop  = np.bincount(dataset['ypeak'])
+        row_num  = np.arange(rpk_pop.size)
+        bad_rows = row_num[(rpk_pop >= thresh)]
+        for rr in bad_rows:
+            drop_me = (cleaned['ypeak'] == rr)
+            cleaned = cleaned[~drop_me]
+        return cleaned
 
     # include filter as part of instrument tag:
     def _append_instrument_tag(self, dataset):
@@ -327,8 +337,11 @@ class WIRCamFind(object):
 
         # snip out single-row detections:
         if prune_horiz:
-            horiz   = dataset['ymin'] == dataset['ymax']
-            dataset = dataset[~horiz]
+            n_dirty = len(dataset)
+            dataset = self._prune_hot_rows(dataset, thresh=10)
+            n_clean = len(dataset)
+            #horiz   = dataset['ymin'] == dataset['ymax']
+            #dataset = dataset[~horiz]
 
         # tack on pixel-phase corrected coordinates:
         pix_origin = self._pse.settings['pix_origin']
