@@ -1,0 +1,64 @@
+
+# General case of Gaia matching:
+
+NEED:
+* RA, DE, tol_deg for positional checking
+
+WANT:
+* test_value, gaia_col, negtol, postol       # handles one- or two-sided
+* test_value, gaia_col, tolerance            # forces symmetric tolerance
+
+HOWTO:
+* handle missing values? gaia phot_rp_mean_mag may be NaN
+
+-----------------------------------------------------------------------
+
+Should Gaia targets be propagated to the date of observation? This is
+more expensive but is worthwhile for very long data sets.
+
+Relevant columns are (used source_id == 2048157036035036032):
+gsrc = gm._srcdata
+
+# NOTE: for Gaia DR2, J2015.5 == JD 2457206.375 (TCB)
+
+gaia_J2015p5 = astt.Time(2457206.375, scale='tcb', format='jd')
+
+gsrc['ref_epoch']    # e.g., 2015.5
+gsrc['ra']           # e.g., 294.7030615828344   (degrees)
+gsrc['dec']          # e.g., 35.21197045656248   (degrees)
+gsrc['pmra']         # e.g., -4.383538496657437   (mas/yr) == pmRA * cosDE
+gsrc['pmdec']        # e.g., -6.200807321967185   (mas/yr)
+
+has_pmra = ~np.isnan(gsrc['pmra'])
+has_pmde = ~np.isnan(gsrc['pmdec'])
+gaia_use = gsrc[has_pmra & has_pmde]
+
+delta_t_yrs = (this_jdtdb - dr2_epoch.tdb.jd) / 365.25
+delta_t_yrs = 4.0
+
+arcsec_per_pix = 0.3
+cos_dec = np.cos(np.radians(gaia_use['dec'])).values
+tot_adjustment_mas = delta_t_yrs * np.hypot(gaia_use['pmra'], gaia_use['pmdec']).values
+tot_adjustment_pix = tot_adjustment_mas / 1e3 / arcsec_per_pix
+np.sum(tot_adjustment_pix > 0.5)    # 53
+dde_adjustment_mas = delta_t_yrs * gaia_use['pmdec']
+dra_adjustment_mas = delta_t_yrs * gaia_use['pmra'] / cos_dec
+#then_dde = gsrc['dec'] + delta_t_yrs
+-----------------------------------------------------------------------
+
+Create working subset?  If matching *requires* a value from Gaia, NaN
+entries could be excluded before starting the match process. This avoids
+the need for isnan() checks inside a loop.
+
+Batch comparison might also be useful. In this case, the Gaia sources
+catalog could be whittled down by:
+* excluding objects with NaN in columns required for matching
+* excluding objects outside the Dec range by more than the match tol, e.g.:
+      # let _targ_de_key be the detections array column name with Dec values
+      # let _gaia_de_key be the Gaia sources column with Dec values
+      max_gaia_dec   = detections[_targ_de_key].max() + match_tol_deg
+      min_gaia_dec   = detections[_targ_de_key].min() - match_tol_deg
+      gaia_dec_ok_hi = gaia_sources[_gaia_de_key] <= max_gaia_dec
+      gaia_dec_ok_lo = gaia_sources[_gaia_de_key] >= min_gaia_dec
+      gaia_usefuls   = gaia_sources[gaia_dec_ok_hi & gaia_dec_ok_lo]
+
