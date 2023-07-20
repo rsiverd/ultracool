@@ -1,0 +1,8 @@
+cd /home/rsiverd/ucd_project/ucd_cfh_data/for_abby
+fullpath $(cat image_list.txt) > /home/rsiverd/ucd_project/ultracool/analysis/20230719--CFHT_CRVAL_vs_MCTR/image_paths.txt
+
+-----------------------------------------------------------------------
+
+cd /home/rsiverd/ucd_project/ultracool/analysis/20230719--CFHT_CRVAL_vs_MCTR
+imhget --progress -l image_paths.txt crpix1 crpix2 crval1 crval2 mctr_ra mctr_dec -o hdr_coords.txt
+

@@ -1,0 +1,4 @@
+We want to identify a flux threshold that seems to throw away
+spurious(ish) detections before trying to match to Gaia, especially
+before the distortion solution is settled.
+
