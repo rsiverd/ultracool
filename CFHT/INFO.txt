@@ -1,3 +1,13 @@
+
+# Site:
+* Latitude +19:49:41.86
+* Longitude 155:28:18.00 W
+* Elevation 4204 m
+* Observatory code T14
+* lon_deg = -155.47166667
+* lat_deg =  +19.82829444
+* elev_km =    4.204
+
 # Telescope:
 * 3.6-meter aperture (3592 mm clear)
 * f/3.77 parabolic primary (focal length 13533 mm)
