@@ -253,6 +253,7 @@ for ii,img_ipath in enumerate(img_files, 1):
     #    sys.stderr.write("Image '%s' not among WCS paramet solutions???\n" % img_ibase)
     #    continue
     #fskwargs = {'wpars':wplut[img_ibase]}
+    fskwargs = {}
 
     # no uncertainty images exist for this test case:
     unc_ipath = None
@@ -284,6 +285,7 @@ for ii,img_ipath in enumerate(img_files, 1):
                 include_poly=True, **fskwargs)
         result.save_as_fits(cat_fpath, overwrite=True)
     except:
+        #raise
         sys.stderr.write("An error occurred during analysis ... check image.\n")
         with open(context.failure_list, 'a') as fails:
             fails.write("%s\n" % img_ipath)
