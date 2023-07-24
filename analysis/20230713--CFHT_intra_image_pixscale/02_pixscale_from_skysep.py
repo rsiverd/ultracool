@@ -49,6 +49,7 @@ import gc
 import os
 import sys
 import time
+import pickle
 #import vaex
 #import calendar
 #import ephem
@@ -68,7 +69,7 @@ import matplotlib.pyplot as plt
 #import matplotlib.ticker as mt
 #import matplotlib._pylab_helpers as hlp
 #from matplotlib.colors import LogNorm
-#import matplotlib.colors as mplcolors
+import matplotlib.colors as mplcolors
 #import matplotlib.collections as mcoll
 #import matplotlib.gridspec as gridspec
 #from functools import partial
@@ -147,7 +148,8 @@ sys.stderr = Unbuffered(sys.stderr)
 ## Quick ASCII I/O:
 sys.stderr.write("Loading data file ... ")
 tik = time.time()
-data_file = '20230629--final_matches.csv'
+#data_file = '20230629--final_matches.csv'
+data_file = '20230719--final_matches_new.csv'
 pdkwargs = {'skipinitialspace':True, 'low_memory':False}
 data = pd.read_csv(data_file, **pdkwargs)
 tok = time.time()
@@ -181,46 +183,69 @@ sys.stderr.write("done. Took %.3f seconds.\n" % (tok-tik))
 #data.rename(columns={'Calc Decs':'sde'}, inplace=True)
 
 ##--------------------------------------------------------------------------##
+## Load/store ability (slow calculation):
+pkl_save = 'pixel_scales.pickle'
 
 # Group by image:
 chunks = data.groupby('Image Name')
 n_imgs = len(np.unique(data['Image Name']))
 
-tik = time.time()
-rscale_save = {}
-ntodo = 100
-for ii,(tag,isubset) in enumerate(chunks, 1):
-    sys.stderr.write("\rImage %d of %d ... " % (ii, n_imgs))
-    cbase = os.path.basename(tag)
-    xpix  = isubset['X Pixel'].values
-    ypix  = isubset['Y Pixel'].values
-    gra   = isubset['Gaia RA'].values
-    gde   = isubset['Gaia Dec'].values
+if os.path.isfile(pkl_save):
+    sys.stderr.write("Loading data from %s ... " % pkl_save)
+    with open(pkl_save, 'rb') as ppp:
+        rscale_save = pickle.load(ppp)
+    sys.stderr.write("done.\n")
+else:
+    tik = time.time()
+    rscale_save = {}
+    ntodo = 0
+    max_sep = 50
+    for ii,(tag,isubset) in enumerate(chunks, 1):
+        sys.stderr.write("\rImage %d of %d ... " % (ii, n_imgs))
+        cbase = os.path.basename(tag)
+        xpix  = isubset['X Pixel'].values
+        ypix  = isubset['Y Pixel'].values
+        gra   = isubset['Gaia RA'].values
+        gde   = isubset['Gaia Dec'].values
+    
+        rhits = []    
+        yhits = []
+        for tx,ty,tra,tde in zip(xpix, ypix, gra, gde):
+            #xnear = np.abs(xpix - tx) < max_sep
+            #ynear = np.abs(ypix - ty) < max_sep
+            #check = xnear & ynear
+            #rsep  = np.hypot(xpix[check] - tx, ypix[check] - ty)
+            #rsep  = np.hypot(neato['X Pixel'] - tx, neato['Y Pixel'] - ty)
 
-    rhits = []    
-    yhits = []
-    for tx,ty,tra,tde in zip(xpix, ypix, gra, gde):
-        rsep  = np.hypot(xpix - tx, ypix - ty)
-        #asep  = angle.dAngSep(tra, tde, gra, gde)
-        #pscl = 3600.0 * asep / rsep
-        which = (0.0 < rsep) & (rsep < 50)
-        rdist = rsep[which]
-        adist = angle.dAngSep(tra, tde, gra[which], gde[which])
-        pxscl = 3600.0 * adist / rdist
-        ydiff = np.abs(ty - ypix[which])
-        ddiff = np.abs(tde - gde[which])
-        #dec_sep = np.abs(tde - gde)
-        rhits += [(tx, ty, *rp) for rp in zip(rdist, pxscl) if rp[1]>0]
-        pass
-    rscale_save[cbase] = np.array(rhits)
+            rsep  = np.hypot(xpix - tx, ypix - ty)
+            #asep  = angle.dAngSep(tra, tde, gra, gde)
+            #pscl = 3600.0 * asep / rsep
+            which = (0.0 < rsep) & (rsep < max_sep)
+            rdist = rsep[which]
+            
+            adist = angle.dAngSep(tra, tde, gra[which], gde[which])
+            #adist = angle.dAngSep(tra, tde, 
+            #        gra[check][which], gde[check][which])
+            pxscl = 3600.0 * adist / rdist
+            #ydiff = np.abs(ty - ypix[which])
+            #ddiff = np.abs(tde - gde[which])
+            #dec_sep = np.abs(tde - gde)
+            rhits += [(tx, ty, *rp) for rp in zip(rdist, pxscl) if rp[1]>0]
+            pass
+        rscale_save[cbase] = np.array(rhits)
+    
+        if (ntodo > 0) and (ii >= ntodo):
+            break
+    sys.stderr.write("done.\n")
+    tok = time.time()
+    sys.stderr.write("Cranked in %.3f seconds.\n" % (tok-tik))
 
-    if (ntodo > 0) and (ii >= ntodo):
-        break
-sys.stderr.write("done.\n")
-tok = time.time()
-sys.stderr.write("Cranked in %.3f seconds.\n" % (tok-tik))
+    sys.stderr.write("Saving data to %s ... " % pkl_save)
+    with open(pkl_save, 'wb') as ppp:
+        pickle.dump(rscale_save, ppp)
+    sys.stderr.write("done.\n")
 
-
+#sys.exit(0)
 
 ##--------------------------------------------------------------------------##
 ## Plot config:
@@ -240,6 +265,7 @@ sys.stderr.write("Cranked in %.3f seconds.\n" % (tok-tik))
 
 ##--------------------------------------------------------------------------##
 #plt.style.use('bmh')   # Bayesian Methods for Hackers style
+sys.stderr.write("Making a plot ... this could be slow.\n")
 fig_dims = (11, 9)
 fig = plt.figure(1, figsize=fig_dims)
 #plt.gcf().clf()
@@ -279,7 +305,17 @@ rx, ry, rpix, rpscl = rsdata.T
 
 #skw = {'lw':0, 's':25, 'vmin':0.295, 'vmax':0.315}
 skw = {'lw':0, 's':5, 'vmin':0.295, 'vmax':0.315}
-ax1.scatter(rx, ry, c=rpscl, **skw)
+spts = ax1.scatter(rx, ry, c=rpscl, **skw)
+
+
+##cbar = fig.colorbar(spts, orientation='vertical')   # old way
+cbnorm = mplcolors.Normalize(*spts.get_clim())
+scm = plt.cm.ScalarMappable(norm=cbnorm, cmap=spts.cmap)
+scm.set_array([])
+cbar = fig.colorbar(scm, orientation='vertical')
+#cbar = fig.colorbar(scm, ticks=cs.levels, orientation='vertical') # contours
+#cbar.formatter.set_useOffset(False)
+#cbar.update_ticks()
 
 #blurb = "some text"
 #ax1.text(0.5, 0.5, blurb, transform=ax1.transAxes)
@@ -330,8 +366,8 @@ ax1.scatter(rx, ry, c=rpscl, **skw)
 #cbar.formatter.set_useOffset(False)
 #cbar.update_ticks()
 
-#fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
-#plt.draw()
+fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
+plt.draw()
 #fig.savefig(plot_name, bbox_inches='tight')
 
 
