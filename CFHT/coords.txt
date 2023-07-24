@@ -1,0 +1,10 @@
+[rsiverd@bebop /home/rsiverd/ucd_project/ultracool/CFHT]
+$ coords -D 155:28:18.00 19:49:41.86
+R.A.(hrs):   +10.36477778
+R.A.(deg):  +155.47166667
+Dec.(deg):   +19.82829444
+
+R.A.(hrs):   +10:21:53.20000
+R.A.(deg):  +155:28:18.00000
+Dec.(deg):   +19:49:41.86000
+
