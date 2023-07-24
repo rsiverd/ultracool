@@ -205,68 +205,10 @@ class WIRCamFind(object):
                 self._reset_uparams()
         return
 
-    ## remove cosmic rays:
-    #def remove_cosmics(self):
-    #    sys.stderr.write("Removing cosmic rays ... ")
-    #    lakw = {}
-    #    lakw.update(_lacos_defaults)
-    #    lakw['mask'] = self._imask
-    #    if self._have_err_image:
-    #        lakw['error'] = self._udata
-    #    self._cdata, self._cmask = lacosmic(self._idata, **lakw)
-    #    self._pse.img_data = self._cdata    # swap in 
-    #    #self._pse.set_image(self._cdata, _docopy=False)
-    #    sys.stderr.write("done.\n")
-    #    return
-
-    # confirm choices to prepare for PSE:
-    #def confirm(self):
-    #    self._pse.set_image(self._idata, _docopy=False)
-    #    self._pse.set_mask(self._imask)
-    #    self._pse.set_imwcs(self._imwcs.all_pix2world)
-    #    if self._have_err_image:
-    #        self._pse.set_errs(self._udata, _docopy=False)
-
     @staticmethod
     def _get_data_and_header(filename):
         rdata, rhdrs = pf.getdata(filename, header=True)
         return rdata.astype('float32'), rhdrs.copy(strip=True)
-
-    # ----------------------------------------
-#    def _ak_dephase_dewarp(self, dataset, mission, aks_inst):
-#        x_dephase, y_dephase = akp.dephase(np.atleast_1d(dataset['x']),
-#                                        np.atleast_1d(dataset['y']), mission, aks_inst)
-#        x_dewarp, y_dewarp = akp.xform_xy(x_dephase, y_dephase, aks_inst)
-#        dataset = append_fields(dataset, ('xdp', 'ydp', 'xdw', 'ydw'),
-#                (x_dephase, y_dephase, x_dewarp, y_dewarp), usemask=False)
-#
-#        return True
-
-    def _akp_added_value(self, dataset):
-        channel  = self._ihdrs['CHNLNUM']        # SHA provides this in FITS header
-        jdtdb    = self._ihdrs['OBS_TIME']       # mid-exposure JDTDB, added to headers previously
-        mission  = akspoly.mission_from_jdtdb(jdtdb)
-        aks_inst = akspoly._chmap[channel]
-
-        # first update adds dephased and dewarped pixel coordinates
-        #success  = self._ak_dephase_dewarp(dataset, mission, aks_inst)
-        x_dephase, y_dephase = akp.dephase(np.atleast_1d(dataset['x']),
-                                        np.atleast_1d(dataset['y']), mission, aks_inst)
-        x_dewarp, y_dewarp = akp.xform_xy(x_dephase, y_dephase, aks_inst)
-        dataset = append_fields(dataset, ('xdp', 'ydp', 'xdw', 'ydw'),
-                (x_dephase, y_dephase, x_dewarp, y_dewarp), usemask=False)
-
-        # second update transforms to RA/DE using PA, CRVAL1, CRVAL2:
-        this_padeg = self._ihdrs['PA']
-        this_crv_1 = self._ihdrs['CRVAL1']
-        this_crv_2 = self._ihdrs['CRVAL2']
-        aks_ra, aks_de = akspoly.xypa2radec(this_padeg, x_dewarp, y_dewarp,
-                this_crv_1, this_crv_2, aks_inst)
-        dataset = append_fields(dataset, ('akpara', 'akpade'),
-                (aks_ra, aks_de), usemask=False)
-
-        #return True
-        return dataset
 
     # include distortion corrected pixel positions:
     def _wir_added_value(self, dataset, wparams):
@@ -294,6 +236,39 @@ class WIRCamFind(object):
                 (wx_dewarp, wy_dewarp, pred_ra, pred_de), usemask=False)
 
         # also try calculating 
+        return dataset
+
+    def _wir_distortion_correction(self, dataset):
+        # the models we know about:
+        _have_models = wcp.get_dist_models()
+
+        # adjust non-windowed positions:
+        tx = np.atleast_1d(dataset['x'])
+        ty = np.atleast_1d(dataset['y'])
+        for model in _have_models:
+            xnudge, ynudge = wcp.calc_xy_nudges(tx, ty, model)
+            xcorr = tx + xnudge
+            ycorr = ty + ynudge
+            xname = 'xdw_%s' % model
+            yname = 'ydw_%s' % model
+            dataset = append_fields(dataset, (xname, yname),
+                    (xcorr, ycorr), usemask=False)
+            pass
+
+        # adjust windowed positions:
+        tx = np.atleast_1d(dataset['wx'])
+        ty = np.atleast_1d(dataset['wy'])
+        for model in _have_models:
+            xnudge, ynudge = wcp.calc_xy_nudges(tx, ty, model)
+            xcorr = tx + xnudge
+            ycorr = ty + ynudge
+            xname = 'xdw_%s' % model
+            yname = 'ydw_%s' % model
+            dataset = append_fields(dataset, (xname, yname),
+                    (xcorr, ycorr), usemask=False)
+            pass
+
+        # return updated catalog:
         return dataset
 
     # a more sophisticated "hot row" detector/corrector:
@@ -352,9 +327,11 @@ class WIRCamFind(object):
 
         # distortion correction:
         if include_poly:
-            wparams = fskw.pop('wpars')
-            sys.stderr.write("Got wparams: %s\n" % str(wparams))
-            dataset = self._wir_added_value(dataset, wparams)
+            self._wir_distortion_correction(dataset)
+        #if include_poly:
+        #    wparams = fskw.pop('wpars')
+        #    sys.stderr.write("Got wparams: %s\n" % str(wparams))
+        #    dataset = self._wir_added_value(dataset, wparams)
 
         ## Adam Kraus polynomial dephase/dewarp:
         #if include_akp:
