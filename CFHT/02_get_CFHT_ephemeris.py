@@ -334,16 +334,41 @@ img_bases = [img_bases[x] for x in order]
 
 ## For more information about how to specify the observing site, visit:
 ## https://ssd.jpl.nasa.gov/horizons/manual.html#center
+## https://astroquery.readthedocs.io/en/latest/jplhorizons/jplhorizons.html
+
+## From the latter:
+
+## Horizons always interprets longitude values as eastward. However, there are
+## two major gotchas in this: 1. For most prograde rotators, which is to say
+## most major bodies, Horizons interprets west-longitude as positive and
+## east-longitude as negative. However, values must still be entered in
+## east-longitude, which means they must be negative; Horizons will raise an
+## error if given any positive longitude value for such bodies. Instead enter
+## the west-longitude - 360. For instance, a site on Mars (id code 499) at 30
+## degrees longitude, 30 degrees latitude, 0 km elevation should be specified
+## as {'body': 499, 'elevation': 0, 'lon': -330, 'lat': 30}. 2. This does not
+## apply to the Earth, Moon, and Sun.  Although they are prograde, Horizons
+## interprets east-longitude as positive and west-longitude as negative for
+## these bodies.
+
+
 
 #sys.exit(0)
 ## Retrieve Spitzer ephemeris:
 #spitzkw = {'id':'Spitzer Space Telescope', 'id_type':'id'}
 #cfht_kw = {'id':'Spitzer Space Telescope', 'id_type':'id'}
 #cfht_kw = {'id':'CFH@399', 'id_type':None}
-cfht_kw = {'id':'399', 'id_type':None}
+#cfht_kw = {'id':'399', 'id_type':None}
+#cfht_kw = {'id':'T14@399', 'id_type':None}
+cfh_kw = {     'body':   399,           # Earth
+                'lon':  -155.47166667,
+                'lat':   +19.82829444,
+          'elevation':     4.2094}
+ssb_kw = {'id':'T14', 'id_type':None}
 #cfht_kw = {'id':'267@399', 'id_type':None}
 #cfht_kw = {'id':'CFH', 'id_type':None}
-fhe.set_target(cfht_kw)
+#fhe.set_target(ssb_kw)
+fhe.set_target(cfh_kw)
 fhe.set_imdata(img_bases, timestamps)
 sst_table = fhe.get_ephdata()
 
