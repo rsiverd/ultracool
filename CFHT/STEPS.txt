@@ -12,6 +12,7 @@ $ source ~/anaconda3/bin/activate; conda activate astrom
 $ cd ~/ucd_project/ultracool                                                          # cd into base repo folder
 $ source ENVIRONMENT.sh                                                               # update PYTHONPATH
 $ ./fetch_CFHT_data.py -t etc/WIRCam/calib_fields.txt -o ~/ucd_project/ucd_cfh_data   # creates calib1 folder
+$ ./fetch_CFHT_data.py -t etc/WIRCam/science_fields.txt -o ~/ucd_project/ucd_cfh_data
 
 2) Select NE quadrant, organize by observing night.
 RJS did this using command-line (non-Python) tools 
