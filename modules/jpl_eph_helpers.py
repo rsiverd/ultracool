@@ -18,14 +18,14 @@
 #           See the page noted above for more specifics.
 #
 # Rob Siverd
-# Created:       2021-03-16
+# Created:       2023-07-24
 # Last modified: 2021-08-17
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 ## Python version-agnostic module reloading:
 try:
@@ -66,6 +66,7 @@ except ImportError:
 ##------------------     Ephemeris Retrieval and Storage    ----------------##
 ##--------------------------------------------------------------------------##
 
+
 class FetchHorizEphem(object):
 
 
@@ -76,10 +77,11 @@ class FetchHorizEphem(object):
         self._debug  = False
 
         # Query config:
-        self._qmax = 50             # max data points per query batch
-        self._refplane = 'earth'    # XY-plane parallel to J2000 Earth equator
-        self._location = '@0'       # use Solar System Barycenter as origin
-        self._target   = {}         # HORIZONS target body identifier dict
+        self._SSB      = '@0'           # code for Solar System Barycenter
+        self._qmax     =  50            # max data points per query batch
+        self._refplane = 'earth'        # XY-plane parallel to J2000 Earth equator
+        self._location = self._SSB      # default to SSB as origin
+        self._target   = {}             # HORIZONS target body identifier dict
 
         # Image info:
         self._filenames = None
@@ -109,13 +111,29 @@ class FetchHorizEphem(object):
     # ----------    High-Level User Routines    ----------
     # ----------------------------------------------------
 
-    # Choose target:
+    # DEPRECATED alias for set_target_id():
     def set_target(self, targkw):
+        divtxt = 40*'-'
+        sys.stderr.write("\n\n%s\n" % divtxt)
+        sys.stderr.write("DEPRECATED ROUTINE: set_target()\n\n")
+        sys.stderr.write("REPLACE WITH set_target_id() !!!\n")
+        sys.stderr.write("%s\n\n" % divtxt)
+        return self.set_target_id(targkw)
+
+    # Choose target by ID. This uses the SSB as location code and a
+    # known solar system body (or spacecraft) as target. It does NOT
+    # work for observatory codes:
+    def set_target_id(self, targkw):
         if isinstance(targkw, dict):
-            self._target = targkw
+            self._target   = targkw
+            self._location = self._SSB
         else:
             sys.stderr.write("Not a dictionary: %s\n" % str(targkw))
         return
+
+    # For Earth-based observatories, we have to use the observatory as the
+    # location for the query and the Solar System Barycenter as the target.
+    # The results are then reversed.
 
     # Provide filenames and observation times:
     def set_imdata(self, filenames, timestamps):
