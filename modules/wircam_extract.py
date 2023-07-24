@@ -299,7 +299,7 @@ class WIRCamFind(object):
         keepall      --  keep all detections (skip pruning)
         use_err_img  --  False disables use of error-image
         prune_horiz  --  eliminate objects spanning 1 pixel in Y (hot rows)
-        include_poly --  if True, add Adam Kraus polynomial columns (requires metadata)
+        include_poly --  include polynomial distortion correction(s)
 
         Results are reported in an ExtendedCatalog container.
         """
