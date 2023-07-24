@@ -210,33 +210,33 @@ class WIRCamFind(object):
         rdata, rhdrs = pf.getdata(filename, header=True)
         return rdata.astype('float32'), rhdrs.copy(strip=True)
 
-    # include distortion corrected pixel positions:
-    def _wir_added_value(self, dataset, wparams):
-        filt = self._ihdrs['FILTER']
-        #crval1 = self._ihdrs['CRVAL1']
-        #crval2 = self._ihdrs['CRVAL2']
-        cdmat  = wparams[:4]
-        crval1 = wparams[4]
-        crval2 = wparams[5]
+    ## include distortion corrected pixel positions:
+    #def _wir_added_value(self, dataset, wparams):
+    #    filt = self._ihdrs['FILTER']
+    #    #crval1 = self._ihdrs['CRVAL1']
+    #    #crval2 = self._ihdrs['CRVAL2']
+    #    cdmat  = wparams[:4]
+    #    crval1 = wparams[4]
+    #    crval2 = wparams[5]
 
-        # adjusted standard positions:
-        tx = np.atleast_1d(dataset['x'])
-        ty = np.atleast_1d(dataset['y'])
-        sx_dewarp, sy_dewarp = wcp.calc_corrected_xy(tx, ty, filt) 
-        pred_ra, pred_de = wcp.predicted_radec(None, tx, ty, crval1, crval2)
-        dataset = append_fields(dataset, ('xdw', 'ydw', 'dradw', 'ddedw'),
-                (sx_dewarp, sy_dewarp, pred_ra, pred_de), usemask=False)
+    #    # adjusted standard positions:
+    #    tx = np.atleast_1d(dataset['x'])
+    #    ty = np.atleast_1d(dataset['y'])
+    #    sx_dewarp, sy_dewarp = wcp.calc_corrected_xy(tx, ty, filt) 
+    #    pred_ra, pred_de = wcp.predicted_radec(None, tx, ty, crval1, crval2)
+    #    dataset = append_fields(dataset, ('xdw', 'ydw', 'dradw', 'ddedw'),
+    #            (sx_dewarp, sy_dewarp, pred_ra, pred_de), usemask=False)
 
-        # adjusted windowed positions:
-        tx = np.atleast_1d(dataset['wx'])
-        ty = np.atleast_1d(dataset['wy'])
-        wx_dewarp, wy_dewarp = wcp.calc_corrected_xy(tx, ty, filt)
-        pred_ra, pred_de = wcp.predicted_radec(None, tx, ty, crval1, crval2)
-        dataset = append_fields(dataset, ('wxdw', 'wydw', 'wdradw', 'wddedw'),
-                (wx_dewarp, wy_dewarp, pred_ra, pred_de), usemask=False)
+    #    # adjusted windowed positions:
+    #    tx = np.atleast_1d(dataset['wx'])
+    #    ty = np.atleast_1d(dataset['wy'])
+    #    wx_dewarp, wy_dewarp = wcp.calc_corrected_xy(tx, ty, filt)
+    #    pred_ra, pred_de = wcp.predicted_radec(None, tx, ty, crval1, crval2)
+    #    dataset = append_fields(dataset, ('wxdw', 'wydw', 'wdradw', 'wddedw'),
+    #            (wx_dewarp, wy_dewarp, pred_ra, pred_de), usemask=False)
 
-        # also try calculating 
-        return dataset
+    #    # also try calculating 
+    #    return dataset
 
     def _wir_distortion_correction(self, dataset):
         # the models we know about:
@@ -262,8 +262,8 @@ class WIRCamFind(object):
             xnudge, ynudge = wcp.calc_xy_nudges(tx, ty, model)
             xcorr = tx + xnudge
             ycorr = ty + ynudge
-            xname = 'xdw_%s' % model
-            yname = 'ydw_%s' % model
+            xname = 'wxdw_%s' % model
+            yname = 'wydw_%s' % model
             dataset = append_fields(dataset, (xname, yname),
                     (xcorr, ycorr), usemask=False)
             pass
@@ -327,7 +327,7 @@ class WIRCamFind(object):
 
         # distortion correction:
         if include_poly:
-            self._wir_distortion_correction(dataset)
+            dataset = self._wir_distortion_correction(dataset)
         #if include_poly:
         #    wparams = fskw.pop('wpars')
         #    sys.stderr.write("Got wparams: %s\n" % str(wparams))

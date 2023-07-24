@@ -198,6 +198,7 @@ class WIRCamPoly(object):
 
     # Low-level distortion corrector. The xp,yp arrays must have CRPIXn
     # subtracted already.
+    @staticmethod
     def _calc_nudges(xcoeffs, ycoeffs, xp, yp):
         x_nudge = xcoeffs[0]*xp*xp + xcoeffs[1]*xp*yp + xcoeffs[2]*yp*yp \
                 + xcoeffs[3]*xp*xp*xp + xcoeffs[4]*xp*xp*yp \
@@ -210,7 +211,7 @@ class WIRCamPoly(object):
     # User-facing distortion calculator. This accepts X, Y pixels in
     # sensor coordinates (without CRPIXn removed). One of the defined
     # distortion models needs to be specified.
-    def calc_xy_nudges(xpix, ypix, model):
+    def calc_xy_nudges(self, xpix, ypix, model):
         _xpars = self._xd_coeffs[model]
         _ypars = self._yd_coeffs[model]
         xnudge, ynudge = self._calc_nudges(_xpars, _ypars,
