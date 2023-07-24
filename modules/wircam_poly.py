@@ -198,7 +198,7 @@ class WIRCamPoly(object):
 
     # Low-level distortion corrector. The xp,yp arrays must have CRPIXn
     # subtracted already.
-    def _calc_nudges(xcoeffs, ycoeffs, xp, xp):
+    def _calc_nudges(xcoeffs, ycoeffs, xp, yp):
         x_nudge = xcoeffs[0]*xp*xp + xcoeffs[1]*xp*yp + xcoeffs[2]*yp*yp \
                 + xcoeffs[3]*xp*xp*xp + xcoeffs[4]*xp*xp*yp \
                 + xcoeffs[5]*xp*yp*yp + xcoeffs[6]*yp*yp*yp
