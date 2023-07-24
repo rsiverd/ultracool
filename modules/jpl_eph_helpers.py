@@ -6,6 +6,17 @@
 # headers. Routines are provided to fetch ephemerides using astroquery,
 # store ephemerides on disk, and to recall/lookup stored data.
 #
+# For more information about the underlying astroquery module, see:
+# * https://astroquery.readthedocs.io/en/latest/jplhorizons/jplhorizons.html
+#
+# NOTES:
+# * topocentric coordinate units:
+#   --> longitude in degrees *****
+#   --> latitude in degrees
+#   --> elevation in km
+#   ***** longitude is reckoned differently for different solar system bodies
+#           See the page noted above for more specifics.
+#
 # Rob Siverd
 # Created:       2021-03-16
 # Last modified: 2021-08-17
