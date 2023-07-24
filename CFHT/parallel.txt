@@ -3,8 +3,13 @@ for folder in /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_run
    cmde "./11_test_extract_WIRCam.py -W -I $folder -Q /home/rsiverd/ucd_project/ucd_reu_abby/20230629--final_wcs_params.csv"
 done
 
+for folder in /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/{11..16}????; do 
+   #cmde "./11_test_extract_WIRCam.py -W -I $folder -Q /home/rsiverd/ucd_project/ucd_reu_abby/20230629--final_wcs_params.csv"
+   cmde "./11_test_extract_WIRCam.py -W -I $folder"
+done
 for folder in /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/{17..21}????; do 
-   cmde "./11_test_extract_WIRCam.py -W -I $folder -Q /home/rsiverd/ucd_project/ucd_reu_abby/20230629--final_wcs_params.csv"
+   #cmde "./11_test_extract_WIRCam.py -W -I $folder -Q /home/rsiverd/ucd_project/ucd_reu_abby/20230629--final_wcs_params.csv"
+   cmde "./11_test_extract_WIRCam.py -W -I $folder"
 done
 
 cmde "./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid -Q /home/rsiverd/ucd_project/ucd_reu_abby/20230629--final_wcs_params.csv"

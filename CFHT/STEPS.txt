@@ -56,6 +56,8 @@ $ ./02_get_CFHT_ephemeris.py -W \
    -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid \
    -o /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/cfht_eph_calib1_p_NE.csv
 
+# For the CFHT-specific location:
+%run ./02_get_CFHT_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid -o /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/cfht_eph_calib1_p_NE.CFH.csv
 
 5) Extract initial catalogs from images in a particular directory (or all 
 directories). This uses an existing script based ~entirely on Spitzer
@@ -71,4 +73,7 @@ $ ./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_a
 # updated extraction with external WCS pars ...
 ./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15 -Q /home/rsiverd/ucd_project/ucd_reu_abby/20230629--final_wcs_params.csv
 ./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid -Q /home/rsiverd/ucd_project/ucd_reu_abby/20230629--final_wcs_params.csv
+
+
+
 
