@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2023-05-31
-# Last modified: 2023-07-17
+# Last modified: 2023-07-24
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 ## Python version-agnostic module reloading:
 try:
@@ -144,8 +144,8 @@ if __name__ == '__main__':
     iogroup = parser.add_argument_group('File I/O')
     iogroup.add_argument('--overwrite', required=False, dest='skip_existing',
             action='store_false', help='overwrite existing catalogs')
-    iogroup.add_argument('-Q', '--wcs_pars_path', required=True, type=str,
-            help='path to CSV file with companion WCS parameters')
+    #iogroup.add_argument('-Q', '--wcs_pars_path', required=True, type=str,
+    #        help='path to CSV file with companion WCS parameters')
     iogroup.add_argument('-F', '--failure_list',
             default='failures.txt', type=str,
             help='output list of processing failures [def: %(default)s]')
@@ -227,13 +227,13 @@ n_images = len(img_files)
 ##------------------           Load WCS Parameters          ----------------##
 ##--------------------------------------------------------------------------##
 
-wdata = pd.read_csv(context.wcs_pars_path)
-ibase = [os.path.basename(x) for x in wdata['Image Name']]
-iname = [x.split('.fcat')[0] for x in ibase]
-#wdata['iname'] = iname
-wplut = {}
-for ii,ww in wdata.iterrows():
-    wplut[iname[ii]] = tuple(ww[-6:])
+#wdata = pd.read_csv(context.wcs_pars_path)
+#ibase = [os.path.basename(x) for x in wdata['Image Name']]
+#iname = [x.split('.fcat')[0] for x in ibase]
+##wdata['iname'] = iname
+#wplut = {}
+#for ii,ww in wdata.iterrows():
+#    wplut[iname[ii]] = tuple(ww[-6:])
 
 ##--------------------------------------------------------------------------##
 ##------------------           Process All Images           ----------------##
@@ -249,10 +249,10 @@ for ii,img_ipath in enumerate(img_files, 1):
     #    continue
     img_ibase = os.path.basename(img_ipath)
 
-    if not img_ibase in wplut.keys():
-        sys.stderr.write("Image '%s' not among WCS paramet solutions???\n" % img_ibase)
-        continue
-    fskwargs = {'wpars':wplut[img_ibase]}
+    #if not img_ibase in wplut.keys():
+    #    sys.stderr.write("Image '%s' not among WCS paramet solutions???\n" % img_ibase)
+    #    continue
+    #fskwargs = {'wpars':wplut[img_ibase]}
 
     # no uncertainty images exist for this test case:
     unc_ipath = None
