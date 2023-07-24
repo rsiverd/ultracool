@@ -1,0 +1,8 @@
+cd1_1
+cd1_2
+cd2_1
+cd2_2
+crpix1
+crpix2
+crval1
+crval2

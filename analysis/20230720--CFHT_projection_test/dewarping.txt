@@ -1,0 +1,21 @@
+
+# Dupuy & Liu (2012) distortion coefficients. You can use these as
+# the initial guess for the big solve too.
+xcoeffs = np.array([ 1.173e-6, -1.303e-6,  5.105e-7,
+    -5.287e-10, -4.130e-10, -5.338e-10, -1.353e-10])
+ycoeffs = np.array([-6.409e-7,  1.117e-6, -1.191e-6,
+    -1.466e-10, -4.589e-10, -3.884e-10, -5.872e-10])
+
+# The following is a routine that applies the distortion coefficients
+# and produces corrected X,Y positions. It expects "relative" X,Y
+# coordinates as input (i.e., CRPIX1 and CRPIX2 subtracted off).
+def dewarp(xcoeffs, ycoeffs, xp, yp):
+    x_nudge = xcoeffs[0]*xp*xp + xcoeffs[1]*xp*yp + xcoeffs[2]*yp*yp \ 
+            + xcoeffs[3]*xp*xp*xp + xcoeffs[4]*xp*xp*yp \
+            + xcoeffs[5]*xp*yp*yp + xcoeffs[6]*yp*yp*yp
+    y_nudge = ycoeffs[0]*xp*xp + ycoeffs[1]*xp*yp + ycoeffs[2]*yp*yp \
+            + ycoeffs[3]*xp*xp*xp + ycoeffs[4]*xp*xp*yp \
+            + ycoeffs[5]*xp*yp*yp + ycoeffs[6]*yp*yp*yp
+    return xp + x_nudge, yp + y_nudge
+
+

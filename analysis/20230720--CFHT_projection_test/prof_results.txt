@@ -1,0 +1,25 @@
+One round of minimization for 10 images.
+
+Total time: ~65 seconds
+
+Of that 65 seconds,
+>  2.0 seconds in make_cdmat
+   --> 0.9 seconds in rotation_matrix
+> 37.7 seconds spent in xycd2radec
+   --> 36.3 seconds in _wcs_tan_compute
+      -->  6.1 seconds in _tanproj
+      --> 29.6 seconds in migrate_fov_deg
+         --> 28 seconds in migrate_fov_rad
+            --> 8.3 seconds in _equ2xyz
+            --> 13.9 seconds in _fov_migration_matrix
+               --> 7.4 seconds in _rotation_to_origin
+               --> 6.0 seconds in _rotation_to_target
+                  --> 3.9 seconds in _calc_zrot_rad (across origin + target)
+                  --> 3.3 seconds in _calc_yrot_rad (across origin + target)
+                  --> 3.3 seconds in _calc_xrot_rad (across origin + target)
+            --> 5.0 seconds in _xyz2equ
+> 11.6 seconds spent in dAngSep
+   --> 10.7 seconds in rAngSep
+      --> 10.7 seconds in fast_rAngSep
+         --> 1.2 seconds in _coord_dims_okay
+

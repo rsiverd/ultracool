@@ -1,0 +1,136 @@
+In [64]: %prun answer = opti.fmin(minimize_this, init_params)
+
+         26480724 function calls (25940452 primitive calls) in 65.699 seconds
+
+   Ordered by: internal time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+    90000    8.336    0.000   10.676    0.000 angle.py:171(fast_rAngSep)
+    90000    6.622    0.000    8.341    0.000 fov_rotation.py:128(_equ2xyz)
+    90000    5.127    0.000    6.069    0.000 tangent_proj.py:87(_tanproj)
+    90000    5.092    0.000    5.092    0.000 15_fit_everything.py:166(dewarp)
+1768410/1228410    3.732    0.000    9.897    0.000 {built-in method numpy.core._multiarray_umath.implement_array_function}
+  1726551    3.381    0.000    3.381    0.000 {built-in method numpy.array}
+    26891    3.176    0.000    3.176    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+    90000    2.816    0.000    4.978    0.000 fov_rotation.py:138(_xyz2equ)
+   540000    1.661    0.000    1.661    0.000 {built-in method _warnings.warn}
+   180000    1.435    0.000    3.924    0.000 fov_rotation.py:64(_calc_zrot_rad)
+     9000    1.366    0.000   64.767    0.007 15_fit_everything.py:230(evaluator)
+   180000    1.366    0.000    3.327    0.000 fov_rotation.py:58(_calc_yrot_rad)
+   180000    1.297    0.000    3.328    0.000 fov_rotation.py:53(_calc_xrot_rad)
+   540000    1.225    0.000    6.480    0.000 defmatrix.py:115(__new__)
+   360000    1.167    0.000    2.147    0.000 frame.py:3418(__getitem__)
+    90000    1.162    0.000    2.057    0.000 tangent_proj.py:140(make_cdmat)
+    90000    1.081    0.000    1.081    0.000 fov_rotation.py:197(<listcomp>)
+   540000    1.052    0.000    1.402    0.000 {built-in method __new__ of type object at 0x55dcbe6169a0}
+   270000    0.940    0.000    1.328    0.000 defmatrix.py:189(__getitem__)
+    90000    0.876    0.000   11.620    0.000 angle.py:234(dAngSep)
+    90000    0.856    0.000   37.664    0.000 tangent_proj.py:131(xycd2radec)
+  1620000    0.708    0.000    0.852    0.000 defmatrix.py:167(__array_finalize__)
+    90000    0.683    0.000    0.683    0.000 {method 'tolist' of 'numpy.ndarray' objects}
+    90000    0.668    0.000   36.323    0.000 tangent_proj.py:102(_wcs_tan_compute)
+    90000    0.590    0.000    0.895    0.000 tangent_proj.py:65(rotation_matrix)
+    90000    0.518    0.000   29.587    0.000 fov_rotation.py:196(migrate_fov_deg)
+  4696505    0.512    0.000    0.512    0.000 {built-in method builtins.isinstance}
+    90000    0.484    0.000    7.382    0.000 fov_rotation.py:159(_rotation_to_origin)
+    90000    0.451    0.000    5.964    0.000 fov_rotation.py:168(_rotation_to_target)
+    90000    0.419    0.000    0.642    0.000 shape_base.py:82(atleast_2d)
+   270001    0.418    0.000    0.418    0.000 {method 'flatten' of 'numpy.ndarray' objects}
+   360000    0.361    0.000    0.634    0.000 shape_base.py:24(atleast_1d)
+     9000    0.321    0.000   65.130    0.007 optimize.py:462(function_wrapper)
+   540000    0.290    0.000    2.650    0.000 <__array_function__ internals>:2(dot)
+   360000    0.287    0.000    0.318    0.000 base.py:4537(__contains__)
+    90000    0.275    0.000   27.988    0.000 fov_rotation.py:190(migrate_fov_rad)
+        1    0.252    0.252   65.699   65.699 optimize.py:593(_minimize_neldermead)
+    90000    0.231    0.000   13.862    0.000 fov_rotation.py:154(_fov_migration_matrix)
+    90000    0.230    0.000    1.246    0.000 angle.py:106(_coord_dims_okay)
+   360000    0.230    0.000    0.761    0.000 managers.py:1670(external_values)
+   360000    0.198    0.000    0.299    0.000 blocks.py:2114(external_values)
+   720001    0.195    0.000    0.195    0.000 {built-in method builtins.len}
+   637505    0.187    0.000    0.391    0.000 _asarray.py:110(asanyarray)
+    90000    0.184    0.000    0.184    0.000 {built-in method numpy.zeros}
+    90000    0.183    0.000    0.944    0.000 numeric.py:75(zeros_like)
+   360000    0.183    0.000    1.016    0.000 <__array_function__ internals>:2(atleast_1d)
+   360000    0.180    0.000    0.941    0.000 series.py:632(values)
+    90000    0.169    0.000    0.763    0.000 numeric.py:217(ones_like)
+   360000    0.164    0.000    0.224    0.000 frame.py:3876(_get_item_cache)
+   180000    0.164    0.000    0.645    0.000 <__array_function__ internals>:2(empty_like)
+    90000    0.153    0.000    1.429    0.000 shape_base.py:223(vstack)
+   360000    0.143    0.000    0.442    0.000 blocks.py:208(external_values)
+   180000    0.118    0.000    0.527    0.000 <__array_function__ internals>:2(copyto)
+   360000    0.114    0.000    0.173    0.000 inference.py:321(is_hashable)
+   360000    0.105    0.000    0.143    0.000 common.py:346(apply_if_callable)
+    99000    0.097    0.000    0.097    0.000 {method 'reshape' of 'numpy.ndarray' objects}
+   360000    0.090    0.000    0.090    0.000 managers.py:1619(_block)
+   720000    0.089    0.000    0.089    0.000 {built-in method builtins.hash}
+    90000    0.085    0.000    0.942    0.000 <__array_function__ internals>:2(ones_like)
+    90000    0.077    0.000    0.507    0.000 <__array_function__ internals>:2(concatenate)
+    90000    0.073    0.000    1.719    0.000 <__array_function__ internals>:2(vstack)
+    90000    0.073    0.000    1.093    0.000 <__array_function__ internals>:2(zeros_like)
+    90000    0.068    0.000   10.744    0.000 angle.py:223(rAngSep)
+   540000    0.066    0.000    0.066    0.000 multiarray.py:716(dot)
+   630000    0.064    0.000    0.064    0.000 {method 'append' of 'list' objects}
+   360000    0.059    0.000    0.059    0.000 {method 'get' of 'dict' objects}
+    90000    0.057    0.000    0.754    0.000 <__array_function__ internals>:2(atleast_2d)
+   360000    0.055    0.000    0.055    0.000 {pandas._libs.lib.item_from_zerodim}
+    19386    0.053    0.000    3.214    0.000 fromnumeric.py:70(_wrapreduction)
+    90000    0.049    0.000    0.049    0.000 {built-in method builtins.hasattr}
+    90000    0.045    0.000    0.094    0.000 shape_base.py:208(_arrays_for_stack_dispatcher)
+    90000    0.042    0.000    0.136    0.000 shape_base.py:219(_vhstack_dispatcher)
+   360000    0.039    0.000    0.039    0.000 {built-in method builtins.callable}
+    15012    0.037    0.000    0.037    0.000 {method 'take' of 'numpy.ndarray' objects}
+   360000    0.036    0.000    0.036    0.000 shape_base.py:20(_atleast_1d_dispatcher)
+     7506    0.031    0.000    0.031    0.000 {method 'argsort' of 'numpy.ndarray' objects}
+   180000    0.027    0.000    0.027    0.000 multiarray.py:1054(copyto)
+   180000    0.023    0.000    0.023    0.000 multiarray.py:75(empty_like)
+     9000    0.021    0.000    3.167    0.000 fromnumeric.py:2111(sum)
+    90000    0.019    0.000    0.019    0.000 numeric.py:213(_ones_like_dispatcher)
+    90000    0.014    0.000    0.014    0.000 numeric.py:71(_zeros_like_dispatcher)
+    22518    0.014    0.000    0.087    0.000 fromnumeric.py:52(_wrapfunc)
+31824/31552    0.014    0.000    0.014    0.000 {built-in method builtins.getattr}
+    10385    0.013    0.000    0.084    0.000 fromnumeric.py:2617(amax)
+    19386    0.012    0.000    0.012    0.000 fromnumeric.py:71(<dictcomp>)
+    90000    0.012    0.000    0.012    0.000 multiarray.py:143(concatenate)
+    90000    0.011    0.000    0.011    0.000 shape_base.py:78(_atleast_2d_dispatcher)
+    15012    0.011    0.000    0.059    0.000 fromnumeric.py:94(take)
+     7505    0.010    0.000    0.029    0.000 fromnumeric.py:1716(ravel)
+     9000    0.009    0.000    3.187    0.000 <__array_function__ internals>:2(sum)
+    15012    0.009    0.000    0.078    0.000 <__array_function__ internals>:2(take)
+     7506    0.008    0.000    0.047    0.000 fromnumeric.py:1004(argsort)
+     7505    0.008    0.000    0.008    0.000 {method 'ravel' of 'numpy.ndarray': objects}
+     9000    0.007    0.000    0.043    0.000 <__array_function__ internals>:2(copy)
+     7506    0.007    0.000    0.062    0.000 <__array_function__ internals>:2(argsort)
+    10385    0.007    0.000    0.098    0.000 <__array_function__ internals>:2(amax)
+     7505    0.006    0.000    0.040    0.000 <__array_function__ internals>:2(ravel)
+     9000    0.004    0.000    0.028    0.000 function_base.py:715(copy)
+    19386    0.004    0.000    0.004    0.000 {method 'items' of 'dict' objects}
+    15012    0.002    0.000    0.002    0.000 fromnumeric.py:90(_take_dispatcher)
+     9000    0.002    0.000    0.002    0.000 fromnumeric.py:2106(_sum_dispatcher)
+     9000    0.002    0.000    0.002    0.000 function_base.py:711(_copy_dispatcher)
+     7506    0.002    0.000    0.002    0.000 fromnumeric.py:1000(_argsort_dispatcher)
+    10385    0.001    0.000    0.001    0.000 fromnumeric.py:2612(_amax_dispatcher)
+     7505    0.001    0.000    0.001    0.000 fromnumeric.py:1712(_ravel_dispatcher)
+        1    0.000    0.000   65.699   65.699 {built-in method builtins.exec}
+       36    0.000    0.000    0.000    0.000 {method 'flush' of '_io.TextIOWrapper' objects}
+        1    0.000    0.000    0.000    0.000 type_check.py:84(asfarray)
+        1    0.000    0.000   65.699   65.699 optimize.py:469(fmin)
+        1    0.000    0.000   65.699   65.699 <string>:1(<module>)
+        2    0.000    0.000    0.000    0.000 {built-in method numpy.empty}
+       34    0.000    0.000    0.000    0.000 15_fit_everything.py:101(__getattr__)
+        1    0.000    0.000    0.000    0.000 <__array_function__ internals>:2(asfarray)
+        2    0.000    0.000    0.000    0.000 {method 'write' of '_io.TextIOWrapper' objects}
+        2    0.000    0.000    0.000    0.000 15_fit_everything.py:101(write)
+        1    0.000    0.000    0.000    0.000 {built-in method builtins.print}
+        2    0.000    0.000    0.000    0.000 15_fit_everything.py:98(write)
+        1    0.000    0.000    0.000    0.000 optimize.py:454(_wrap_function)
+        1    0.000    0.000    0.000    0.000 _asarray.py:23(asarray)
+        2    0.000    0.000    0.000    0.000 numerictypes.py:285(issubclass_)
+        1    0.000    0.000    0.000    0.000 numerictypes.py:359(issubdtype)
+        1    0.000    0.000    0.000    0.000 <__array_function__ internals>:2(amin)
+        1    0.000    0.000    0.000    0.000 fromnumeric.py:2742(amin)
+       14    0.000    0.000    0.000    0.000 15_fit_everything.py:104(__getattr__)
+        1    0.000    0.000    0.000    0.000 optimize.py:145(_check_unknown_options)
+        1    0.000    0.000    0.000    0.000 type_check.py:80(_asfarray_dispatcher)
+        1    0.000    0.000    0.000    0.000 fromnumeric.py:2737(_amin_dispatcher)
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+

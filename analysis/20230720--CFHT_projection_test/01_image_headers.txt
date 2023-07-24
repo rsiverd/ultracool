@@ -1,0 +1,13 @@
+# Use these commands to gather data from image headers
+# -----------------------------------------------------------------------
+
+# Create image list:
+find /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid -type l -name "*.fz" \
+   | sort > image_list.txt
+
+
+# Headers we care about:
+#hdr_keys="cd1_1 cd1_2 cd2_1 cd2_2 crpix1 crpix2 crval1 crval2"
+imhget -N --progress -d',' -l image_list.txt -k keys_list.txt -o tmp.csv
+mv -f tmp.csv header_data.csv
+

@@ -1,0 +1,9 @@
+This investigation aims to test out a fitting procedures to help us tease
+out the distortion solution.
+
+
+# Environment setup:
+cd ../..
+source ENVIRONMENT.sh
+cd -
+
