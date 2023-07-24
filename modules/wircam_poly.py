@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2023-07-10
-# Last modified: 2023-07-17
+# Last modified: 2023-07-24
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.2.0"
+__version__ = "0.2.5"
 
 ## Python version-agnostic module reloading:
 try:
@@ -53,14 +53,14 @@ _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 #reload(fov_rotation)
 #rfov = fov_rotation.RotateFOV()
 
-## Polynomial fitter and evaluator
-import custom_polyfit
-reload(custom_polyfit)
+### Polynomial fitter and evaluator
+#import custom_polyfit
+#reload(custom_polyfit)
 
-## Tangent projection helper:
-import tangent_proj
-reload(tangent_proj)
-tp = tangent_proj
+### Tangent projection helper:
+#import tangent_proj
+#reload(tangent_proj)
+#tp = tangent_proj
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
@@ -127,6 +127,23 @@ _wir_cdmat  = np.array([-8.452717e-05, 1.310921e-08, 9.981597e-09, 8.451805e-05]
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
+## Updated best-fit polynomial from Abby (2023-07-21):
+cs23_xcoeffs = np.array([ 1.172997e-06, -1.303005e-06,  5.104997e-07,
+    -5.287009e-10, -4.130007e-10, -5.338000e-10, -1.353006e-10])
+cs23_ycoeffs = np.array([-6.409032e-07,  1.116993e-06, -1.191010e-06,
+    -1.466009e-10, -4.589033e-10, -3.884028e-10, -5.872037e-10])
+
+## Dupuy & Liu (2012) coefficients:
+dl12_xcoeffs = np.array([ 1.173e-6, -1.303e-6,  5.105e-7,
+    -5.287e-10, -4.130e-10, -5.338e-10, -1.353e-10])
+dl12_ycoeffs = np.array([-6.409e-7,  1.117e-6, -1.191e-6,
+    -1.466e-10, -4.589e-10, -3.884e-10, -5.872e-10])
+
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
 ## Radian-to-degree converter:
 _radeg = 180.0 / np.pi
 
@@ -149,53 +166,67 @@ class WIRCamPoly(object):
         #self._missions = list(self._ppar_a.keys())
         #self._cwcutoff = _cryo_warm_cutoff
         # Default CD matrix:
-        self._wir_cd = np.copy(_wir_cdmat)
+        #self._wir_cd = np.copy(_wir_cdmat)
         # Create and initialize X-axis distortion model:
-        self._cpf_dx = custom_polyfit.CustomPolyFit2D()
-        self._cpf_dx.set_degree(0, 3)
-        self._cpf_dx.set_model(_dx_0_3_coeffs)
+        #self._cpf_dx = custom_polyfit.CustomPolyFit2D()
+        #self._cpf_dx.set_degree(0, 3)
+        #self._cpf_dx.set_model(_dx_0_3_coeffs)
         # Create and initialize X-axis distortion model:
-        self._cpf_dy = custom_polyfit.CustomPolyFit2D()
-        self._cpf_dy.set_degree(0, 3)
-        self._cpf_dy.set_model(_dy_0_3_coeffs)
+        #self._cpf_dy = custom_polyfit.CustomPolyFit2D()
+        #self._cpf_dy.set_degree(0, 3)
+        #self._cpf_dy.set_model(_dy_0_3_coeffs)
         # Local copy of tangent projection:
-        self._tp = tangent_proj
+        #self._tp = tangent_proj
+
+        # Distortion model X-coefficients:
+        self._xd_coeffs = {
+                'dl12'   : np.copy(dl12_xcoeffs),   # Dupuy & Liu (2012)
+                'cs23'   : np.copy(cs23_xcoeffs),   # Colclasure+ (2023)
+                }
+
+        # Distortion model Y-coefficients:
+        self._yd_coeffs = {
+                'dl12'   : np.copy(dl12_ycoeffs),   # Dupuy & Liu (2012)
+                'cs23'   : np.copy(cs23_ycoeffs),   # Colclasure+ (2023)
+                }
+
         return
 
-    def calc_x_correction(self, xpix, ypix, instrument):
-        return self._cpf_dx.eval(xpix - self._crpix1, ypix - self._crpix2)
+    # Report the distortion models currently defined:
+    def get_dist_models(self):
+        return list(self._xd_coeffs.keys())
 
-    def calc_y_correction(self, xpix, ypix, instrument):
-        return self._cpf_dy.eval(xpix - self._crpix1, ypix - self._crpix2)
+    # Low-level distortion corrector. The xp,yp arrays must have CRPIXn
+    # subtracted already.
+    def _calc_nudges(xcoeffs, ycoeffs, xp, xp):
+        x_nudge = xcoeffs[0]*xp*xp + xcoeffs[1]*xp*yp + xcoeffs[2]*yp*yp \
+                + xcoeffs[3]*xp*xp*xp + xcoeffs[4]*xp*xp*yp \
+                + xcoeffs[5]*xp*yp*yp + xcoeffs[6]*yp*yp*yp
+        y_nudge = ycoeffs[0]*xp*xp + ycoeffs[1]*xp*yp + ycoeffs[2]*yp*yp \
+                + ycoeffs[3]*xp*xp*xp + ycoeffs[4]*xp*xp*yp \
+                + ycoeffs[5]*xp*yp*yp + ycoeffs[6]*yp*yp*yp
+        return x_nudge, y_nudge
 
-    def calc_corrected_xy(self, xpix, ypix, instrument):
-        x_nudges = self.calc_x_correction(xpix, ypix, instrument)
-        y_nudges = self.calc_y_correction(xpix, ypix, instrument)
-        return (xpix + x_nudges, ypix + y_nudges)
+    # User-facing distortion calculator. This accepts X, Y pixels in
+    # sensor coordinates (without CRPIXn removed). One of the defined
+    # distortion models needs to be specified.
+    def calc_xy_nudges(xpix, ypix, model):
+        _xpars = self._xd_coeffs[model]
+        _ypars = self._yd_coeffs[model]
+        xnudge, ynudge = self._calc_nudges(_xpars, _ypars,
+                xpix - self._crpix1, ypix - self._crpix2)
+        return xnudge, ynudge
 
-    def xy2focal(self, xpix, ypix, channel):
-        """Convert X,Y detector positions (IN PIXEL UNITS!!!) to focal
-        plane coordinates using Adam Kraus' solution."""
-        prev_shape = xpix.shape
-        xrel = xpix.flatten() - self._crpix1
-        yrel = ypix.flatten() - self._crpix2
-        xpar = self._dpar_a[channel]
-        ypar = self._dpar_b[channel]
-        xfoc = self._eval_axis(xrel, yrel, xpar)
-        yfoc = self._eval_axis(xrel, yrel, ypar)
-        #import pdb; pdb.set_trace()
-        #xfoc = self._crpix1 + self._eval_axis(xrel, yrel, xpar)
-        #yfoc = self._crpix2 + self._eval_axis(xrel, yrel, ypar)
-        #return xrel + xfoc.reshape(prev_shape), yrel + yfoc.reshape(prev_shape)
-        return xfoc.reshape(prev_shape), yfoc.reshape(prev_shape)
+    #def calc_x_correction(self, xpix, ypix, instrument):
+    #    return self._cpf_dx.eval(xpix - self._crpix1, ypix - self._crpix2)
 
-    def xform_xy(self, xpix, ypix, channel):
-        """Convert X,Y detector positions (IN PIXEL UNITS!!!) to modified
-        X',Y' (truer?) pixel coordinates using Adam Kraus' solution."""
-        xfoc, yfoc = self.xy2focal(xpix, ypix, channel)
-        newx = self._crpix1 + xfoc
-        newy = self._crpix2 + yfoc
-        return newx, newy
+    #def calc_y_correction(self, xpix, ypix, instrument):
+    #    return self._cpf_dy.eval(xpix - self._crpix1, ypix - self._crpix2)
+
+    #def calc_corrected_xy(self, xpix, ypix, instrument):
+    #    x_nudges = self.calc_x_correction(xpix, ypix, instrument)
+    #    y_nudges = self.calc_y_correction(xpix, ypix, instrument)
+    #    return (xpix + x_nudges, ypix + y_nudges)
 
     # RA/DE calculation with internal handling of the CRPIXn:
     def predicted_radec(self, cdmat, xpix, ypix, crval1, crval2):
@@ -203,46 +234,6 @@ class WIRCamPoly(object):
         xrel = xpix.flatten() - self._crpix1
         yrel = ypix.flatten() - self._crpix2
         return self._tp.xycd2radec(use_cdm, xrel, yrel, crval1, crval2)
-
-    #def dephase(self, xpix, ypix, mission, channel):
-    #    if not self._have_dephase_pars(mission, channel):
-    #        sys.stderr.write("Unsupported mission/channel combo: %s/%d\n"
-    #                % (mission, channel))
-    #        return None, None
-    #    #prev_shape = xpix.shape
-    #    #xrel = (xpix - np.floor(xpix)).flatten() - 0.5
-    #    #yrel = (ypix - np.floor(ypix)).flatten() - 0.5
-    #    xrel = (xpix - np.floor(xpix)) - 0.5
-    #    yrel = (ypix - np.floor(ypix)) - 0.5
-    #    xpar = self._ppar_a[mission][channel]
-    #    ypar = self._ppar_b[mission][channel]
-    #    newx = xpix + self._eval_axis(xrel, yrel, xpar)
-    #    newy = ypix + self._eval_axis(xrel, yrel, ypar)
-    #    return newx, newy
-
-    #def _have_dephase_pars(self, mission, channel):
-    #    if not mission in self._missions:
-    #        sys.stderr.write("Unsupported mission: %s\n" % mission)
-    #        sys.stderr.write("Available options: %s\n" % str(self._missions))
-    #        return False
-    #    if not channel in self._ppar_a[mission].keys():
-    #        sys.stderr.write("No channel %d for %s mission!\n"
-    #                % (channel, mission))
-    #        return False
-    #    return True
-
-    #@staticmethod
-    #def _eval_axis(x, y, pp):
-    #    newpix  = np.zeros_like(x)
-    #    newpix += pp[0]
-    #    newpix += pp[1]*x + pp[2]*y
-    #    newpix += pp[3]*x**2 + pp[4]*x*y + pp[5]*y**2
-    #    newpix += pp[6]*x**3 + pp[7]*x**2*y + pp[8]*x*y**2 + pp[9]*y**3
-    #    newpix += pp[10]*x**4 + pp[11]*x**3*y + pp[12]*x**2*y**2 \
-    #                        + pp[13]*x*y**3 + pp[14]*y**4
-    #    newpix += pp[15]*x**5 + pp[16]*x**4*y + pp[17]*x**3*y**2 \
-    #            + pp[18]*x**2*y**3 + pp[19]*x*y**4 + pp[20]*y**5
-    #    return newpix
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
