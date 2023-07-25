@@ -70,16 +70,8 @@ sys.stdout = Unbuffered(sys.stdout)
 sys.stderr = Unbuffered(sys.stderr)
 
 ##--------------------------------------------------------------------------##
-### Spitzer pipeline filesystem helpers:
-#try:
-#    import spitz_fs_helpers
-#    reload(spitz_fs_helpers)
-#except ImportError:
-#    logger.error("failed to import spitz_fs_helpers module!")
-#    sys.exit(1)
-#sfh = spitz_fs_helpers
 
-## Spitzer pipeline filesystem helpers:
+## WIRCam pipeline filesystem helpers:
 try:
     import wircam_fs_helpers
     reload(wircam_fs_helpers)
@@ -88,7 +80,7 @@ except ImportError:
     sys.exit(1)
 wfh = wircam_fs_helpers
 
-## Spitzer star detection routine:
+## WIRCam star detection routine:
 try:
     import wircam_extract
     reload(wircam_extract)
