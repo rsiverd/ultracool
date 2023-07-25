@@ -53,7 +53,7 @@ import numpy as np
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
 ## TESTING:
-import pandas as pd
+#import pandas as pd
 
 ##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
