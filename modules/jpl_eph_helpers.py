@@ -285,6 +285,18 @@ class EphTool(object):
         return self._eph_data.copy()[which]
         #return append_fields(tdata, 't', tdata['jdtdb'], usemask=False)
 
+    # Single-entry ephemeris lookup:
+    def get_eph_by_name(self, tag):
+        hits = np.array([tag in x for x in self._eph_data['filename']])
+        if np.sum(hits) != 1:
+            sys.stderr.write("Matching problem ...\n")
+            return None
+        _ephem = self._eph_data[hits][0]
+        result = {}
+        for hdrkey,ephkey,comment in _hspec:
+            result[ephkey] = _ephem[ephkey]
+        return result
+
     # Parse ephemeris data from header keywords:
     @staticmethod
     def eph_from_header(header):
