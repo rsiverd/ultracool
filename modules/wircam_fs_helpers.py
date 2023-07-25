@@ -58,6 +58,28 @@ def get_files_walk(targ_root, flavor):
     return sorted(files_found)
 
 ##--------------------------------------------------------------------------##
+##------------------        Catalog List Generators         ----------------##
+##--------------------------------------------------------------------------##
+
+def get_catalogs_single(dirpath, flavor):
+    cat_wildpath = '%s/wircam_*cat' % dirpath
+    cat_pathlist = glob.glob(cat_wildpath)
+    if flavor:
+        cat_pathlist = [x for x in cat_pathlist if flavor in x]
+    return sorted(cat_pathlist)
+
+def get_catalogs_walk(targ_root, flavor):
+    want_suffix = 'cat'
+    files_found = []
+    for thisdir, subdirs, files in os.walk(targ_root):
+        these_files = [x for x in       files if x.startswith('wircam')]
+        these_files = [x for x in these_files if x.endswith(want_suffix)]
+        if flavor:
+            these_files = [x for x in these_files if flavor in x]
+        files_found += [os.path.join(thisdir, x) for x in these_files]
+    return sorted(files_found)
+
+##--------------------------------------------------------------------------##
 ##------------------       File and Path Manipulation       ----------------##
 ##--------------------------------------------------------------------------##
 
