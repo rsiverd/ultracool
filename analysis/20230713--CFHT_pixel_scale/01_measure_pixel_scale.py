@@ -93,6 +93,7 @@ cdm_rot_deg = []
 for this_cdm in every_cdmat:
     #cd_pscales = np.sqrt(np.sum(
     cd_pscales = np.sqrt(np.sum(this_cdm**2, axis=1))
+    #cd_pscales = np.sqrt(np.sum(this_cdm**2, axis=0))
     norm_cdmat = this_cdm / cd_pscales
     cd_ang_rad = np.arccos(norm_cdmat[0, 0])
     cd_ang_deg = np.degrees(cd_ang_rad)
