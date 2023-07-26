@@ -75,5 +75,10 @@ $ ./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_a
 ./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid -Q /home/rsiverd/ucd_project/ucd_reu_abby/20230629--final_wcs_params.csv
 
 
+6) Add Earth ephemerides to extracted catalogs
+# First folder only:
+./15_add_catalog_ephems.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/16AQ14 -E /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/cfht_eph_calib1_p_NE.csv
+# Process everything:
+./15_add_catalog_ephems.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid -E /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/cfht_eph_calib1_p_NE.csv
 
 
