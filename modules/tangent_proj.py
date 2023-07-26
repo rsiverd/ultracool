@@ -140,7 +140,10 @@ def xycd2radec(cdmat, rel_xx, rel_yy, crval1, crval2, debug=False):
     #rel_xx = xpix - _aks_crpix1
     #rel_yy = ypix - _aks_crpix2
     #relpix = np.array([xpix - _aks_crpix1, ypix - _aks_crpix2])
-    relpix = np.array([rel_xx, rel_yy])
+    #relpix = np.array([rel_xx, rel_yy])
+    #relpix = np.vstack((rel_xx, rel_yy))   # rel time = 3.81 us
+    #relpix = np.array((rel_xx, rel_yy))    # rel time = 1.10 us
+    relpix = np.array((rel_xx, rel_yy))     # rel time = 1.05 us
     prj_xx, prj_yy = np.matmul(thisCD, relpix)
     return _wcs_tan_compute(thisCD, relpix, crval1, crval2, debug=debug)
 
@@ -152,7 +155,7 @@ def slow_make_cdmat(pa_deg, pscale):
 
 def make_cdmat(pa_deg, pscale):
     pa_rad = math.radians(pa_deg)
-    return np.matmul(xflip_mat, superfastrot(pa_rad)) * (pscale / 3600.)
+    return np.matmul(xflip_mat, rotation_matrix(pa_rad)) * (pscale / 3600.)
 
 def xypas2radec(pa_deg, pscale, rel_xx, rel_yy, crval1, crval2):
     thisCD = make_cdmat(pa_deg, pscale)
