@@ -1,0 +1,10 @@
+ibase="wircam_J_2001332p"
+
+# linear:
+cmde "fpeg -i ${ibase}.fits.fz -B7000 --negate --zscale=0.1 -b2 -nj ${ibase}.lin.jpg"
+cmde "fpeg -i ${ibase}.fits.fz -B7000 --negate --zscale=0.1 -b2 -nj ${ibase}.lin.png"
+
+# square root:
+cmde "fpeg -i ${ibase}.fits.fz -B7000 --negate --zscale=0.1 -b2 -n --sqrt -nj ${ibase}.sqrt.jpg"
+cmde "fpeg -i ${ibase}.fits.fz -B7000 --negate --zscale=0.1 -b2 -n --sqrt -nj ${ibase}.sqrt.png"
+
