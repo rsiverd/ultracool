@@ -85,6 +85,26 @@ def get_catalogs_walk(targ_root, flavor):
     return sorted(files_found)
 
 ##--------------------------------------------------------------------------##
+##------------------       Catalog Flavor Permutations      ----------------##
+##--------------------------------------------------------------------------##
+
+## Catalog "flavor" lurks at the end of the basename, before the "."
+def change_catalog_flavor(filename, flav1, flav2):
+    prev_dir = os.path.dirname(filename)
+    old_base = os.path.basename(filename)
+    old_parts = old_base.split('.')
+    old_first = old_parts[0]
+    if not old_first.endswith(flav1):
+        sys.stderr.write("File %s does not have flavor '%s'\n"
+                % (filename, flav1))
+        return None
+    new_first = old_first.replace(flav1, flav2)
+    new_parts = [new_first] + old_parts[1:]
+    new_base  = '.'.join(new_parts)
+    return os.path.join(prev_dir, new_base)
+
+
+##--------------------------------------------------------------------------##
 ##------------------       File and Path Manipulation       ----------------##
 ##--------------------------------------------------------------------------##
 
