@@ -213,9 +213,11 @@ centroid_colmap = {
         'simple'    :   ('dra', 'dde'),
         'window'    :   ('wdra', 'wdde'),
         'pp_fix'    :   ('ppdra', 'ppdde'),
+        'tpcalc'    :   ('calc_ra', 'calc_de'),
         }
 
-centroid_method = 'simple'
+centroid_method = 'tpcalc'
+#centroid_method = 'simple'
 #centroid_method = 'window'
 #centroid_method = 'pp_fix'
 _ra_key, _de_key = centroid_colmap[centroid_method]
