@@ -27,6 +27,7 @@ __version__ = "0.0.1"
 import os
 import sys
 import time
+import math
 #import vaex
 #import calendar
 #import ephem
@@ -64,7 +65,7 @@ rfov = fov_rotation.RotateFOV()
 ## Rotation matrix builder:
 def rotation_matrix(theta):
     """Generate 2x2 rotation matrix for specified input angle (radians)."""
-    c, s = np.cos(theta), np.sin(theta)
+    c, s = math.cos(theta), math.sin(theta)
     return np.array((c, -s, s, c)).reshape(2, 2)
     #return np.array([[np.cos(theta), -np.sin(theta)],
     #                    [np.sin(theta), np.cos(theta)]])
@@ -76,11 +77,11 @@ def mprint(matrix):
     return
 
 ## Reflection matrices:
-xref_mat = np.array([[1.0, 0.0], [0.0, -1.0]])
-yref_mat = np.array([[-1.0, 0.0], [0.0, 1.0]])
+xref_mat  = np.array((( 1.0, 0.0), (0.0, -1.0)))
+yref_mat  = np.array(((-1.0, 0.0), (0.0,  1.0)))
 xflip_mat = yref_mat
 yflip_mat = xref_mat
-ident_mat = np.array([[1.0, 0.0], [0.0, 1.0]])
+ident_mat = np.array((( 1.0, 0.0), (0.0,  1.0)))
 
 ## Radian-to-degree converter:
 _radeg = 180.0 / np.pi
