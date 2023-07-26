@@ -63,12 +63,16 @@ import fov_rotation
 rfov = fov_rotation.RotateFOV()
 
 ## Rotation matrix builder:
+#def slow_rotation_matrix(theta):
+#    """Generate 2x2 rotation matrix for specified input angle (radians)."""
+#    return np.array([[np.cos(theta), -np.sin(theta)],
+#                        [np.sin(theta), np.cos(theta)]])
+
+## Rotation matrix builder:
 def rotation_matrix(theta):
     """Generate 2x2 rotation matrix for specified input angle (radians)."""
     c, s = math.cos(theta), math.sin(theta)
     return np.array((c, -s, s, c)).reshape(2, 2)
-    #return np.array([[np.cos(theta), -np.sin(theta)],
-    #                    [np.sin(theta), np.cos(theta)]])
 
 ## Matrix printer:
 def mprint(matrix):
@@ -140,11 +144,15 @@ def xycd2radec(cdmat, rel_xx, rel_yy, crval1, crval2, debug=False):
     prj_xx, prj_yy = np.matmul(thisCD, relpix)
     return _wcs_tan_compute(thisCD, relpix, crval1, crval2, debug=debug)
 
-def make_cdmat(pa_deg, pscale):
+def slow_make_cdmat(pa_deg, pscale):
     pa_rad = np.radians(pa_deg)
     thisCD = np.matmul(xflip_mat, rotation_matrix(pa_rad)) * (pscale / 3600.)
     return thisCD
     #rotmat = rotation_matrix(pa_rad)
+
+def make_cdmat(pa_deg, pscale):
+    pa_rad = math.radians(pa_deg)
+    return np.matmul(xflip_mat, superfastrot(pa_rad)) * (pscale / 3600.)
 
 def xypas2radec(pa_deg, pscale, rel_xx, rel_yy, crval1, crval2):
     thisCD = make_cdmat(pa_deg, pscale)
