@@ -308,10 +308,10 @@ for ii,fcat_path in enumerate(cat_files, 1):
 
 
 ######################################################################
-# CHANGELOG (11_test_extract_WIRCam.py):
+# CHANGELOG (15_add_catalog_ephems.py):
 #---------------------------------------------------------------------
 #
-#  2023-05-31:
+#  2023-07-25:
 #     -- Increased __version__ to 0.1.0.
-#     -- First created 11_test_extract_WIRCam.py.
+#     -- First created 15_add_catalog_ephems.py.
 #
