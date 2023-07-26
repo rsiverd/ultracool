@@ -92,6 +92,13 @@ sys.stderr.write("med_pscale: %.7f arcsec/pix\n" % med_pscale)
 cdm_rot_deg = []
 for this_cdm in every_cdmat:
     #cd_pscales = np.sqrt(np.sum(
+
+    # FIXME: the pixel scales might be obtained by summing over
+    # axis zero. This should be tested with a real example of
+    # non-square pixels. I think the scales would be:
+    # X --> sqrt(CD1_1**2 + CD2_1**2)
+    # Y --> sqrt(CD1_2**2 + CD2_2**2)
+
     cd_pscales = np.sqrt(np.sum(this_cdm**2, axis=1))
     #cd_pscales = np.sqrt(np.sum(this_cdm**2, axis=0))
     norm_cdmat = this_cdm / cd_pscales
