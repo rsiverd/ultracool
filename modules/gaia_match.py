@@ -336,9 +336,18 @@ class GaiaMatch(object):
         cos_dec  = np.cos(np.radians(tmp_gaia['dec'])).values
         dde_adjustment_mas = self._tdiff_yr * tmp_gaia['pmdec']
         dra_adjustment_mas = self._tdiff_yr * tmp_gaia['pmra'] / cos_dec
-        tmp_gaia['ra']  = tmp_gaia['ra']  + dra_adjustment_mas / 3.6e6
-        tmp_gaia['dec'] = tmp_gaia['dec'] + dde_adjustment_mas / 3.6e6
+        #sys.stderr.write("dde_adjustment_mas.max(): %f\n"
+        #        % dde_adjustment_mas.max())
+        #sys.stderr.write("dra_adjustment_mas.max(): %f\n"
+        #        % dra_adjustment_mas.max())
+        #sys.stderr.write("median dde adjustment: %f\n"
+        #        % np.median(dde_adjustment_mas))
+        #sys.stderr.write("median dra adjustment: %f\n"
+        #        % np.median(dra_adjustment_mas))
+        tmp_gaia['ra']  = tmp_gaia['ra']  + (dra_adjustment_mas / 3.6e6)
+        tmp_gaia['dec'] = tmp_gaia['dec'] + (dde_adjustment_mas / 3.6e6)
         self._srcdata   = tmp_gaia  # store for cross-match
+        #self._srcdata   = tmp_gaia.reset_index()  # store for cross-match
         return
 
     # ---------------------------------------
