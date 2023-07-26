@@ -64,8 +64,10 @@ rfov = fov_rotation.RotateFOV()
 ## Rotation matrix builder:
 def rotation_matrix(theta):
     """Generate 2x2 rotation matrix for specified input angle (radians)."""
-    return np.array([[np.cos(theta), -np.sin(theta)],
-                        [np.sin(theta), np.cos(theta)]])
+    c, s = np.cos(theta), np.sin(theta)
+    return np.array((c, -s, s, c)).reshape(2, 2)
+    #return np.array([[np.cos(theta), -np.sin(theta)],
+    #                    [np.sin(theta), np.cos(theta)]])
 
 ## Matrix printer:
 def mprint(matrix):
