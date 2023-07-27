@@ -1,2 +1,3 @@
 /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/20BQ03/wircam_H2_2507288p.fits.fz
 /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/20BQ03/wircam_H2_2507288p.fits.fz
+/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/12BQ01/wircam_H2_1561430p.fits.fz
