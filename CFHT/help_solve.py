@@ -128,14 +128,15 @@ def calc_tan_radec(pscale, pa_deg, cv1, cv2, xrel, yrel):
     this_cdmat = tp.make_cdmat(pa_deg, pscale)
     return tp.xycd2radec(this_cdmat, xrel, yrel, cv1, cv2)
 
-def eval_tan_params(pscale, pa_deg, cv1, cv2, xrel, yrel, true_ra, true_de):
+def eval_tan_params(pscale, pa_deg, cv1, cv2, xrel, yrel, true_ra, true_de, expo=1):
     calc_ra, calc_de = calc_tan_radec(pscale, pa_deg, cv1, cv2, xrel, yrel)
     deltas = angle.dAngSep(calc_ra, calc_de, true_ra, true_de)
-    return np.sum(deltas)
+    return np.sum(deltas**expo)
 
-def evaluator_pacrv(pacrv, pscale, xrel, yrel, true_ra, true_de):
+def evaluator_pacrv(pacrv, pscale, xrel, yrel, true_ra, true_de, expo=1):
     pa_deg, cv1, cv2 = pacrv
-    return eval_tan_params(pscale, pa_deg, cv1, cv2, xrel, yrel, true_ra, true_de)
+    return eval_tan_params(pscale, pa_deg, cv1, cv2, 
+            xrel, yrel, true_ra, true_de, expo=expo)
 
 # Convert the answer into CD matrix values:
 def cdmat_from_answer(answer):

@@ -67,6 +67,7 @@ gaia_csv_path = '%s/gaia_calib1_NE.csv' % cfh_abby_root
 ephcat1 = '%s/calib1_p_NE/by_runid/21AQ18/wircam_J_2626491p_eph.fits.fz.fcat' % cfh_abby_root
 ephcat2 = '%s/calib1_p_NE/by_runid/21AQ13/wircam_H2_2614008p_eph.fits.fz.fcat' % cfh_abby_root
 use_fcat = ephcat1
+#use_fcat = ephcat2
 
 ## Corresponding FITS image:
 #prev_cat = hs.change_catalog_flavor(use_fcat, 'p_eph', 'p')
@@ -82,6 +83,11 @@ crpix1 = 2122.690779
 crpix2 =  -81.678888
 pscale =   0.30601957084155673
 
+## Miscellany:
+def calc_MAR(residuals):
+    #_MAD_scalefactor = 1.482602218
+    return 1.482602218 * np.median(residuals)
+
 ## Sensor size:
 #sensor_xpix = 2048
 #sensor_ypix = 2048
@@ -90,18 +96,30 @@ pscale =   0.30601957084155673
 #corner_xmin = sensor_xpix - corner_size
 #corner_ymax = corner_size
 
+
+## -----------------------------------------------------------------------
+## Region files of sources in corner region:
+sky_rfile = 'lookie_radec.reg'
+pix_rfile = 'lookie_pixel.reg'
+cal_rfile = 'lookie_rdcal.reg'
+
 ## -----------------------------------------------------------------------
 ## Load Gaia:
 gm.load_sources_csv(gaia_csv_path)
 #gm2.load_sources_csv(gaia_csv_path)
+
+_xdw_col = 'xdw_cs23'
+_ydw_col = 'ydw_cs23'
+#_xdw_col = 'xdw_dl12'
+#_ydw_col = 'ydw_dl12'
 
 ## Load ExtCat content:
 ecl.load_from_fits(use_fcat)
 stars = ecl.get_catalog()
 header = ecl.get_header()
 obs_time = hs.wircam_timestamp_from_header(header)
-xrel = stars['xdw_cs23'] - crpix1
-yrel = stars['ydw_cs23'] - crpix2
+xrel = stars[_xdw_col] - crpix1
+yrel = stars[_ydw_col] - crpix2
 #xrel = stars['xdw_dl12'] - crpix1
 #yrel = stars['ydw_dl12'] - crpix2
 stars = append_fields(stars, ('xrel', 'yrel'), (xrel, yrel), usemask=False)
@@ -128,10 +146,14 @@ lr_stars = hs.get_corner_subset_dist(stars)
 #lr_gaia_matches = find_gaia_matches_idx(lr_stars, 2.0, ra_col='dra', de_col='dde')
 use_cols = {'ra_col':'dra', 'de_col':'dde'}
 lr_gaia_matches = find_gaia_matches_idx(lr_stars, 2.0, **use_cols)
-idx, gra, gde = lr_gaia_matches
-match_subset = lr_stars[idx]
-use_x, use_y = match_subset['xrel'], match_subset['yrel']
+idx, gra, gde   = lr_gaia_matches
+match_subset    = lr_stars[idx]
+m_xrel, m_yrel  = match_subset['xrel'], match_subset['yrel']
 
+## -----------------------------------------------------------------------
+## Fitting exponent:
+fitting_exponent = 2.0
+fitting_exponent = 1.0
 
 ## Function to minimize:
 sys.stderr.write("Starting minimization ... \n")
@@ -141,7 +163,8 @@ tik = time.time()
 init_params = np.array([cdm_pa, header['CRVAL1'], header['CRVAL2']])
 #minimize_this = partial(hs.evaluator, pscale=pscale, imdata=match_subset, gra=gra, gde=gde)
 minimize_this = partial(hs.evaluator_pacrv, pscale=pscale, 
-        xrel=match_subset['xrel'], yrel=match_subset['yrel'], true_ra=gra, true_de=gde)
+        xrel=match_subset['xrel'], yrel=match_subset['yrel'],
+        true_ra=gra, true_de=gde, expo=fitting_exponent)
 answer = opti.fmin(minimize_this, init_params)
 tok = time.time()
 sys.stderr.write("Minimum found in %.3f seconds.\n" % (tok-tik))
@@ -149,8 +172,13 @@ sys.stderr.write("Minimum found in %.3f seconds.\n" % (tok-tik))
 ## WCS parameters:
 best_pa, best_cv1, best_cv2 = answer
 best_cdmat = tp.make_cdmat(best_pa, pscale).flatten()
-best_ra, best_de = hs.calc_tan_radec(pscale, best_pa, best_cv1, best_cv2, use_x, use_y)
+best_ra, best_de = hs.calc_tan_radec(pscale, best_pa, best_cv1, best_cv2, m_xrel, m_yrel)
 
+## Angular offsets:
+match_sep_asec = 3600.0 * angle.dAngSep(best_ra, best_de, gra, gde)
+med_resid_asec = np.median(match_sep_asec)
+resid_MAR = calc_MAR(match_sep_asec)
+sys.stderr.write("After 1st round, median residual: %.2f arcsec\n" % med_resid_asec)
 
 ## Re-calculate RA/DE for everything:
 calc_ra, calc_de = hs.calc_tan_radec(pscale, best_pa, best_cv1, best_cv2, xrel, yrel)
@@ -158,36 +186,75 @@ stars = append_fields(stars, ('calc_ra', 'calc_de'), (calc_ra, calc_de), usemask
 lr_stars = hs.get_corner_subset_dist(stars, 2000.)
 use_cols = {'ra_col':'calc_ra', 'de_col':'calc_de'}
 lr_gaia_matches = find_gaia_matches_idx(lr_stars, 2.0, **use_cols)
-idx, gra, gde = lr_gaia_matches
-match_subset = lr_stars[idx]
-use_x, use_y = match_subset['xrel'], match_subset['yrel']
+idx, gra, gde   = lr_gaia_matches
+match_subset    = lr_stars[idx]
+m_xrel, m_yrel  = match_subset['xrel'], match_subset['yrel']
 
 new_init_params = np.array([best_pa, best_cv1, best_cv2])
-minimize_this = partial(hs.evaluator_pacrv, pscale=pscale, 
-        xrel=match_subset['xrel'], yrel=match_subset['yrel'], true_ra=gra, true_de=gde)
-new_answer = opti.fmin(minimize_this, init_params)
+minimize_this   = partial(hs.evaluator_pacrv, pscale=pscale, 
+                        xrel=match_subset['xrel'], yrel=match_subset['yrel'],
+                        true_ra=gra, true_de=gde, expo=fitting_exponent)
+new_answer      = opti.fmin(minimize_this, init_params)
 best_pa, best_cv1, best_cv2 = new_answer
 best_cdmat = tp.make_cdmat(best_pa, pscale).flatten()
-best_ra, best_de = hs.calc_tan_radec(pscale, best_pa, best_cv1, best_cv2, use_x, use_y)
+best_ra, best_de = hs.calc_tan_radec(pscale, best_pa, best_cv1, best_cv2, m_xrel, m_yrel)
 
-## Final, full-frame matching:
+## Angular offsets:
+match_sep_asec = 3600.0 * angle.dAngSep(best_ra, best_de, gra, gde)
+med_resid_asec = np.median(match_sep_asec)
+resid_MAR = calc_MAR(match_sep_asec)
+sys.stderr.write("After 2nd round, median residual: %.2f arcsec\n" % med_resid_asec)
+
+## Run full-frame matching:
 calc_ra, calc_de = hs.calc_tan_radec(pscale, best_pa, best_cv1, best_cv2, xrel, yrel)
 stars['calc_ra'] = calc_ra
 stars['calc_de'] = calc_de
 use_cols = {'ra_col':'calc_ra', 'de_col':'calc_de'}
 ff_stars = stars #hs.get_corner_subset_dist(stars, 2000.)
 ff_gaia_matches = find_gaia_matches_idx(ff_stars, 2.0, **use_cols)
-idx, gra, gde = ff_gaia_matches
-match_subset = ff_stars[idx]
-use_x, use_y = match_subset['xrel'], match_subset['yrel']
+idx, gra, gde   = ff_gaia_matches
+match_subset    = ff_stars[idx]
+m_xrel, m_yrel  = match_subset['xrel'], match_subset['yrel']
 
 new_init_params = np.array([best_pa, best_cv1, best_cv2])
-minimize_this = partial(hs.evaluator_pacrv, pscale=pscale, 
-        xrel=match_subset['xrel'], yrel=match_subset['yrel'], true_ra=gra, true_de=gde)
-new_answer = opti.fmin(minimize_this, init_params)
+minimize_this   = partial(hs.evaluator_pacrv, pscale=pscale, 
+                        xrel=match_subset['xrel'], yrel=match_subset['yrel'],
+                        true_ra=gra, true_de=gde, expo=fitting_exponent)
+new_answer      = opti.fmin(minimize_this, init_params)
 best_pa, best_cv1, best_cv2 = new_answer
 best_cdmat = tp.make_cdmat(best_pa, pscale).flatten()
-best_ra, best_de = hs.calc_tan_radec(pscale, best_pa, best_cv1, best_cv2, use_x, use_y)
+best_ra, best_de = hs.calc_tan_radec(pscale, best_pa, best_cv1, best_cv2, m_xrel, m_yrel)
+
+## Angular offsets:
+match_sep_asec = 3600.0 * angle.dAngSep(best_ra, best_de, gra, gde)
+med_resid_asec = np.median(match_sep_asec)
+resid_MAR = calc_MAR(match_sep_asec)
+sys.stderr.write("After 3rd round, median residual: %.2f arcsec\n" % med_resid_asec)
+
+## One last full-frame matching, with tighter tolerance:
+calc_ra, calc_de = hs.calc_tan_radec(pscale, best_pa, best_cv1, best_cv2, xrel, yrel)
+stars['calc_ra'] = calc_ra
+stars['calc_de'] = calc_de
+use_cols = {'ra_col':'calc_ra', 'de_col':'calc_de'}
+ff_stars = stars
+ff_gaia_matches = find_gaia_matches_idx(ff_stars, 1.0, **use_cols)
+idx, gra, gde   = ff_gaia_matches
+match_subset    = ff_stars[idx]
+m_xrel, m_yrel  = match_subset['xrel'], match_subset['yrel']
+
+new_init_params = np.array([best_pa, best_cv1, best_cv2])
+minimize_this   = partial(hs.evaluator_pacrv, pscale=pscale, 
+                        xrel=match_subset['xrel'], yrel=match_subset['yrel'],
+                        true_ra=gra, true_de=gde, expo=fitting_exponent)
+new_answer      = opti.fmin(minimize_this, init_params)
+best_pa, best_cv1, best_cv2 = new_answer
+best_cdmat = tp.make_cdmat(best_pa, pscale).flatten()
+best_ra, best_de = hs.calc_tan_radec(pscale, best_pa, best_cv1, best_cv2, m_xrel, m_yrel)
+
+## Angular offsets:
+match_sep_asec = 3600.0 * angle.dAngSep(best_ra, best_de, gra, gde)
+resid_MAR = calc_MAR(match_sep_asec)
+sys.stderr.write("After 4th round, median residual: %.2f arcsec\n" % med_resid_asec)
 
 ## -----------------------------------------------------------------------
 ## Region files of sources in corner region:
