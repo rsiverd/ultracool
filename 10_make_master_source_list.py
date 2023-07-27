@@ -250,6 +250,12 @@ cbcd_name = [x.get_imname() for x in cdata]
 expo_time = np.array([x.get_header()['EXPTIME'] for x in cdata])
 n_sources = np.array([len(x.get_catalog()) for x in cdata])
 
+## Source count after flux cut:
+min_flux  = 1000.
+f_sources = np.array([np.sum(x.get_catalog()['flux'] >= min_flux) for x in cdata])
+n_sources = f_sources
+#sys.exit(0)
+
 ##--------------------------------------------------------------------------##
 ##-----------------     Reasonably Complete Source List    -----------------##
 ##--------------------------------------------------------------------------##
@@ -267,6 +273,8 @@ def make_coo_string(dra, dde):
 
 ## Use most populous catalog as 'master' source list (simple):
 largest_catalog = cdata[n_sources.argmax()].get_catalog()
+passes_flux_cut = (largest_catalog['flux'] >= min_flux)
+largest_catalog = largest_catalog[passes_flux_cut]
 n_master = len(largest_catalog)
 
 ## Build up source list:
