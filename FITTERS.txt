@@ -1,0 +1,22 @@
+It is probably worthwhile to look at additional fitting routines beyond
+what scipy.optimize provides. It looks like IDL's MPFIT is available in
+Python, for instance.
+
+Other ideas from:
+https://stackoverflow.com/questions/15345906/user-specified-function-in-mpfit
+
+# mpfit for Python:
+https://cars9.uchicago.edu/software/python/mpfit.html
+https://code.google.com/p/astrolibpy/
+https://github.com/segasai/astrolibpy/blob/master/mpfit/mpfit.py
+https://www.l3harrisgeospatial.com/docs/mpfit.html
+
+# LMFIT for Python:
+https://lmfit.github.io/lmfit-py/
+ --> this one has Parameter objects that can be bounded, plus other features
+
+# Sherpa looks useful:
+https://cxc.harvard.edu/contrib/sherpa/
+http://pysherpa.blogspot.com/2010/06/user-defined-sherpa-model-types-using.html
+
+
