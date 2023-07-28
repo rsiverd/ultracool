@@ -276,6 +276,7 @@ largest_catalog = cdata[n_sources.argmax()].get_catalog()
 passes_flux_cut = (largest_catalog['flux'] >= min_flux)
 largest_catalog = largest_catalog[passes_flux_cut]
 n_master = len(largest_catalog)
+sys.stderr.write("Have %d detections in largest catalog.\n" % n_master)
 
 ## Build up source list:
 sldata = {'dra':largest_catalog[_ra_key], 'dde':largest_catalog[_de_key]}
