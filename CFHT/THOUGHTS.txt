@@ -1,0 +1,41 @@
+
+Part of the idea of the ExtendedCatalog format was extensibility. I have
+been dumping lots of extra columns into the individual tables to simplify
+the downstream joining process. What I realized today was that there is
+an implicit requirement that all of the columns actually match across
+catalogs in order for the joint solution to work. 
+
+This is a problem if I want to add lots of extra colums for one instrument 
+and not another. It also presents the issue that new column additions that
+prove necessary with a new data set would effectively invalidate data sets
+already on disk that I previously extracted. Not good!
+
+I think this means that the joint fitting system needs to more explicitly
+handle the issue of instrument-specific data tables. One way to handle this:
+* allow AstFit() to accept multiple data sets
+* require that those multiple data sets have required columns that DO match
+* for fitting purposes, create a single joint array that consists of only
+      the columns needed to execute fitting
+* maintain indexes into the original data sets to track data point origin
+      and to allow data set augmentation (residuals, etc.)
+
+I need to think carefully about whether the ExtCat should have standardized
+RA/Dec X/Y keywords.
+
+OH NO!  For the purposes of the tangent projection, we want dewarped X,Y
+coordinates relative to CRPIXn. But other applications, such as the analysis
+of subpixel inhomogeneity, really do want the detection coordinates. 
+Questions:
+* Should the dewarped X,Y even be part of the ExtCat since they can be 
+   calculated on-the-fly?
+* What do we do in the case of high-accuracy WCS that includes distortion
+   terms? Should those intermediate coordinates get included in the ExtCat?
+
+The GaiaMatch() class should do a two-way matching to eliminate duplicates.
+This necessarily needs to occur as part of a batch comparison.
+
+Codes to look at as replacements for opti.fmin:
+https://stackoverflow.com/questions/15345906/user-specified-function-in-mpfit
+
+
+
