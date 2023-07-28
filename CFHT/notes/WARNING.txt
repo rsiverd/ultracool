@@ -1,0 +1,19 @@
+ecl.load_from_fits('/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/19BQ08/wircam_J_2450097p_fixed.fits.fz.fcat')
+# generated warnings:
+WARNING: The following header keyword is invalid or follows an unrecognized non-standard convention:
+UNDEFINED                                                                        [astropy.io.fits.card]
+WARNING:astropy:The following header keyword is invalid or follows an unrecognized non-standard convention:
+UNDEFINED                                                                       
+
+--> "UNDEFINED"
+
+# Header counts are different:
+$ cd /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/19BQ08
+$ lh wircam_J_2450096p_fixed.fits.fz.fcat | wc -l
+613
+$ lh wircam_J_2450097p_fixed.fits.fz.fcat | wc -l
+613
+$ lh wircam_J_2450098p_fixed.fits.fz.fcat | wc -l
+611
+
+
