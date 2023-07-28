@@ -1,0 +1,9 @@
+{
+     'name'             :  'G12524A',
+     'ra_deg'           : 294.7040508,
+     'de_deg'           :  35.2141059,
+   'pmra_cosdec_asyr'   :  -0.00835279,    # pmRA * cos(dec)
+   'pmde_asyr'          :   0.800914476,
+   'parallax_as'        :   0.029490693,
+   'epoch_jdutc'        :   2457206.374,
+}
