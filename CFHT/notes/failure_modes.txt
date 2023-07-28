@@ -1,0 +1,5 @@
+# Right-hand-side of image is mangled:
+/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/12BQ01/wircam_H2_1561430p.fits.fz
+
+# Dark subtraction apparently did not happen? Hot spots everywhere:
+/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/18AQ15/wircam_H2_2289546p.fits.fz
