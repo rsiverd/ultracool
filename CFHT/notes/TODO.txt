@@ -1,0 +1,5 @@
+# Things to do that are specific to CFHT/WIRCam
+* decide on file naming convention, implement wircam_parse.py
+* adjust CFHT downloader so that early images get zero-padded name
+* Python-based renaming script that handles downloads, splits by runid
+* remove the UNDEFINED 
