@@ -1,0 +1,9 @@
+23_cfht_match_and_group.py
+
+
+* 228 sec -- H2 data, before fixing tol_deg issue (48 sec on first round)
+* 141 sec -- H2 data,  after fixing tol_deg issue (48 sec --> 5 sec)
+* 136 sec -- H2 data,  using multi_step_matcher in first loop
+*  79 sec -- H2 data,  using multi_step_matcher in both loops
+
+
