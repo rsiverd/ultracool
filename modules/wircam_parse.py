@@ -59,6 +59,16 @@ import time
 # * <type> is the image type provided by CADC
 # * <flavor> is a variable-length string indicating degree of processing
 
+# NOTES:
+# * RJS scoured CADC by observation date and determined that the earliest
+#       data have obsid around 800k or 900k (like above). This means that
+#       the shortest obsid is 6 digits long.
+# * Fixed-length naming (zero-padding for obsid) can be enforced in the
+#       download script for sanity.
+# * Since numpy recarrays complain when the columns have mismatched length,
+#       there is some value in forcing the <filter> in derived file names
+#       to be a fixed length.
+
 ##--------------------------------------------------------------------------##
 ##------------------          WIRCam Name Parsing           ----------------##
 ##--------------------------------------------------------------------------##
