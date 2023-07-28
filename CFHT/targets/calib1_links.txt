@@ -1,0 +1,9 @@
+# SIMBAD for G125-24A:
+http://simbad.cds.unistra.fr/simbad/sim-id?Ident=%402902367&Name=G%20125-24A&submit=submit
+
+# SIMBAD for G125-24B:
+http://simbad.cds.unistra.fr/simbad/sim-id?Ident=%402902366&Name=G%20125-24B&submit=submit
+
+# SIMBAD search for things near those stars:
+http://simbad.cds.unistra.fr/simbad/sim-basic?Ident=294.70271827582087+35.21388234013594&submit=SIMBAD+search
+
