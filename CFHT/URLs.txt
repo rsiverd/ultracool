@@ -10,6 +10,9 @@ https://www.teledyneimaging.com/en/aerospace-and-defense/products/sensors-overvi
 # WIRCam quick info:
 https://www.cfht.hawaii.edu/Instruments/Imaging/WIRCam/quickinformation.html
 
+# WIRCam instrument history (changelog):
+https://www.cfht.hawaii.edu/Instruments/Imaging/WIRCam/WIRCamHistory.html
+
 # -----------------------------------------------------------------------
 
 # CFHT Observatory Manual:
