@@ -7,4 +7,5 @@
 * remove the UNDEFINED line from headers? Could be done by linker, otherwise
       in image preprocessing
 
+* Gaia ID for matched objects should go into the ExtCat tables
 
