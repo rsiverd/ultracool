@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2021-08-30
-# Last modified: 2023-04-13
+# Last modified: 2023-07-28
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 ## Modules:
 import os
@@ -202,6 +202,10 @@ class AstFit(object):
         self._can_iterate = False
         return True
 
+    # ------------------------------- #
+    #    Some Getters and Setters     #
+    # ------------------------------- #
+
     # Retrieve some useful output when done:
     def collect_result_dataset(self):
         # first, identify best solution:
@@ -221,6 +225,27 @@ class AstFit(object):
 
         # include inlier/outlier flags:
         return rdata
+
+    def get_latest_params(self):
+        return self._latest_pars.copy()
+
+    def get_bestfit_prmot_rad(self):
+        return self._prmot_eval(self._latest_pars)
+
+    def get_bestfit_prmot_deg(self):
+        pmra_rad, pmde_rad = self._prmot_eval(self._latest_pars)
+        return (np.degrees(pmra_rad), np.degrees(pmde_rad))
+
+    def get_radec_minus_prmot_rad(self):
+        rra_model, rde_model = self._prmot_eval(self._latest_pars)
+        return (self._RA_rad - rra_model, self._DE_rad - rde_model)
+
+    def get_radec_minus_prmot_deg(self):
+        rra_model, rde_model = self._prmot_eval(self._latest_pars)
+        return (np.degrees(self._RA_rad - rra_model),
+                np.degrees(self._DE_rad - rde_model))
+
+    # -----------------------------------------------------------------------
 
     #def set_ref_time(self, t_ref):
     #    self.ref_time = t_ref
@@ -301,12 +326,20 @@ class AstFit(object):
         #delta_ra = self._dt_yrs * pmra - prlx * pfra
         #delta_de = self._dt_yrs * pmde - prlx * pfde
         return (rra + delta_ra, rde + delta_de)
+    
+    # Evaluate just the proper motion component from a set of parameters:
+    def _prmot_eval(self, params):
+        rra, rde, pmra, pmde, prlx = params
+        delta_ra = self._dt_yrs * pmra
+        delta_de = self._dt_yrs * pmde
+        return (rra + delta_ra, rde + delta_de)
 
+    # RA/DE residuals in true units (cos(dec) corrected):
     def _calc_radec_residuals_tru(self, params, inliers=False):
         """This is the 'coordinate' version of the residual
-        calculator. The RA component is NOT corrected by cos(dec).
-        The residuals returned by this routine are the actual differences
-        in RA, Dec coordinates between model and data. 
+        calculator. The RA component IS CORRECTED by cos(dec).
+        The residuals returned by this routine are the differences
+        between RA, Dec data and model in proper spherical units.
         """
         model_RA, model_DE = self._solver_eval(params)
         resid_RA = (self._RA_rad - model_RA) * np.cos(model_DE)
@@ -316,11 +349,12 @@ class AstFit(object):
         else:
             return resid_RA, resid_DE
 
+    # RA/DE residuals in coordinate units (no cos(dec) correction):
     def _calc_radec_residuals_coo(self, params, inliers=False):
         """This is the 'coordinate' version of the residual
         calculator. The RA component is NOT corrected by cos(dec).
-        The residuals returned by this routine are the actual differences
-        in RA, Dec coordinates between model and data."""
+        The residuals returned by this routine are the actual coordinate
+        differences between RA, Dec data and model."""
         model_RA, model_DE = self._solver_eval(params)
         resid_RA = self._RA_rad - model_RA
         resid_DE = self._DE_rad - model_DE
