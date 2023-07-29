@@ -13,6 +13,9 @@ https://www.cfht.hawaii.edu/Instruments/Imaging/WIRCam/quickinformation.html
 # WIRCam instrument history (changelog):
 https://www.cfht.hawaii.edu/Instruments/Imaging/WIRCam/WIRCamHistory.html
 
+# WIRCam filter list:
+https://www.cfht.hawaii.edu/Instruments/Filters/wircam.html
+
 # -----------------------------------------------------------------------
 
 # CFHT Observatory Manual:
