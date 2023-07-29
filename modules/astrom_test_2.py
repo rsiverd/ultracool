@@ -242,7 +242,7 @@ class AstFit(object):
         rra_model, rde_model = self._prmot_eval(self._latest_pars)
         rra_delta = self._RA_rad - rra_model
         rde_delta = self._DE_rad - rde_model
-        if cosdec:
+        if usecosdec:
             rra_delta *= self._cosdec
         return rra_delta, rde_delta
 
