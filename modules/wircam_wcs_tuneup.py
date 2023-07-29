@@ -178,7 +178,8 @@ def calc_tan_radec(pscale, pa_deg, cv1, cv2, xrel, yrel):
     this_cdmat = tp.make_cdmat(pa_deg, pscale)
     return tp.xycd2radec(this_cdmat, xrel, yrel, cv1, cv2)
 
-def eval_tan_params(pscale, pa_deg, cv1, cv2, xrel, yrel, true_ra, true_de, expo=1.0):
+def eval_tan_params(pscale, pa_deg, cv1, cv2,
+                            xrel, yrel, true_ra, true_de, expo=1.0):
     calc_ra, calc_de = calc_tan_radec(pscale, pa_deg, cv1, cv2, xrel, yrel)
     deltas = angle.dAngSep(calc_ra, calc_de, true_ra, true_de)
     return np.sum(deltas**expo)
@@ -255,7 +256,7 @@ def wcs_tuneup(stars, header):
     # Re-calculate RA/DE:
     #calc_ra, calc_de = calc_tan_radec(pscale, best_pa, best_cv1, best_cv2, xrel, yrel)
     calc_ra, calc_de = calc_tan_radec(pscale, *answer1, xrel, yrel)
-    stars['calc_ra'] = calc_ra
+    stars['calc_ra'] = calc_ra % 360.0
     stars['calc_de'] = calc_de
 
     # -------------------------
@@ -273,7 +274,7 @@ def wcs_tuneup(stars, header):
 
     # Re-calculate RA/DE:
     calc_ra, calc_de = calc_tan_radec(pscale, *answer2, xrel, yrel)
-    stars['calc_ra'] = calc_ra
+    stars['calc_ra'] = calc_ra % 360.0
     stars['calc_de'] = calc_de
 
     # -------------------------
@@ -291,7 +292,7 @@ def wcs_tuneup(stars, header):
 
     # Re-calculate RA/DE:
     calc_ra, calc_de = calc_tan_radec(pscale, *answer3, xrel, yrel)
-    stars['calc_ra'] = calc_ra
+    stars['calc_ra'] = calc_ra % 360.0
     stars['calc_de'] = calc_de
 
     # -------------------------
