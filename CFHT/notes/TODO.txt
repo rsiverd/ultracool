@@ -16,4 +16,6 @@
 
 * generalized source list generator, need to sort out the grouping problem
 
+* get ~continuous Earth ephemeris from HORIZONS that I can interpolate for
+   plotting purposes.
 
