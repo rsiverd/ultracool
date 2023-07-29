@@ -254,7 +254,7 @@ class AstFit(object):
     # Calculate RA/DE residuals w.r.t. best-fit proper motion (DEGREES):
     def get_radec_minus_prmot_mas(self, cos_dec_mult=False):
         dra_delta, dde_delta = self.get_radec_minus_prmot_deg(cos_dec_mult)
-        return 3600.0*dra_delta, 3600.0*dde_delta
+        return 3.6e6*dra_delta, 3.6e6*dde_delta
 
     # -----------------------------------------------------------------------
 
