@@ -1,4 +1,15 @@
 #!/usr/bin/env python3
+# vim: set fileencoding=utf-8 ts=4 sts=4 sw=4 et tw=80 :
+#
+# Helper routine to fine-tune core WCS parameters (tangent projection)
+# using known distortion solution and dubious CFHT/WIRCam header data.
+#
+# Rob Siverd
+# Created:       2023-07-26
+# Last modified: 2023-07-28
+#--------------------------------------------------------------------------
+#**************************************************************************
+#--------------------------------------------------------------------------
 
 import os, sys, time
 import math
