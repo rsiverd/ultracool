@@ -227,6 +227,8 @@ class AstFit(object):
         # include inlier/outlier flags:
         return rdata
 
+    # ----------------------------------------
+
     def get_latest_params(self):
         return self._latest_pars.copy()
 
@@ -254,6 +256,25 @@ class AstFit(object):
     # Calculate RA/DE residuals w.r.t. best-fit proper motion (DEGREES):
     def get_radec_minus_prmot_mas(self, cos_dec_mult=False):
         dra_delta, dde_delta = self.get_radec_minus_prmot_deg(cos_dec_mult)
+        return 3.6e6*dra_delta, 3.6e6*dde_delta
+
+    # Calculate RA/DE residuals w.r.t. best-fit model:
+    def get_radec_minus_model_rad(self, cos_dec_mult=False):
+        rra_model, rde_model = self._solver_eval(self._latest_pars)
+        rra_delta = self._RA_rad - rra_model
+        rde_delta = self._DE_rad - rde_model
+        if cos_dec_mult:
+            rra_delta *= self._cosdec
+        return rra_delta, rde_delta
+
+    # Calculate RA/DE residuals w.r.t. best-fit proper motion (DEGREES):
+    def get_radec_minus_model_deg(self, cos_dec_mult=False):
+        rra_delta, rde_delta = self.get_radec_minus_model_rad(cos_dec_mult)
+        return np.degrees(rra_delta), np.degrees(rde_delta)
+
+    # Calculate RA/DE residuals w.r.t. best-fit proper motion (DEGREES):
+    def get_radec_minus_model_mas(self, cos_dec_mult=False):
+        dra_delta, dde_delta = self.get_radec_minus_model_deg(cos_dec_mult)
         return 3.6e6*dra_delta, 3.6e6*dde_delta
 
     # -----------------------------------------------------------------------
