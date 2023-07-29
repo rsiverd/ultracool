@@ -9,3 +9,11 @@
 
 * Gaia ID for matched objects should go into the ExtCat tables
 
+* folder name should go into the ExtCat tables (group identifier)
+   --> Spitzer ExtCats should get the AOR
+
+* per-runid joint solution, enables pruning of bad sources
+
+* generalized source list generator, need to sort out the grouping problem
+
+
