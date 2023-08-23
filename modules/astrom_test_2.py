@@ -239,6 +239,13 @@ class AstFit(object):
         pmra_rad, pmde_rad = self._prmot_eval(self._latest_pars)
         return np.degrees(pmra_rad), np.degrees(pmde_rad)
 
+    def get_bestfit_model_rad(self):
+        return self._solver_eval(self._latest_pars)
+    
+    def get_bestfit_model_deg(self):
+        rra_model, rde_model = self._solver_eval(self._latest_pars)
+        return np.degrees(rra_model), np.degrees(rde_model)
+
     # Calculate RA/DE residuals w.r.t. best-fit proper motion (RADIANS):
     def get_radec_minus_prmot_rad(self, cos_dec_mult=False):
         rra_model, rde_model = self._prmot_eval(self._latest_pars)
