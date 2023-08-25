@@ -23,6 +23,51 @@ this_prog="${0##*/}"
 #shuffle=0
 #confirmed=0
 
+## Colors:
+ENDC="\033[0m"
+BRED="\033[1;31m"         # Bold red
+BGREEN="\033[1;32m"       # Bold green
+BYELLOW="\033[1;33m"      # Bold yellow
+BBLUE="\033[1;34m"        # Bold blue
+BMAGENTA="\033[1;35m"     # Bold magenta
+BCYAN="\033[1;36m"        # Bold cyan
+BWHITE="\033[1;37m"       # Bold white
+NRED="\033[0;31m"         # Normal red
+NGREEN="\033[0;32m"       # Normal green
+NYELLOW="\033[0;33m"      # Normal yellow
+NBLUE="\033[0;34m"        # Normal blue
+NMAGENTA="\033[0;35m"     # Normal magenta
+NCYAN="\033[0;36m"        # Normal cyan
+NWHITE="\033[0;37m"       # Normal white
+
+##--------------------------------------------------------------------------##
+# Verbosity >= 0:
+cmde () {
+   echo -e "$NCYAN""$1""$ENDC"
+   eval $1
+}
+
+Cmde () {
+   echo -e "$BCYAN""$1""$ENDC"
+   eval $1
+}
+
+# red:
+ recho () { echo -ne "$NRED""$1""$ENDC" ; }
+vrecho () {
+   if [[ $VERBOSE -gt 0 ]] || [[ $verbose -gt 0 ]] || [[ $vlevel -ge 1 ]]; then
+      echo -ne "$NRED""$1""$ENDC"
+   fi
+}
+ Recho () { echo -ne "$BRED""$1""$ENDC" ; }
+vRecho () {
+   if [[ $VERBOSE -gt 0 ]] || [[ $verbose -gt 0 ]] || [[ $vlevel -ge 1 ]]; then
+      echo -ne "$BRED""$1""$ENDC"
+   fi
+}
+
+##--------------------------------------------------------------------------##
+
 ## Standard scratch files/dirs:
 tmp_name="$(date +%Y%m%d.%H%M%S).$$.$(whoami)"
 tmp_root="/tmp"
@@ -46,7 +91,7 @@ trap "$jnk_cleanup >&2" EXIT
 
 ## Required programs:
 declare -a need_exec
-need_exec+=( awk cat FuncDef sed tr )
+need_exec+=( awk cat sed tr ) #FuncDef
 #need_exec+=( shuf shuffle sort ) # for randomization
 for need in ${need_exec[*]}; do
    if ! ( /usr/bin/which $need >& /dev/null ); then
@@ -55,14 +100,14 @@ for need in ${need_exec[*]}; do
    fi
 done
 
-## Helper function definitions:
-fd_args="--argchk --colors --cmde --echo"
-#fd_args+=" --Critical"
-fd_args+=" --rowwrite"
-#fd_args+=" --timers"
-fd_args+=" --warnings"
-FuncDef $fd_args >/dev/null || exit $?
-eval "$(FuncDef $fd_args)"  || exit $?
+### Helper function definitions:
+#fd_args="--argchk --colors --cmde --echo"
+##fd_args+=" --Critical"
+##fd_args+=" --rowwrite"
+##fd_args+=" --timers"
+##fd_args+=" --warnings"
+#FuncDef $fd_args >/dev/null || exit $?
+#eval "$(FuncDef $fd_args)"  || exit $?
 
 ## Check for arguments:
 usage () { 
