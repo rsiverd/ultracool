@@ -347,6 +347,11 @@ def nice_limits(vec, pctiles=[1,99], pad=1.2):
 afA = save_fitters['G12524A']
 afB = save_fitters['G12524B']
 
+## Bring up the plotting window before scanning through everything:
+fig_dims = (17, 9)
+fig = plt.figure(1, figsize=fig_dims)
+plt.show()
+
 import result_plotter
 reload(result_plotter)
 mkplot = result_plotter.plot_ast_summary
