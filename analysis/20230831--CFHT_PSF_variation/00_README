@@ -1,0 +1,13 @@
+While looking into potential causes of the high residuals seen in some
+specific CFHT runs, I noted that there can be significant differences
+in the PSF between runs. The difference in appearance looks to be
+optical in nature (perhaps due to varying mechanical stresses?) and
+not due to anything atmospheric.
+
+Specific variations:
+* the vertical PSF elongation seen in the upper-left corner of the NE
+      sensor is not present in some runs.
+* runs that do not exhibit that vertical elongation seem to have a
+      horizontal elongation near the lower edge of the NE sensor
+
+Example images:

@@ -1,0 +1,122 @@
+
+# Degrees-to-radians conversion of a single value:
+%timeit np.radians(31.234)
+567 ns ± 14.4 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+559 ns ± 6.46 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+557 ns ± 4.26 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+
+# Creating an array with 10 elements:
+%timeit stuff = np.arange(10)
+431 ns ± 5.09 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+427 ns ± 1.4 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+430 ns ± 5.7 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+%timeit stuff = np.arange(10**1)
+432 ns ± 1.76 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+
+# Creating an array with 100 elements:
+%timeit stuff = np.arange(100)
+499 ns ± 1.72 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+510 ns ± 5.1 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+504 ns ± 4.98 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+
+# Creating an array with 1000 elements:
+%timeit stuff = np.arange(1000)
+1.19 µs ± 27.2 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+1.17 µs ± 9.43 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+1.18 µs ± 18.3 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+
+# Creating an array with 3000 elements:
+%timeit stuff = np.arange(3000)
+2.63 µs ± 188 ns per loop (mean ± std. dev. of 7 runs, 100000 loops each)
+2.72 µs ± 121 ns per loop (mean ± std. dev. of 7 runs, 100000 loops each)
+2.57 µs ± 24.7 ns per loop (mean ± std. dev. of 7 runs, 100000 loops each)
+
+# Creating an array with 7000 elements:
+%timeit stuff = np.arange(7000)
+5.3 µs ± 64.5 ns per loop (mean ± std. dev. of 7 runs, 100000 loops each)
+5.26 µs ± 39.9 ns per loop (mean ± std. dev. of 7 runs, 100000 loops each)
+5.35 µs ± 135 ns per loop (mean ± std. dev. of 7 runs, 100000 loops each)
+
+# Creating an array with 10000 elements:
+%timeit stuff = np.arange(10000)
+7.3 µs ± 87.5 ns per loop (mean ± std. dev. of 7 runs, 100000 loops each)
+7.29 µs ± 33.1 ns per loop (mean ± std. dev. of 7 runs, 100000 loops each)
+7.37 µs ± 177 ns per loop (mean ± std. dev. of 7 runs, 100000 loops each)
+7.46 µs ± 167 ns per loop (mean ± std. dev. of 7 runs, 100000 loops each)
+
+-----------------------------------------------------------------------
+
+# Creating a numpy array with 4 elements in 2x2 shape:
+%timeit asdf = np.array(((1., 2.), (3., 4.)))
+1.37 µs ± 5.37 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+1.41 µs ± 17.5 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+1.4 µs ± 30.8 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+
+# Creating as flat:
+%timeit asdf = np.array((1., 2., 3., 4.))
+715 ns ± 2.57 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+743 ns ± 12.2 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+730 ns ± 8.34 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+
+# Create flat and reshape:
+%timeit asdf = np.array((1., 2., 3., 4.)).reshape(2, 2)
+942 ns ± 3.49 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+938 ns ± 2.31 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+950 ns ± 12 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+
+-----------------------------------------------------------------------
+
+# Identity matrix by brute-force:
+%timeit ident_mat = np.array((( 1.0, 0.0), (0.0,  1.0)))
+1.39 µs ± 28.9 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+1.39 µs ± 38.5 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+1.37 µs ± 8.13 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+
+# Identity matrix by brute-force (flat):
+%timeit ident_mat = np.array((1.0, 0.0, 0.0, 1.0)).reshape(2, 2)
+920 ns ± 1.27 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+931 ns ± 9.65 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+936 ns ± 6.18 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+
+# Identity matrix using numpy built-in:
+%timeit ident_mat = np.eye(2)
+1.24 µs ± 7.34 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+1.22 µs ± 6.7 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+1.23 µs ± 10.2 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+
+-----------------------------------------------------------------------
+
+# Trig operations on single values with numpy module:
+import numpy as np
+%timeit stuff = np.cos(0.002)
+602 ns ± 3.85 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+625 ns ± 33.2 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+611 ns ± 6.78 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+
+# Trig operations on single values with math built-in:
+import math
+%timeit stuff = math.cos(0.002)
+73.4 ns ± 0.785 ns per loop (mean ± std. dev. of 7 runs, 10000000 loops each)
+75.1 ns ± 1.33 ns per loop (mean ± std. dev. of 7 runs, 10000000 loops each)
+74.2 ns ± 0.454 ns per loop (mean ± std. dev. of 7 runs, 10000000 loops each)
+
+
+# Arrays to work with:
+stuff_e1 = np.arange(10**1)
+stuff_e2 = np.arange(10**2)
+stuff_e3 = np.arange(10**3)
+
+# Degrees-to-radians conversion of single values (numpy):
+%timeit np.degrees(0.002)
+559 ns ± 9.09 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+562 ns ± 6.53 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+560 ns ± 8.69 ns per loop (mean ± std. dev. of 7 runs, 1000000 loops each)
+
+# Degrees-to-radians conversion of single values (math):
+%timeit math.degrees(0.002)
+76.3 ns ± 0.129 ns per loop (mean ± std. dev. of 7 runs, 10000000 loops each)
+77.2 ns ± 0.762 ns per loop (mean ± std. dev. of 7 runs, 10000000 loops each)
+77.4 ns ± 0.963 ns per loop (mean ± std. dev. of 7 runs, 10000000 loops each)
+
+
+

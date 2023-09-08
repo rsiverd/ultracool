@@ -1,0 +1,4 @@
+The tangent projection tool I wrote goes fairly slowly. I want to test
+out whether or not there are specific changes I can make that might
+accelerate things. Specifically, I wonder whether using a numpy matrix
+is a drag on performance and, if so, whether simpler arrays would work.
