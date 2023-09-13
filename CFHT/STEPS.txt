@@ -77,15 +77,30 @@ $ ./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_a
 
 6) Add Earth ephemerides to extracted catalogs
 # First folder only:
+./15_add_catalog_ephems.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15 -E /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/cfht_eph_calib1_p_NE.csv
+# Middle folder only:
 ./15_add_catalog_ephems.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/16AQ14 -E /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/cfht_eph_calib1_p_NE.csv
 # Process everything:
 ./15_add_catalog_ephems.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid -E /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/cfht_eph_calib1_p_NE.csv
 
 7) Update WCS in extracted catalogs
 # First folder only:
+./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15 -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
+# Middle folder only:
 ./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/16AQ14 -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
 # Process everything:
 ./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
+
+7a) Per-run joint WCS and distortion tune-up:
+# First folder only:
+./18_runid_joint_fit.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/16AQ14 -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
+# Middle folder only:
+./18_runid_joint_fit.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/16AQ14 -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
+# Outlier folder only:
+./18_runid_joint_fit.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/15BQ09 -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
+# Process everything:
+./18_runid_joint_fit.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
+
 
 8) Make a list of all the catalogs:
 mkdir -p collections
