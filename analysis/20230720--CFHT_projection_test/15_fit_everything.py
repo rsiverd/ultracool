@@ -230,7 +230,7 @@ hdrs['imtag'] = [parse_wircam(x) for x in hdrs['FILENAME']]
 def evaluator(params, imdata):
     pscale = params[0]
     acoeffs = params[1:8]   # X coefficients (7 total)
-    bcoeffs = params[8:15]  # Y coeffiicients (7 total)
+    bcoeffs = params[8:15]  # Y coefficients (7 total)
     pacrv = params[15:].reshape(-1, 3)   # (PA, CRVAL1, CRVAL2) per image
 
     deltas = []
