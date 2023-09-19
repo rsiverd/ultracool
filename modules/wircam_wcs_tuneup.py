@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2023-07-26
-# Last modified: 2023-07-28
+# Last modified: 2023-09-15
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -189,25 +189,51 @@ def evaluator_pacrv(pacrv, pscale, xrel, yrel, true_ra, true_de, expo=1.0):
     return eval_tan_params(pscale, pa_deg, cv1, cv2,
             xrel, yrel, true_ra, true_de, expo=expo)
 
-# Convert the answer into CD matrix values:
+## Convert the answer into CD matrix values:
 def cdmat_from_answer(answer):
     pa_deg, cv1, cv2 = answer
 
 ## -----------------------------------------------------------------------
 
-# Analyze CD matrix from header:
+## Analyze CD matrix from header:
 _cd_keys = ('CD1_1', 'CD1_2', 'CD2_1', 'CD2_2')
 def get_cdmatrix_pa_scale(header):
     orig_cdm = np.array([header[x] for x in _cd_keys]).reshape(2, 2)
     cd_xyscl = np.sqrt(np.sum(orig_cdm**2, axis=1))
     norm_cdm = orig_cdm / cd_xyscl
-    norm_rot = np.dot(tp.xflip_mat, norm_cdm)
+    #norm_rot = np.dot(tp.xflip_mat, norm_cdm)
+    norm_rot = np.dot(norm_cdm, tp.xflip_mat)
     flat_rot = norm_rot.flatten()
     pa_guess = [math.acos(flat_rot[0]), -math.asin(flat_rot[1]),
                         math.asin(flat_rot[2]), math.acos(flat_rot[3])]
+    sys.stderr.write("pa_guess: %s\n" % str(pa_guess))
     pos_ang  = np.degrees(np.average(pa_guess))
     pixscale = np.average(cd_xyscl)
     return pos_ang, pixscale
+
+## -----------------------------------------------------------------------
+
+## Save X,Y,RA,DE matches for later analysis:
+def save_gaia_matches(filename, col_names, data_vecs):
+    #import pdb; pdb.set_trace()
+    with open(filename, 'w') as gmf:
+        # write header:
+        gmf.write("%s\n" % ','.join(col_names))
+        # write data:
+        for vals in zip(*data_vecs):
+            gmf.write("%s\n" % ','.join([str(x) for x in vals]))
+        pass
+    return
+
+## Save PA / CRVALx iterations for later analysis:
+def save_wcspar_results(filename, col_names, data_vals):
+    with open(filename, 'w') as wrf:
+        # write header:
+        wrf.write("%s\n" % ','.join(col_names))
+        # write data line:
+        wrf.write("%s\n" % ','.join([str(x) for x in data_vals]))
+        pass
+    return
 
 ## -----------------------------------------------------------------------
 ## -----------------         Tune-Up Procedure              --------------
@@ -219,8 +245,12 @@ _fitting_spec = (
         {'tol_arcsec':2.0, 'rdist':2000.0     },
         )
 
-def wcs_tuneup(stars, header):
+def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None):
     obs_time = wircam_timestamp_from_header(header)
+
+    # column headings and 
+    wcspar_cols = []
+    wcspar_vals = []
 
     #xrel = stars['xdw_cs23'] - crpix1
     #yrel = stars['ydw_cs23'] - crpix2
@@ -230,6 +260,11 @@ def wcs_tuneup(stars, header):
                                 (xrel, yrel), usemask=False)
 
     cdm_pa, cdm_pscale = get_cdmatrix_pa_scale(header)
+    #cdm_pa = 0.0
+
+    # Note PA+CRVALx from header:
+    wcspar_cols.extend(['hdr_pa_deg', 'hdr_crval1', 'hdr_crval2'])
+    wcspar_vals.extend([cdm_pa, header['CRVAL1'], header['CRVAL2']])
 
     # settings for initial matching:
     gm.set_epoch(obs_time)
@@ -253,6 +288,12 @@ def wcs_tuneup(stars, header):
                                     yrel=m_yrel, true_ra=gra, true_de=gde)
     answer1          = opti.fmin(minimize_this, init_params1)
 
+    # Note fit results:
+    wcspar_cols.extend(['fit1_pa_deg', 'fit1_crval1', 'fit1_crval2'])
+    wcspar_vals.extend(answer1.tolist())
+    sys.stderr.write("wcspar_cols: %s\n" % str(wcspar_cols))
+    sys.stderr.write("wcspar_vals: %s\n" % str(wcspar_vals))
+
     # Re-calculate RA/DE:
     #calc_ra, calc_de = calc_tan_radec(pscale, best_pa, best_cv1, best_cv2, xrel, yrel)
     calc_ra, calc_de = calc_tan_radec(pscale, *answer1, xrel, yrel)
@@ -272,6 +313,12 @@ def wcs_tuneup(stars, header):
                                         yrel=m_yrel, true_ra=gra, true_de=gde)
     answer2          = opti.fmin(minimize_this, init_params2)
 
+    # Note fit results:
+    wcspar_cols.extend(['fit2_pa_deg', 'fit2_crval2', 'fit2_crval2'])
+    wcspar_vals.extend(answer2.tolist())
+    sys.stderr.write("wcspar_cols: %s\n" % str(wcspar_cols))
+    sys.stderr.write("wcspar_vals: %s\n" % str(wcspar_vals))
+
     # Re-calculate RA/DE:
     calc_ra, calc_de = calc_tan_radec(pscale, *answer2, xrel, yrel)
     stars['calc_ra'] = calc_ra % 360.0
@@ -290,10 +337,30 @@ def wcs_tuneup(stars, header):
                                         yrel=m_yrel, true_ra=gra, true_de=gde)
     answer3          = opti.fmin(minimize_this, init_params3)
 
+    # Note fit results:
+    wcspar_cols.extend(['fit3_pa_deg', 'fit3_crval2', 'fit3_crval2'])
+    wcspar_vals.extend(answer3.tolist())
+    sys.stderr.write("wcspar_cols: %s\n" % str(wcspar_cols))
+    sys.stderr.write("wcspar_vals: %s\n" % str(wcspar_vals))
+
     # Re-calculate RA/DE:
     calc_ra, calc_de = calc_tan_radec(pscale, *answer3, xrel, yrel)
     stars['calc_ra'] = calc_ra % 360.0
     stars['calc_de'] = calc_de
+
+    # -------------------------
+
+    # Prepare match data for storage:
+    if save_matches:
+        matched_x = match_subset['x']
+        matched_y = match_subset['y']
+        save_cols = ['x', 'y', 'xrel', 'yrel', 'gra', 'gde']
+        save_vecs = [matched_x, matched_y, m_xrel, m_yrel, gra, gde]
+        save_gaia_matches(save_matches, save_cols, save_vecs)
+
+    # Dump fitted WCS parameters on request:
+    if save_wcspars:
+        save_wcspar_results(save_wcspars, wcspar_cols, wcspar_vals)
 
     # -------------------------
 
