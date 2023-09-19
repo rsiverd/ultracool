@@ -281,6 +281,8 @@ for ii,fcat_path in enumerate(cat_files, 1):
     if context.walk:
         save_dir = os.path.dirname(fcat_path)
     save_path = os.path.join(save_dir, save_base)
+    gmst_path = save_path + '.gmatch'
+    wpar_path = save_path + '.wcspar'
 
     # announce things:
     sys.stderr.write("Have output folder:\n")
@@ -310,7 +312,8 @@ for ii,fcat_path in enumerate(cat_files, 1):
     header = ecl.get_header()
 
     # perform the tune-up:
-    new_stars = wwt.wcs_tuneup(stars, header)
+    #new_stars = wwt.wcs_tuneup(stars, header)
+    new_stars = wwt.wcs_tuneup(stars, header, save_matches=gmst_path, save_wcspars=wpar_path)
 
     # update the catalog:
     ecl.set_catalog(new_stars)
