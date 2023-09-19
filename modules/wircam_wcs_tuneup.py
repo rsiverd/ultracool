@@ -314,7 +314,7 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None):
     answer2          = opti.fmin(minimize_this, init_params2)
 
     # Note fit results:
-    wcspar_cols.extend(['fit2_pa_deg', 'fit2_crval2', 'fit2_crval2'])
+    wcspar_cols.extend(['fit2_pa_deg', 'fit2_crval1', 'fit2_crval2'])
     wcspar_vals.extend(answer2.tolist())
     sys.stderr.write("wcspar_cols: %s\n" % str(wcspar_cols))
     sys.stderr.write("wcspar_vals: %s\n" % str(wcspar_vals))
@@ -338,7 +338,7 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None):
     answer3          = opti.fmin(minimize_this, init_params3)
 
     # Note fit results:
-    wcspar_cols.extend(['fit3_pa_deg', 'fit3_crval2', 'fit3_crval2'])
+    wcspar_cols.extend(['fit3_pa_deg', 'fit3_crval1', 'fit3_crval2'])
     wcspar_vals.extend(answer3.tolist())
     sys.stderr.write("wcspar_cols: %s\n" % str(wcspar_cols))
     sys.stderr.write("wcspar_vals: %s\n" % str(wcspar_vals))
