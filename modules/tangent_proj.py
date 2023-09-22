@@ -105,6 +105,24 @@ def _tanproj(prj_xx, prj_yy):
     #return prj_phi, prj_theta
     return np.degrees(prj_phi), np.degrees(prj_theta)
 
+## Inverse tangent projection:
+def _inv_tanproj(prj_phi_deg, prj_theta_deg):
+    prj_phi_rad   = np.radians(prj_phi_deg)
+    prj_theta_rad = np.radians(prj_theta_deg)
+    sin_phi       = np.sin(prj_phi_rad)
+    cos_phi       = np.cos(prj_phi_rad)
+    sin_theta     = np.sin(prj_theta_rad)
+    cos_theta     = np.cos(prj_theta_rad)
+    prj_xx        = np.zeros_like(prj_phi_rad) #+ sin_phi
+    prj_yy        = np.zeros_like(prj_phi_rad) #+ cos_phi
+    prj_rr        = np.zeros_like(prj_phi_rad)
+    which         = (sin_theta != 0.0)      # calculate for these
+    prj_rr[which] = np.degrees(cos_theta / sin_theta)
+    prj_xx[which] =        prj_rr * sin_phi
+    prj_yy[which] = -1.0 * prj_rr * cos_phi
+    return prj_xx, prj_yy
+
+
 ## Low-level WCS tangent processor:
 def _wcs_tan_compute(thisCD, relpix, crval1, crval2, debug=False):
     prj_xx, prj_yy = np.matmul(thisCD, relpix)
@@ -146,6 +164,18 @@ def xycd2radec(cdmat, rel_xx, rel_yy, crval1, crval2, debug=False):
     relpix = np.array((rel_xx, rel_yy))     # rel time = 1.05 us
     prj_xx, prj_yy = np.matmul(thisCD, relpix)
     return _wcs_tan_compute(thisCD, relpix, crval1, crval2, debug=debug)
+
+## Convert RA, Dec back to relative X,Y using CD matrix and CRVAL pair:
+def sky2xy_cd(cdmat, ra_deg, de_deg, crval1, crval2):
+    inv_CD  = np.linalg.inv(cdmat)
+    new_fov = (0.0, 90.0, 0.0)
+    old_fov = (crval1, crval2, 0.0)
+    prj_phi, prj_theta = rfov.migrate_fov_deg(old_fov, new_fov, (ra_deg, de_deg))
+    prj_xx, prj_yy = _inv_tanproj(prj_phi, prj_theta)
+    rel_foc = np.array((prj_xx, prj_yy))
+    ccd_xrel, ccd_yrel = np.matmul(inv_CD, rel_foc)
+    return ccd_xrel, ccd_yrel
+
 
 def slow_make_cdmat(pa_deg, pscale):
     pa_rad = np.radians(pa_deg)
