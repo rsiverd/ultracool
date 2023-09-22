@@ -1,0 +1,3 @@
+Let's figure out (and test) the reverse tangent projection component of
+WCS transformations. This would make my life easier when fitting for
+distortion in the camera plane.
