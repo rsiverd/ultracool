@@ -86,7 +86,8 @@ cmde "source config.sh" || exit $?
 #use_quad="SW"
 
 ## Folders:
-data_dir="/home/rsiverd/ucd_project/ucd_cfh_data/calib1/download"
+#data_dir="/home/rsiverd/ucd_project/ucd_cfh_data/calib1/download"
+data_dir="${HOME}/ucd_project/ucd_cfh_data/calib1/download"
 [ -d $data_dir ] || PauseAbort "Can't find directory: $data_dir"
 save_dir="./calib1_p_${use_quad}/download"
 cmde "mkdir -p $save_dir" || exit $?
