@@ -450,7 +450,8 @@ class GaiaMatch(object):
         ra          -- R.A. in decimal degrees
         dec         -- Dec in decimal degrees
         tol_deg     -- maximum matching distance in degrees
-        gaia_subset -- optional subset of Gaia catalog for matching (NaNs removed)
+        gaia_subset -- optional (cleaned) subset of Gaia catalog for matching.
+                            This subset should have NaNs removed.
         constraints -- optional non-positional matching constraints. This is a
                             list of tuples containing the following:
                             #(star_col, gaia_col, min_diff, max_diff)
