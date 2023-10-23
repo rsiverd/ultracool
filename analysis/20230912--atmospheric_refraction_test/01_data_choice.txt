@@ -1,0 +1,31 @@
+For starters, I am going to look at FITS headers from the start, middle,
+and end of our data set. Once a consistent set of data content is found,
+I can check to see whether it is present for all images ...
+
+First/middle/last runs for calib1:
+* 11AQ15 --> /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15/wircam_H2_1319405p.fits.fz
+* 16AQ19 --> /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/16AQ19/wircam_H2_1966140p.fits.fz
+* 21AQ18 --> /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/21AQ18/wircam_H2_2626501p.fits.fz
+* 11AQ15 --> /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15/wircam_J_1319390p.fits.fz
+* 16AQ19 --> /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/16AQ19/wircam_J_1966163p.fits.fz
+* 21AQ18 --> /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/21AQ18/wircam_J_2626489p.fits.fz
+
+# Dump the paths to a file for iterating:
+cat << EOF > sample_images.txt
+/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15/wircam_H2_1319405p.fits.fz
+/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/16AQ19/wircam_H2_1966140p.fits.fz
+/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/21AQ18/wircam_H2_2626501p.fits.fz
+/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15/wircam_J_1319390p.fits.fz
+/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/16AQ19/wircam_J_1966163p.fits.fz
+/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/21AQ18/wircam_J_2626489p.fits.fz
+EOF
+
+# Retrieve headers for each:
+mkdir -p hdr_samples
+for ipath in `cat sample_images.txt`; do
+   echo "ipath: $ipath"
+   ibase="${ipath##*/}"
+   cmde "listhead $ipath > hdr_samples/${ibase}.hdr"
+done
+
+

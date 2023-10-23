@@ -1,0 +1,17 @@
+I have a formula from Kovalevsky and Seidelmann to use for atmospheric
+refraction. This formula depends on local conditions at the observatory.
+Here I investigate what weather/conditions data is available in the CFHT
+image headers that could be used for this application. I also develop a
+working version of the code in Python.
+
+
+After manual inspection of headers, the following quantities appear to
+be present throughout the calib1 data set:
+TEMPERAT --> weather tower air temperature [deg C]
+RELHUMID --> weather tower relative humidity [%]
+PRESSURE --> control room barometric pressure [mbar] 
+
+FINDINGS:
+The keywords noted above are populated with sensible values for the
+entire data set. This seems like a good starting point.
+

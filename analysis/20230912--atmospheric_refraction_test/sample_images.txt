@@ -1,0 +1,6 @@
+/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15/wircam_H2_1319405p.fits.fz
+/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/16AQ19/wircam_H2_1966140p.fits.fz
+/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/21AQ18/wircam_H2_2626501p.fits.fz
+/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15/wircam_J_1319390p.fits.fz
+/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/16AQ19/wircam_J_1966163p.fits.fz
+/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/21AQ18/wircam_J_2626489p.fits.fz
