@@ -1,0 +1,18 @@
+wcspar_cols: ['hdr_pa_deg', 'hdr_crval1', 'hdr_crval2', 'fit1_pa_deg', 'fit1_crval1', 'fit1_crval2', 'fit2_pa_deg', 'fit2_crval2', 'fit2_crval2', 'fit3_pa_deg', 'fit3_crval2', 'fit3_crval2']
+wcspar_vals: [7.693587837876105e-14, 294.572851903, 35.103869025, 7.769812822283755e-14, 294.5719239282131, 35.10340497475781, 7.962490969263083e-14, 294.571884613143, 35.103427477777444, 8.280038352592533e-14, 294.5718785028203, 35.1034913223165]
+
+
+wcspar_cols: ['hdr_pa_deg', 'hdr_crval1', 'hdr_crval2', 'fit1_pa_deg', 'fit1_crval1', 'fit1_crval2', 'fit2_pa_deg', 'fit2_crval2', 'fit2_crval2', 'fit3_pa_deg', 'fit3_crval2', 'fit3_crval2']
+wcspar_vals: [0.0, 294.572851903, 35.103869025, 7.769812822283755e-14, 294.5719239282131, 35.10340497475781, 7.962490969263083e-14, 294.571884613143, 35.103427477777444, 8.280038352592533e-14, 294.5718785028203, 35.1034913223165]
+
+wcspar_cols: ['hdr_pa_deg', 'hdr_crval1', 'hdr_crval2', 'fit1_pa_deg', 'fit1_crval1', 'fit1_crval2', 'fit2_pa_deg', 'fit2_crval2', 'fit2_crval2', 'fit3_pa_deg', 'fit3_crval2', 'fit3_crval2']
+wcspar_vals: [0.0, 294.572851903, 35.103869025, 5.1174237216312465e-05, 294.5719140358613, 35.10340165116781, 5.296274799409586e-05, 294.5718824426116, 35.10343526138736, 5.503782388350758e-05, 294.57187715019234, 35.10349052122907]
+
+wcspar_cols: ['hdr_pa_deg', 'hdr_crval1', 'hdr_crval2', 'fit1_pa_deg', 'fit1_crval1', 'fit1_crval2', 'fit2_pa_deg', 'fit2_crval2', 'fit2_crval2', 'fit3_pa_deg', 'fit3_crval2', 'fit3_crval2']
+wcspar_vals: [0.05973236686203742, 294.572851903, 35.103869025, 0.06054075252895978, 294.5718788761367, 35.10347048373444, -0.08540918665676113, 294.57202595397223, 35.10333279620845, -0.08626918876075004, 294.5720520867975, 35.10335059362724]
+--> wircam_J_1319395p_fixed.fits.fz.fcat.gmatch.cdmpa
+
+wcspar_cols: ['hdr_pa_deg', 'hdr_crval1', 'hdr_crval2', 'fit1_pa_deg', 'fit1_crval1', 'fit1_crval2', 'fit2_pa_deg', 'fit2_crval2', 'fit2_crval2', 'fit3_pa_deg', 'fit3_crval2', 'fit3_crval2']
+wcspar_vals: [0.0, 294.572851903, 35.103869025, 5.1174237216312465e-05, 294.5719140358613, 35.10340165116781, 5.296274799409586e-05, 294.5718824426116, 35.10343526138736, 5.503782388350758e-05, 294.57187715019234, 35.10349052122907]
+--> wircam_J_1319395p_fixed.fits.fz.fcat.gmatch.zero
+
