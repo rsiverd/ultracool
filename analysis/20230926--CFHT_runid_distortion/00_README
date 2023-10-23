@@ -1,0 +1,17 @@
+I want to know whether or not the WIRCam distortion solution is really
+changing from run to run. To that end, I have performed two rounds of
+distortion polynomial fitting (fit, reject outliers, refit) for each
+run using the Gaia matches from earlier fitting. The two rounds of
+distortion polynomial fitting are performed by the current version of:
+18_runid_joint_fit.py
+
+This script produces "run_coeffs_1.csv" and "run_coeffs_2.csv" files in
+each runid folder. In this investigation, I plan to load and evaluate
+those coefficients to compare distortion solutions from run to run.
+Comparison of the evaluated data are necessary because of the highly
+correlated nature of the coefficients in a polynomial fit.
+
+In addition to the fit coefficients, I have also saved the subsets of
+pruned Gaia matches for further analysis and fit RMS evaluation. This
+content is stored in the run_match_subset.csv files in the same runid 
+folders noted above.
