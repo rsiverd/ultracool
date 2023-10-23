@@ -73,7 +73,7 @@ import statsmodels.api as sm
 #import seaborn as sns
 #import theil_sen as ts
 #import window_filter as wf
-#import itertools as itt
+import itertools as itt
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
 ## Astrometry fitting module:
@@ -261,6 +261,47 @@ for targ in proc_objs:
     save_fitters[targ] = afn
     pass
 
+
+##--------------------------------------------------------------------------##
+## Get a list of all unique image names:
+every_image = sorted(list(set(itt.chain(*[save_fitters[x].dataset['iname'] \
+                            for x in proc_objs]))))
+
+## Per-image high-residual counters:
+high_ra_err = {im:0 for im in every_image}
+high_de_err = {im:0 for im in every_image}
+
+## Tell me which JDs were highly discrepant everywhere:
+thresh = 5.0
+for targ in proc_objs:
+    fff = save_fitters[targ]
+    tjd = fff.dataset['jdutc']
+    img = fff.dataset['iname']
+    ra_res, de_res = fff.get_radec_minus_model_mas()
+    ra_MAR = np.median(np.abs(ra_res))
+    de_MAR = np.median(np.abs(de_res))
+    ra_bad = np.abs(ra_res / ra_MAR) > thresh
+    de_bad = np.abs(ra_res / ra_MAR) > thresh
+    for bi in img[ra_bad]:
+        high_ra_err[bi] += 1
+    for bi in img[de_bad]:
+        high_de_err[bi] += 1
+    pass
+
+
+## Select images that were bad at least once:
+n_targets = len(proc_objs)
+awfuls_ra = {ii:(nn / n_targets) for ii,nn in high_ra_err.items() if nn>0}
+awfuls_de = {ii:(nn / n_targets) for ii,nn in high_de_err.items() if nn>0}
+
+## Images that had discrepant data much of the time:
+frac_thresh = 0.33
+tragics_ra = [ii for ii,vv in awfuls_ra.items() if vv>frac_thresh]
+tragics_de = [ii for ii,vv in awfuls_de.items() if vv>frac_thresh]
+with open('terribles.txt', 'w') as tf:
+    for iname in sorted(list(set(tragics_ra + tragics_de))):
+        tf.write("%s\n" % iname.split('.')[0]) 
+sys.stderr.write("grep -f terribles.txt collections/*.txt\n")
 
 ##--------------------------------------------------------------------------##
 ## Settings:

@@ -283,6 +283,12 @@ for ii,fcat_path in enumerate(cat_files, 1):
     save_path = os.path.join(save_dir, save_base)
     gmst_path = save_path + '.gmatch'
     wpar_path = save_path + '.wcspar'
+    pix_reg_1 = save_path + '.pix1.reg'
+    sky_reg_1 = save_path + '.sky1.reg'
+    pix_reg_2 = save_path + '.pix2.reg'
+    sky_reg_2 = save_path + '.sky2.reg'
+    pix_reg_3 = save_path + '.pix3.reg'
+    sky_reg_3 = save_path + '.sky3.reg'
 
     # announce things:
     sys.stderr.write("Have output folder:\n")
@@ -313,7 +319,11 @@ for ii,fcat_path in enumerate(cat_files, 1):
 
     # perform the tune-up:
     #new_stars = wwt.wcs_tuneup(stars, header)
-    new_stars = wwt.wcs_tuneup(stars, header, save_matches=gmst_path, save_wcspars=wpar_path)
+    new_stars = wwt.wcs_tuneup(stars, header, 
+            save_matches=gmst_path, save_wcspars=wpar_path,
+            pixreg1=pix_reg_1, skyreg1=sky_reg_1,
+            pixreg2=pix_reg_2, skyreg2=sky_reg_2,
+            pixreg3=pix_reg_3, skyreg3=sky_reg_3)
 
     # update the catalog:
     ecl.set_catalog(new_stars)

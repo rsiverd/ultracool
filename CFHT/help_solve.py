@@ -20,12 +20,39 @@ pscale =   0.30601957084155673
 sensor_xpix = 2048
 sensor_ypix = 2048
 
+sensor_xmid = (sensor_xpix + 1.0) / 2.0
+sensor_ymid = (sensor_xpix + 1.0) / 2.0
+
 corner_size = 256
 corner_size = 512
 corner_xmin = sensor_xpix - corner_size
 corner_ymax = corner_size
 
 radial_size = 1.4142 * corner_size * 1.5
+
+## -----------------------------------------------------------------------
+## Extract field-of-view parameters from WCS:
+def get_fov_params(imwcs):
+    wcskw = {'ra_dec_order':True}
+    #llc_ra, llc_de = np.array(imwcs.all_pix2world(1, 1, 1, **wcskw))
+    llc_radec = np.array(imwcs.all_pix2world(1, 1, 1, **wcskw))
+    ctr_radec = np.array(imwcs.all_pix2world(sensor_xmid, sensor_ymid, 1, **wcskw))
+    # approximate quadrant centers:
+    quad_radec = {}
+    lrq_pixel = (0.75 * sensor_xpix, 0.25 * sensor_ypix)    # lower-right
+    llq_pixel = (0.25 * sensor_xpix, 0.25 * sensor_ypix)    # lower-left
+    ulq_pixel = (0.25 * sensor_xpix, 0.75 * sensor_ypix)    # upper-left
+    urq_pixel = (0.75 * sensor_xpix, 0.75 * sensor_ypix)    # upper-right
+    quad_radec['ll'] = np.array(imwcs.all_pix2world(*llq_pixel, 1, **wcskw))
+    quad_radec['lr'] = np.array(imwcs.all_pix2world(*lrq_pixel, 1, **wcskw))
+    quad_radec['ul'] = np.array(imwcs.all_pix2world(*ulq_pixel, 1, **wcskw))
+    quad_radec['ur'] = np.array(imwcs.all_pix2world(*urq_pixel, 1, **wcskw))
+    #coo = imwcs.all_pix2world([sensor_xmid, 1], [sensor_ymid, 1], 1, **wcskw)
+    #return (coo[0][0], coo[1][0])
+    #ctr_ra, ctr_de = np.array(coo)
+    #diag_deg = angle.dAngSep
+    halfdiag_deg = angle.dAngSep(*ctr_radec, *llc_radec)
+    return ctr_radec, halfdiag_deg, quad_radec
 
 ## -----------------------------------------------------------------------
 ## Catalog "flavor" lurks at the end of the basename, before the "."

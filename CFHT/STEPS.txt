@@ -9,10 +9,12 @@ and use multiple times include:
 1) Download data. This was previously completed by RJS using standard
 download scripts from the ultracool repository. Commands used:
 $ source ~/anaconda3/bin/activate; conda activate astrom
-$ cd ~/ucd_project/ultracool                                                          # cd into base repo folder
-$ source ENVIRONMENT.sh                                                               # update PYTHONPATH
-$ ./fetch_CFHT_data.py -t etc/WIRCam/calib_fields.txt -o ~/ucd_project/ucd_cfh_data   # creates calib1 folder
-$ ./fetch_CFHT_data.py -t etc/WIRCam/science_fields.txt -o ~/ucd_project/ucd_cfh_data
+$ cd ~/ucd_project/ultracool                                            # cd into base repo folder
+$ source ENVIRONMENT.sh                                                 # update PYTHONPATH
+$ ./fetch_CFHT_data.py -t etc/WIRCam/calib_fields.txt  \
+      -o ~/ucd_project/ucd_cfh_data --subdirectory download             # creates calib{1,2}/download folders
+$ ./fetch_CFHT_data.py -t etc/WIRCam/science_fields.txt \
+      -o ~/ucd_project/ucd_cfh_data --subdirectory download             # creates {targets}/download folders
 
 2) Select NE quadrant, organize by observing night.
 RJS did this using command-line (non-Python) tools 
@@ -88,16 +90,20 @@ $ ./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_a
 ./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15 -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
 # Middle folder only:
 ./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/16AQ14 -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
+# Outlier folder only:
+./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/15BQ09 -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
+./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/17AQ07 -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
 # Process everything:
 ./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
 
 7a) Per-run joint WCS and distortion tune-up:
 # First folder only:
-./18_runid_joint_fit.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/16AQ14 -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
+./18_runid_joint_fit.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15 -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
 # Middle folder only:
 ./18_runid_joint_fit.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/16AQ14 -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
 # Outlier folder only:
 ./18_runid_joint_fit.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/15BQ09 -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
+./18_runid_joint_fit.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/17AQ07 -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
 # Process everything:
 ./18_runid_joint_fit.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
 
