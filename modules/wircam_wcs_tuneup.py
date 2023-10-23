@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2023-07-26
-# Last modified: 2023-09-15
+# Last modified: 2023-09-29
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -38,6 +38,17 @@ gm  = gaia_match.GaiaMatch()
 
 import wircam_fs_helpers as wfh
 reload(wfh)
+
+## Region-file creation tools:
+_have_region_utils = False
+try:
+    import region_utils
+    reload(region_utils)
+    rfy = region_utils
+    _have_region_utils = True
+except ImportError:
+    sys.stderr.write(
+            "\nWARNING: region_utils not found, DS9 regions disabled!\n")
 
 ## -----------------------------------------------------------------------
 
@@ -115,10 +126,13 @@ def get_corner_subset_rect(data):
     lower_right = (corner_xmin <= data['x']) & (data['y'] <= corner_ymax)
     return data[lower_right]
 
-## Select lower-right sources within fixed distance from focal plane center:
-def get_corner_subset_dist(data, cutoff):
+## Select lower-right sources within fixed distance from focal plane center.
+## Impose flux cut to avoid spurious matches.
+#def get_corner_subset_dist(data, cutoff, minflux=600.0):
+def get_corner_subset_dist(data, cutoff, minflux=2000.0):
     rdist = np.hypot(data['x'] - crpix1, data['y'] - crpix2)
-    return data[rdist <= cutoff]
+    flxok = (data['flux'] > minflux)
+    return data[(rdist <= cutoff) & flxok]
 
 ## Select objects near the focal plane center:
 def get_central_sources(data, max_rsep_pix):
@@ -208,6 +222,7 @@ def get_cdmatrix_pa_scale(header):
                         math.asin(flat_rot[2]), math.acos(flat_rot[3])]
     sys.stderr.write("pa_guess: %s\n" % str(pa_guess))
     pos_ang  = np.degrees(np.average(pa_guess))
+    pos_ang *= -1.0     # fix direction
     pixscale = np.average(cd_xyscl)
     return pos_ang, pixscale
 
@@ -245,8 +260,17 @@ _fitting_spec = (
         {'tol_arcsec':2.0, 'rdist':2000.0     },
         )
 
-def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None):
+def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None, 
+        pixreg1=None, skyreg1=None, pixreg2=None, skyreg2=None,
+        pixreg3=None, skyreg3=None):
     obs_time = wircam_timestamp_from_header(header)
+
+    # Warn if regions requested but not available:
+    if not _have_region_utils:
+        for rfile in (pixreg1, skyreg1, pixreg2, skyreg2, pixreg3, skyreg3):
+            if rfile:
+                sys.stderr.write("WARNING: %s requested" % rfile
+                    + " but not possible\n")
 
     # column headings and 
     wcspar_cols = []
@@ -278,7 +302,8 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None):
     # Initial corner tune-up:
     #lr_stars         = get_corner_subset_rect(stars)
     lr_stars         = get_corner_subset_dist(stars, 1.5*radial_dist)
-    lr_gaia_matches  = find_gaia_matches_idx_stars(lr_stars, 2.0, **radec_cols)
+    #lr_gaia_matches  = find_gaia_matches_idx_stars(lr_stars, 2.0, **radec_cols)
+    lr_gaia_matches  = find_gaia_matches_idx_stars(lr_stars, 3.0, **radec_cols)
     idx, gra, gde    = lr_gaia_matches
     match_subset     = lr_stars[idx]
     m_xrel, m_yrel   = match_subset['xrel'], match_subset['yrel']
@@ -287,6 +312,15 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None):
     minimize_this    = partial(evaluator_pacrv, pscale=pscale, xrel=m_xrel,
                                     yrel=m_yrel, true_ra=gra, true_de=gde)
     answer1          = opti.fmin(minimize_this, init_params1)
+
+    # Make region files if requested:
+    if _have_region_utils:
+        if pixreg1:
+            rfy.regify_ccd(pixreg1, match_subset['x'], match_subset['y'],
+                    colors=rfy.colorset, vlevel=1)
+        if skyreg1:
+            rfy.regify_sky(skyreg1, gra, gde, colors=rfy.colorset, vlevel=1)
+
 
     # Note fit results:
     wcspar_cols.extend(['fit1_pa_deg', 'fit1_crval1', 'fit1_crval2'])
@@ -304,7 +338,8 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None):
 
     # Repeat tuning with larger region:
     lr_stars         = get_corner_subset_dist(stars, 2000.0)
-    lr_gaia_matches  = find_gaia_matches_idx_stars(lr_stars, 2.0, **radec_cols)
+    #lr_gaia_matches  = find_gaia_matches_idx_stars(lr_stars, 2.0, **radec_cols)
+    lr_gaia_matches  = find_gaia_matches_idx_stars(lr_stars, 3.0, **radec_cols)
     idx, gra, gde    = lr_gaia_matches
     match_subset     = lr_stars[idx]
     m_xrel, m_yrel   = match_subset['xrel'], match_subset['yrel']
@@ -312,6 +347,14 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None):
     minimize_this    = partial(evaluator_pacrv, pscale=pscale, xrel=m_xrel,
                                         yrel=m_yrel, true_ra=gra, true_de=gde)
     answer2          = opti.fmin(minimize_this, init_params2)
+
+    # Make region files if requested:
+    if _have_region_utils:
+        if pixreg2:
+            rfy.regify_ccd(pixreg2, match_subset['x'], match_subset['y'],
+                    colors=rfy.colorset, vlevel=1)
+        if skyreg2:
+            rfy.regify_sky(skyreg2, gra, gde, colors=rfy.colorset, vlevel=1)
 
     # Note fit results:
     wcspar_cols.extend(['fit2_pa_deg', 'fit2_crval1', 'fit2_crval2'])
@@ -328,7 +371,8 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None):
 
     # Repeat tuning with full image:
     ff_stars         = stars
-    ff_gaia_matches  = find_gaia_matches_idx_stars(ff_stars, 2.0, **radec_cols)
+    #ff_gaia_matches  = find_gaia_matches_idx_stars(ff_stars, 2.0, **radec_cols)
+    ff_gaia_matches  = find_gaia_matches_idx_stars(ff_stars, 3.0, **radec_cols)
     idx, gra, gde    = ff_gaia_matches
     match_subset     = ff_stars[idx]
     m_xrel, m_yrel   = match_subset['xrel'], match_subset['yrel']
@@ -336,6 +380,14 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None):
     minimize_this    = partial(evaluator_pacrv, pscale=pscale, xrel=m_xrel,
                                         yrel=m_yrel, true_ra=gra, true_de=gde)
     answer3          = opti.fmin(minimize_this, init_params3)
+
+    # Make region files if requested:
+    if _have_region_utils:
+        if pixreg3:
+            rfy.regify_ccd(pixreg3, match_subset['x'], match_subset['y'],
+                    colors=rfy.colorset, vlevel=1)
+        if skyreg3:
+            rfy.regify_sky(skyreg3, gra, gde, colors=rfy.colorset, vlevel=1)
 
     # Note fit results:
     wcspar_cols.extend(['fit3_pa_deg', 'fit3_crval1', 'fit3_crval2'])
