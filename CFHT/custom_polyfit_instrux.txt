@@ -1,0 +1,50 @@
+Hi Abby, 
+
+I have added a new module to the ultracool repository called custom_polyfit.py. You should be able to pick it up with a 'git pull' in the ultracool folder.
+
+It includes a polynomial fitting class that I have now tested working. That class allows you to specify a lower and upper polynomial degree for fitting, which is what we need to do in order to ignore low-order terms (and just fit the distortion). It works like so:
+1) Import the module and grab the class:
+import custom_polyfit
+cpf2 = custom_polyfit.CustomPolyFit2D()
+
+2) Set polynomial degree with cpf2.set_degree() method. This takes 2 arguments: lower and upper degree. Examples:
+# set the polynomial degree. To fit 0th through 3rd order terms (Z = a + bx + cy + dx^2 + exy + fy^2 + gx^3 + hx^2y + ixy^2 + jy^3), you do:
+cpf2.set_degree(0, 3)
+# to fit just 2nd and 3rd order (Z = dx^2 + exy + fy^2 + gx^3 + hx^2y + ixy^2 + jy^3), you would do:
+cpf2.set_degree(2, 3)
+We want to try both methods and see how they differ. The SIP distortion convention for WCS involves setting degrees 2-3 only, but might require joint fitting with the CD matrix etc.
+
+3) After degree is specified, you can perform a fit with the cpf2.fit() method. The fitting takes 3 arguments: X-values, Y-values, and corresponding f(X, Y) values, such as:
+cpf2.fit(xx, yy, zz)      # stores model in the object
+
+4) After a fit, you can evaluate the best-fit parameters at any X, Y positions with the cpf2.eval() method, like:
+estimated_zz = cpf2.eval(xx, yy)
+
+# Here is an end-to-end demo:
+import custom_polyfit
+cpf2 = custom_polyfit.CustomPolyFit2D()
+xx = np.arange(-50, 50)           # some X positions
+yy = np.arange(0, 100)            # some Y positions
+zz = 3 + 5*xx + 2 * yy              # a polynomial function zz = f(X,Y)
+cpf2.set_degree(0, 1)              # prepare to do a first-order polynomial
+cpf2.fit(xx, yy, zz)                     
+In [8]: cpf2._model
+Out[8]: array([-0.05755396,  4.93884892,  2.06115108])    # this captures the X- and Y- coefficients of ~5 and ~2 pretty well.
+
+# if you want to see the exponent pairs that are set, you can:
+print(cpf2._ij)
+
+# to fetch the model parameters, you can:
+model = cpf2.get_model()
+
+......................................................................................
+
+Your next steps are to fit the delta_X(X, Y) and delta_Y(X, Y) using your large data set. It would be useful to do this twice, once with degree (2, 3) for the SIP convention and once with degree (0, 3) for comparison. The fit should be very fast. I recommend you actually create two separate objects, one for fitting deltaX and the other for deltaY. For instance:
+import custom_polyfit
+cpf2_dx = custom_polyfit.CustomPolyFit2D()
+cpf2_dy = custom_polyfit.CustomPolyFit2D()
+
+Call them whatever you think makes sense. By keeping two of them, you can keep your deltaX and deltaY polynomial models around at the same time. Hopefully this all makes sense. Let me know if you have any questions, otherwise we'll chat at 3:30.
+
+-Rob
+
