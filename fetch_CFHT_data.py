@@ -6,13 +6,13 @@
 #
 # Rob Siverd
 # Created:       2020-03-02
-# Last modified: 2023-05-24
+# Last modified: 2023-09-12
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 ## Python version-agnostic module reloading:
 try:
@@ -320,6 +320,12 @@ def pick_favorites(results):
     # return whatever remains:
     return hits
 
+## Impose my fixed-width naming convention:
+def fixed_width_productID(prodID):
+    flavor = prodID[-1]
+    seqnum = int(prodID[:-1])
+    return '%07d%c' % (seqnum, flavor) 
+
 ##--------------------------------------------------------------------------##
 ##------------------      Download and Validate Images      ----------------##
 ##--------------------------------------------------------------------------##
@@ -404,7 +410,9 @@ for nn,tinfo in enumerate(targets, 1):
     sys.stderr.write("Querying CFHT database ... ")
     #hits = cadc.query(coord=targ, size=context.search_rad_deg, dataset=1)
     hits = cadc.query_region(targ, radius=srch_deg, collection='CFHT')
-    hits.sort('productID')
+    hits['fw_prod_id'] = [fixed_width_productID(x) for x in hits['productID']]
+    #hits.sort('productID')
+    hits.sort('fw_prod_id')
     sys.stderr.write("done.\n")
     sys.stderr.write("Found %d products at position.\n" % len(hits))
 
@@ -422,8 +430,10 @@ for nn,tinfo in enumerate(targets, 1):
     # select useful subset:
     sys.stderr.write("Selecting useful subset ... ")
     useful = pick_favorites(hits)
-    useful['ibase'] = ['%s.fits.fz'%x for x in useful['productID']]
+    #useful['ibase'] = ['%s.fits.fz'%x for x in useful['productID']]
+    useful['ibase'] = ['%s.fits.fz'%x for x in useful['fw_prod_id']]
     useful['isave'] = [os.path.join(save_dir, x) for x in useful['ibase']]
+    #import pdb; pdb.set_trace()
     sys.stderr.write("done. Identified %d images.\n" % len(useful))
     if len(useful) < 1:
         sys.stderr.write("Nothing to fetch!\n")
