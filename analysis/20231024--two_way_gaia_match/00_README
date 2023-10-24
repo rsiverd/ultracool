@@ -1,0 +1,21 @@
+The "dumb" Gaia matching provided in gaia_match.py can be made more robust
+and useful with a two-way matching process:
+* attempt to match all detections to Gaia (may produce duplicates)
+* collect and deduplicate Gaia matches into "useful" subset
+* match each "useful" Gaia match against its nearest detection
+* keep the results of the second pass
+
+This procedure ensures that no Gaia star is matched more than once. These
+spurious matches seem to interfere with astrometric parameter fitting in
+unpredictable ways.
+
+This investigation aims to flesh out an efficient way of performing the
+two-way match. I want to test a few different methods using pandas built-ins
+that may be very fast. Performance is a concern because I use this matching
+tool as part of the WCS parameter fine-tuning for CFHT / WIRCam processing.
+
+
+Other softwares:
+* GeoPandas exists and can perform spatial joins
+* astropy has some kind of 2-D matching routine too
+
