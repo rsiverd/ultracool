@@ -3,9 +3,12 @@
 rsync -avx --delete /data/rsiverd/ucd_cfh_data/SDSS_J0805/download/ /small/rsiverd/ucd_cfh_data/SDSS_J0805/download/
 
 
-rsync -avx --delete /data/rsiverd/ucd_cfh_data/2MASS_J1404/ /small/rsiverd/ucd_cfh_data/2MASS_J1404/
+idlenice rsync -avx /data/rsiverd/ucd_cfh_data/2MASS_J1404/ /small/rsiverd/ucd_cfh_data/2MASS_J1404/
+idlenice rsync -avx --delete /data/rsiverd/ucd_cfh_data/2MASS_J1404/ /small/rsiverd/ucd_cfh_data/2MASS_J1404/
 
 # the WHOLE ENCHILADA:
-rsync -avx --delete /data/rsiverd/ucd_cfh_data/ /small/rsiverd/ucd_cfh_data/
-idlenice rsync -avx --delete /data/rsiverd/ucd_cfh_data/ /small/rsiverd/ucd_cfh_data/
+#idlenice rsync -avx --delete /data/rsiverd/ucd_cfh_data/ /small/rsiverd/ucd_cfh_data/
+idlenice rsync -avx --progress /data/rsiverd/ucd_cfh_data/ /small/rsiverd/ucd_cfh_data/
+idlenice rsync -avxn --delete /data/rsiverd/ucd_cfh_data/ /small/rsiverd/ucd_cfh_data/
+idlenice rsync -avx  --delete /data/rsiverd/ucd_cfh_data/ /small/rsiverd/ucd_cfh_data/
 
