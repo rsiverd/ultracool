@@ -1,0 +1,3 @@
+# to create a backup of ucd_cfh_data stuff ...
+
+rsync -avx --delete /data/rsiverd/ucd_cfh_data/SDSS_J0805/download/ /small/rsiverd/ucd_cfh_data/SDSS_J0805/download/
