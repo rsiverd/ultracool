@@ -1,8 +1,10 @@
 # Some shared configuration items for quick scripts:
-#use_quad="NE"
+use_quad="NE"
 #use_quad="NW"
 #use_quad="SE"
-use_quad="SW"
+#use_quad="SW"
+target="calib1"
+data_dir="${HOME}/ucd_project/ucd_cfh_data/${target}/download"
 imlist="image_list.txt"
 targ_dir="calib1_p_${use_quad}"
 key_data="image_hdrs.txt"
