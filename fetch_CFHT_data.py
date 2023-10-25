@@ -6,13 +6,13 @@
 #
 # Rob Siverd
 # Created:       2020-03-02
-# Last modified: 2023-09-12
+# Last modified: 2023-10-24
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.2.2"
+__version__ = "0.2.3"
 
 ## Python version-agnostic module reloading:
 try:
@@ -28,6 +28,7 @@ import argparse
 import shutil
 import gc
 import os
+import re
 import sys
 import time
 import numpy as np
@@ -322,9 +323,17 @@ def pick_favorites(results):
 
 ## Impose my fixed-width naming convention:
 def fixed_width_productID(prodID):
-    flavor = prodID[-1]
-    seqnum = int(prodID[:-1])
-    return '%07d%c' % (seqnum, flavor) 
+    # get leading digits:
+    digits = re.search(r'\d+', prodID).group()
+    seqnum = int(digits)
+    #sys.stderr.write("%s --> digits: %s\n" % (prodID, digits))
+    #flavor = prodID[-1]
+    flavor = prodID[len(digits):]
+    if len(flavor) > 1:
+        sys.stderr.write("Weirdo: %s\n" % prodID)
+    #seqnum = int(prodID[:-1])
+    return '%07d%s' % (seqnum, flavor) 
+    #return '%07d%c' % (seqnum, flavor) 
 
 ##--------------------------------------------------------------------------##
 ##------------------      Download and Validate Images      ----------------##
