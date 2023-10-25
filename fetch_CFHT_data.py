@@ -230,12 +230,14 @@ with open(context.target_list, 'r') as f:
 delim = '#'
 targets = []
 for ii, line in enumerate(contents, 1):
-    tname = 'pointing%03d' % ii
+    tcoord = None
+    tname  = 'pointing%03d' % ii
     if delim in line:
         tname = line.split(delim)[1].strip()
     nocomment = line.split(delim)[0].strip()
-    tcoord = skycoordify(nocomment)
-    if tcoord:
+    if nocomment:
+        tcoord = skycoordify(nocomment)
+    if tcoord and tname:
         targets.append((tcoord, tname))
 
 
