@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2023-06-02
-# Last modified: 2023-07-26
+# Last modified: 2023-10-24
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 ## Modules:
 #import argparse
@@ -127,8 +127,10 @@ def _inv_tanproj(prj_phi_deg, prj_theta_deg):
 def _wcs_tan_compute(thisCD, relpix, crval1, crval2, debug=False):
     prj_xx, prj_yy = np.matmul(thisCD, relpix)
     if debug:
-        sys.stderr.write("%.3f < prj_xx < %.3f\n" % (prj_xx.min(), prj_xx.max()))
-        sys.stderr.write("%.3f < prj_yy < %.3f\n" % (prj_yy.min(), prj_yy.max()))
+        sys.stderr.write("%.3f < prj_xx < %.3f\n"
+                % (prj_xx.min(), prj_xx.max()))
+        sys.stderr.write("%.3f < prj_yy < %.3f\n"
+                % (prj_yy.min(), prj_yy.max()))
 
     # Perform tangent projection:
     prj_phi, prj_theta = _tanproj(prj_xx, prj_yy)
