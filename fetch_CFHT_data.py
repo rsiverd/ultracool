@@ -489,19 +489,30 @@ for nn,tinfo in enumerate(targets, 1):
     chunkidx = np.array_split(np.arange(len(useful)), nchunks)
     for ii,cidx in enumerate(chunkidx, 1):
         sys.stderr.write("Chunk %d of %d ...\n" % (ii, nchunks))
-        snag = useful[cidx]
-        imurls = cadc.get_data_urls(snag)
-        if len(imurls) != len(snag):
+        ichunk = useful[cidx]
+        imurls = cadc.get_data_urls(ichunk)
+        # for now, keep only ending in fits.fz:
+        imurls = [x for x in imurls if x.endswith('fits.fz')]
+        n_urls = len(imurls)
+        n_want = len(ichunk)
+        if n_urls != n_want:
             sys.stderr.write("Mismatch in download URL list!\n")
             # SEEN WITH:
             # ['https://ws.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/raven/files/cadc:CFHT/2245332o.fits',
             #  'https://ws.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/raven/files/cadc:CFHT/2245332o.fits.fz']
             #
+            if context.debug:
+                sys.stderr.write("n_want: %d\n" % n_want)
+                sys.stderr.write("n_urls: %d\n" % n_urls)
+                n_loops = max(n_urls, n_want)
+                sys.stderr.write("%20s %20s\n" % ('want', 'urls'))
+                #for i in range(n_loops):
+                import pdb; pdb.set_trace()
             continue
-        dlspec = [(uu, ss, tmp_dl_path) for uu,ss in zip(imurls, snag['isave'])]
+        dlspec = [(uu, ss, tmp_dl_path) for uu,ss in zip(imurls, ichunk['isave'])]
         #fdl.smart_fetch_bulk(dlspec)
         download_from_cadc(dlspec)
-        #for uu,ss in zip(imurls, snag['isave']):
+        #for uu,ss in zip(imurls, ichunk['isave']):
         #    success = download_from_cadc(uu, ss, tmp_dl_path)
 
 
