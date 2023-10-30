@@ -221,6 +221,7 @@ def get_cdmatrix_pa_scale(header):
     pa_guess = [math.acos(flat_rot[0]), -math.asin(flat_rot[1]),
                         math.asin(flat_rot[2]), math.acos(flat_rot[3])]
     sys.stderr.write("cd_xyscl: %s\n" % str(cd_xyscl))
+    sys.stderr.write("cds_asec: %s\n" % str(3600*cd_xyscl))
     sys.stderr.write("pa_guess: %s\n" % str(pa_guess))
     pos_ang  = np.degrees(np.average(pa_guess))
     pos_ang *= -1.0     # fix direction
