@@ -369,10 +369,16 @@ use_fcat = 'wircam_H2_1319412p_eph.fits.fz.fcat'
 #use_fcat = 'wircam_H2_1592961p_eph.fits.fz.fcat'
 use_fcat = 'wircam_H2_1838760p_eph.fits.fz.fcat'
 #use_fcat = 'wircam_H2_2200977p_eph.fits.fz.fcat'
+use_fcat = 'wircam_H2_1838749p_eph.fits.fz.fcat'
 
 view_img = use_fcat.replace('p_eph', 'p').replace('fz.fcat', 'fz')
 
 ds9_opts = "-scale limits 6868 7575 -scale sqrt"
+
+## Announce image:
+sys.stderr.write("\n%s\n" % halfdiv)
+sys.stderr.write("Processing fcat:\n")
+sys.stderr.write("--> %s\n" % use_fcat)
 
 ## Load ExtCat content:
 ecl.load_from_fits(use_fcat)
@@ -386,12 +392,21 @@ stars = append_fields(stars, ('xrel', 'yrel'), (xrel, yrel), usemask=False)
 
 ## Mine header for WCS info:
 cdm_pa, cdm_pscale = wwt.get_cdmatrix_pa_scale(header)
+cdm_pscale_asec = 3600.0 * cdm_pscale
 orig_cv1 = header['CRVAL1']
 orig_cv2 = header['CRVAL2']
 calc_ra, calc_de = wwt.calc_tan_radec(wwt.pscale, cdm_pa,
                             orig_cv1, orig_cv2, xrel, yrel)
 calc_ra = calc_ra % 360.0
 
+sys.stderr.write("\n")
+sys.stderr.write("Initial WCS parameters (from header):\n")
+sys.stderr.write("orig_cv1 (RA):    %+15.8f deg\n" % orig_cv1)
+sys.stderr.write("orig_cv2 (DE):    %+15.8f deg\n" % orig_cv2)
+sys.stderr.write("cdm_pscale:       %+15.8f arcsec/pix\n" % cdm_pscale_asec)
+sys.stderr.write("cdm_pos_ang:      %+15.8f deg\n" % cdm_pa)
+
+#sys.exit(0)
 ##--------------------------------------------------------------------------##
 
 ## Configure Gaia match:
@@ -407,7 +422,7 @@ corner_dist = 800.0
 #corner_dist = 2000.0
 lr_stars = wwt.get_corner_subset_dist(stars, corner_dist, minflux=1000)
 match_tol = 2.0
-match_tol = 3.0
+#match_tol = 3.0
 
 use_cols = {'ra_col':'dra', 'de_col':'dde'}
 lr_gaia_matches = find_gaia_matches_idx(lr_stars, match_tol, **use_cols)
@@ -425,8 +440,8 @@ med_ra_shift = np.median(match_subset['dra'] - gra)
 med_de_shift = np.median(match_subset['dde'] - gde)
 ra_nudge_arcsec = 3600.0 * med_ra_shift
 de_nudge_arcsec = 3600.0 * med_de_shift
-sys.stderr.write("Median RA offset: %.3f arcsec\n" % ra_nudge_arcsec)
-sys.stderr.write("Median DE offset: %.3f arcsec\n" % de_nudge_arcsec)
+sys.stderr.write("Median RA offset: %+.3f arcsec\n" % ra_nudge_arcsec)
+sys.stderr.write("Median DE offset: %+.3f arcsec\n" % de_nudge_arcsec)
 sys.stderr.write("%s\n" % fulldiv)
 
 ## Make a region file with all the matched Gaia positions:
@@ -460,11 +475,35 @@ dupes_counter = {kk:vv for kk,vv in gaia_hit_counter.items() if vv > 1}
 
 ## Test run of two-way matcher:
 #lr_uniq_matches  = twoway_gaia_matches_1(lr_stars, match_tol, **use_cols)
-lr_uniq_matches  = twoway_gaia_matches_1(lr_stars['dra'],
+#lr_uniq_matches  = twoway_gaia_matches_1(lr_stars['dra'],
+lr_uniq_matches  = twoway_gaia_matches_2(lr_stars['dra'],
                                          lr_stars['dde'], match_tol)
 idx2, gra2, gde2 = lr_uniq_matches
 twoway_subset    = lr_stars[idx2]
 
+
+
+## ---------------------------------------------
+## Check that module version gives same results:
+lr_test_matches  = gm.twoway_gaia_matches(lr_stars['dra'],
+                                        lr_stars['dde'], match_tol)
+
+## Evaluate sameness:
+idx3, gra3, gde3, gid3 = lr_test_matches
+if (len(idx2) != len(idx3)):
+    sys.stderr.write("Test failed: unequal match count!\n")
+    sys.stderr.write("len(idx2) = %d\n" % len(idx2))
+    sys.stderr.write("len(idx3) = %d\n" % len(idx3))
+    sys.exit(1)
+if not np.all(idx2 == idx3):
+    sys.stderr.write("Test failed: match indices differ!\n")
+    sys.stderr.write("idx2: %s\n" % str(idx2))
+    sys.stderr.write("idx3: %s\n" % str(idx3))
+    sys.exit(1)
+
+## ------------------------------------
+
+#sys.exit(0)
 
 ## The detections we dropped:
 missings = set(idx) - set(idx2)
@@ -498,11 +537,12 @@ sys.stderr.write("ztf --cfht -r %s -r %s -r %s %s\n"
 # -----------------------------------------------------------------------
 # Brute-force CRVAL / PA adjustment and matching:
 
-
 #test_pas = [-0.3, -0.1
 
 top_ten_idx = np.arange(10)
 ntop = 10
+ntop = 20
+ntop = min(len(gra2), ntop)     # not more than we have points
 
 top_ten_combos = itt.combinations(range(ntop), 2)
 top_ten_ij  = np.array(list(itt.combinations(range(ntop), 2)))
@@ -510,7 +550,11 @@ top10_idx1, top10_idx2 = top_ten_ij.T
 sky_delta_ra = gra2[top10_idx1] - gra2[top10_idx2]
 sky_delta_de = gde2[top10_idx1] - gde2[top10_idx2]
 sky_delta_ra *= np.cos(np.radians(gde2[top10_idx1]))
-sky_angles = np.arctan2(sky_delta_de, sky_delta_ra)
+sky_angles   = np.arctan2(sky_delta_de, sky_delta_ra)
+sky_distance = angle.dAngSep(gra2[top10_idx1], gde2[top10_idx1],
+                             gra2[top10_idx2], gde2[top10_idx2])
+
+distance_order = np.argsort(sky_distance)
 
 ccd_ra = twoway_subset['dra']
 ccd_de = twoway_subset['dde']
@@ -529,13 +573,38 @@ old_delta_tot = 3600*np.hypot(old_delta_ra, old_delta_de)
 #top_ten_gra = gra2[:ntop]
 #top_ten_gde = gde2[:ntop]
 
+## Relative segment rotations, in degrees:
+segment_angles = np.degrees(sky_angles - ccd_angles)
 
-pa_adjustment = np.degrees(np.median(sky_angles - ccd_angles))
+## Illustrate the unreliability of angle differences from short arcs:
+_DO_SHORT_ARC_PLOT = True
+if _DO_SHORT_ARC_PLOT:
+    import matplotlib.pyplot as plt
+    fig = plt.figure(1, figsize=(10, 7))
+    fig.clf()
+    ax1 = fig.add_subplot(111)
+    ax1.grid(True)
+    ax1.scatter(sky_distance, segment_angles)
+    ax1.set_xlabel('Point-to-Point Separation (deg)')
+    ax1.set_ylabel('Segment Rotation (deg)')
+
+## Another way, with roll to use consecutive data points:
+roll_sky_delta_ra  =   gra2 - np.roll(gra2, 1)
+roll_sky_delta_de  =   gde2 - np.roll(gde2, 1)
+roll_sky_delta_ra *=   np.cos(np.radians(gde2))
+roll_sky_angles    = np.arctan2(roll_sky_delta_de, roll_sky_delta_ra)
+
+roll_ccd_delta_ra  = ccd_ra - np.roll(ccd_ra, 1)
+roll_ccd_delta_de  = ccd_de - np.roll(ccd_de, 1)
+roll_ccd_delta_ra *=   np.cos(np.radians(ccd_de))
+roll_ccd_angles    = np.arctan2(roll_ccd_delta_de, roll_ccd_delta_ra)
+
+pa_adjustment  = np.degrees(np.median(sky_angles - ccd_angles))
 #pa_adjustment = np.median(sky_angles - ccd_angles)
 sys.stderr.write("pa_adjustment: %.4f\n" % pa_adjustment)
 
-cdm_pa_Hband = -3.8559558164649175e-09
-cdm_pa_Jband = -0.05973236686203742
+#cdm_pa_Hband = -3.8559558164649175e-09
+#cdm_pa_Jband = -0.05973236686203742
 
 
 adj_cdm_pa = cdm_pa - pa_adjustment
