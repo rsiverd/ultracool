@@ -211,7 +211,7 @@ def cdmat_from_answer(answer):
 
 ## Analyze CD matrix from header:
 _cd_keys = ('CD1_1', 'CD1_2', 'CD2_1', 'CD2_2')
-def get_cdmatrix_pa_scale(header):
+def get_cdmatrix_pa_scale(header, debug=False):
     orig_cdm = np.array([header[x] for x in _cd_keys]).reshape(2, 2)
     cd_xyscl = np.sqrt(np.sum(orig_cdm**2, axis=1))
     norm_cdm = orig_cdm / cd_xyscl
@@ -220,9 +220,10 @@ def get_cdmatrix_pa_scale(header):
     flat_rot = norm_rot.flatten()
     pa_guess = [math.acos(flat_rot[0]), -math.asin(flat_rot[1]),
                         math.asin(flat_rot[2]), math.acos(flat_rot[3])]
-    sys.stderr.write("cd_xyscl: %s\n" % str(cd_xyscl))
-    sys.stderr.write("cds_asec: %s\n" % str(3600*cd_xyscl))
-    sys.stderr.write("pa_guess: %s\n" % str(pa_guess))
+    if debug:
+        sys.stderr.write("cd_xyscl: %s\n" % str(cd_xyscl))
+        sys.stderr.write("cds_asec: %s\n" % str(3600*cd_xyscl))
+        sys.stderr.write("pa_guess: %s\n" % str(pa_guess))
     pos_ang  = np.degrees(np.average(pa_guess))
     pos_ang *= -1.0     # fix direction
     pixscale = np.average(cd_xyscl)
