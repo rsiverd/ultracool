@@ -1,0 +1,17 @@
+
+proc_root="/home/rsiverd/ucd_project/ucd_cfh_data/SDSS_J0805_proc"
+proc_quad="${proc_root}/sdss_0805_p_NE"
+proc_byid="${proc_quad}/by_runid"
+
+cd ~/ucd_project/ultracool
+source ENVIRONMENT.sh
+./fetch_gaia_nearby.py -R 0.3 121.3814 +48.2094 -o $proc_root/gaia_sdss_0805_NE.csv
+
+
+cd ~/ucd_project/ultracool
+source ENVIRONMENT.sh
+cd ~/ucd_project/ultracool/CFHT
+./02_get_CFHT_ephemeris.py -W -I $proc_byid -o $proc_quad/cfht_eph_sdss_0805_p_NE.csv
+
+./11_test_extract_WIRCam.py -W -I $proc_byid
+
