@@ -612,7 +612,7 @@ class GaiaMatch(object):
     # Batch (multi-object) matching routines
     # ---------------------------------------
 
-    def twoway_gaia_matches(self, trial_ra, trial_de, tol_deg):
+    def twoway_gaia_matches(self, trial_ra, trial_de, tol_arcsec, debug=True):
         """
         Match a list of RA, DE positions against the Gaia catalog. This
         routine relies on the single-target matching method nearest_star.
@@ -643,20 +643,21 @@ class GaiaMatch(object):
 
         Params:
         -------
-        trial_ra -- numpy array of R.A. values in decimal degrees
-        trial_de -- numpy array of Dec values in decimal degrees
-        tol_deg  -- maximum matching distance in degrees
+        trial_ra    -- numpy array of R.A. values in decimal degrees
+        trial_de    -- numpy array of Dec values in decimal degrees
+        tol_arcsec  -- maximum matching distance in arcseconds
  
         Returns four arrays containing:
         -------------------------------
-        idx      -- index of match in the input RA/DE arrays
-        gaia_ra  -- Gaia RA of matched source
-        gaia_dec -- Gaia DE of matched source
-        souce_id -- Gaia source_id of matched source (for record lookup)
+        idx         -- index of match in the input RA/DE arrays
+        gaia_ra     -- Gaia RA of matched source
+        gaia_dec    -- Gaia DE of matched source
+        souce_id    -- Gaia source_id of matched source (for record lookup)
         """
 
-        star_idx = []   #  array indices of possible matches
-        gaia_ids = []   # Gaia source_id of possible matches
+        tol_deg  = tol_arcsec / 3600.0
+        star_ids = []       #  array indices of possible matches
+        gaia_ids = []       # Gaia source_id of possible matches
 
         # iterate over input RA/DE and look for matches:
         for idx,(sra, sde) in enumerate(zip(trial_ra, trial_de)):
@@ -667,12 +668,17 @@ class GaiaMatch(object):
                 pass
             pass
 
+        if debug:
+            sys.stderr.write("After trial -> Gaia matching, have:\n")
+            sys.stderr.write("--> len(star_ids) = %d\n" % len(star_ids)) 
+            sys.stderr.write("--> len(gaia_ids) = %d\n" % len(gaia_ids)) 
+
         # Make deduplicated subset of possibly-matching Gaia sources:
         use_gaia = self._srcdata[self._srcdata.source_id.isin(gaia_ids)]
 
         # Make subset of possibly-matching input coordinates:
-        trial_ra_subset = trial_ra[star_idx]
-        trial_de_subset = trial_de[star_idx]
+        trial_ra_subset = trial_ra[star_ids]
+        trial_de_subset = trial_de[star_ids]
 
         # Iterate over Gaia possibles and select matches from trial data:
         matches = []
@@ -680,7 +686,7 @@ class GaiaMatch(object):
             sep_deg = angle.dAngSep(gsrc.ra, gsrc.dec,
                                         trial_ra_subset, trial_de_subset)
             midx = sep_deg.argmin()     # index of match in SUBSET
-            sidx = star_idx[midx]       # index of match in trial arrays
+            sidx = star_ids[midx]       # index of match in trial arrays
             matches.append((sidx, gsrc.ra, gsrc.dec, gsrc.source_id))
             pass
 
