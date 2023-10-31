@@ -14,8 +14,11 @@ two-way match. I want to test a few different methods using pandas built-ins
 that may be very fast. Performance is a concern because I use this matching
 tool as part of the WCS parameter fine-tuning for CFHT / WIRCam processing.
 
-
 Other softwares:
 * GeoPandas exists and can perform spatial joins
 * astropy has some kind of 2-D matching routine too
+
+
+After sorting through the basics of the two-way matching, I also worked
+through a sensible algorithm to fine-tune the PA, CRVAL1, and CRVAL2.
 
