@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2019-09-09
-# Last modified: 2023-07-17
+# Last modified: 2023-10-30
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.3.2"
+__version__ = "0.4.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -607,6 +607,95 @@ class GaiaMatch(object):
     # %timeit gaia_matches = find_gaia_matches(stars, match_tol_arcsec,
     #                                           xx_col='xrel', yy_col='yrel')
     # 924 ms ± 3.33 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+    # ---------------------------------------
+    # Batch (multi-object) matching routines
+    # ---------------------------------------
+
+    def twoway_gaia_matches(self, trial_ra, trial_de, tol_deg):
+        """
+        Match a list of RA, DE positions against the Gaia catalog. This
+        routine relies on the single-target matching method nearest_star.
+        Matching is performed both forwards and backwards to eliminate
+        duplicate matches as follows:
+        1) First, we iterate over the the input RA/DE arrays and look for
+        matching Gaia sources. The Gaia star nearest the trial position
+        (within the specified tolerance) is taken to be the match. For each
+        match, we set aside matching elements from both the input coordinates
+        and the Gaia catalog.
+        2) We deduplicate and concatenate the matched input coordinates and
+        Gaia sources from step 1. The resulting input RA/DE arrays are the
+        coordinates of all trial sources that MAY have matches in Gaia. The
+        Gaia subset is deduplicated and contains the set of Gaia sources 
+        to which input sources may match.
+        3) We iterate over the deduplicated Gaia subset and look for matches
+        from among the input array. The nearest match within the tolerance
+        is taken to be real and set aside.
+
+        This procedure eliminates the possibility of the same Gaia star
+        matching to multiple trial positions. Similarly, no trial position
+        can match to multiple Gaia sources. This does not guarantee that
+        matches are correct, only that duplicates will not be present.
+
+        Results are ordered by *input* coordinate index.
+
+        The case of no matches results in zero-length arrays returned.
+
+        Params:
+        -------
+        trial_ra -- numpy array of R.A. values in decimal degrees
+        trial_de -- numpy array of Dec values in decimal degrees
+        tol_deg  -- maximum matching distance in degrees
+ 
+        Returns four arrays containing:
+        -------------------------------
+        idx      -- index of match in the input RA/DE arrays
+        gaia_ra  -- Gaia RA of matched source
+        gaia_dec -- Gaia DE of matched source
+        souce_id -- Gaia source_id of matched source (for record lookup)
+        """
+
+        star_idx = []   #  array indices of possible matches
+        gaia_ids = []   # Gaia source_id of possible matches
+
+        # iterate over input RA/DE and look for matches:
+        for idx,(sra, sde) in enumerate(zip(trial_ra, trial_de)):
+            result = gm.nearest_star(sra, sde, tol_deg)
+            if result['match']:
+                gaia_ids.append(int(result['record']['source_id']))
+                star_ids.append(idx)
+                pass
+            pass
+
+        # Make deduplicated subset of possibly-matching Gaia sources:
+        use_gaia = self._srcdata[self._srcdata.source_id.isin(gaia_ids)]
+
+        # Make subset of possibly-matching input coordinates:
+        trial_ra_subset = trial_ra[star_idx]
+        trial_de_subset = trial_de[star_idx]
+
+        # Iterate over Gaia possibles and select matches from trial data:
+        matches = []
+        for gi,(gix, gsrc) in enumerate(use_gaia.iterrows(), 1):
+            sep_deg = angle.dAngSep(gsrc.ra, gsrc.dec,
+                                        trial_ra_subset, trial_de_subset)
+            midx = sep_deg.argmin()     # index of match in SUBSET
+            sidx = star_idx[midx]       # index of match in trial arrays
+            matches.append((sidx, gsrc.ra, gsrc.dec, gsrc.source_id))
+            pass
+
+        # Handle case of no matches:
+        if not matches:
+            #sys.stderr.write("NO MATCHES!\n")
+            return np.array([]), np.array([]), np.array([]), np.array([])
+
+        # Re-sort results according to trial array:
+        idx, gra, gde, gid = zip(*matches)
+        iorder = np.argsort(idx)
+        return (np.array(idx)[iorder],
+                np.array(gra)[iorder],
+                np.array(gde)[iorder],
+                np.array(gid)[iorder])
 
 ##--------------------------------------------------------------------------##
 
