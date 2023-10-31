@@ -131,8 +131,8 @@ use_fcat = ephcat1
 #use_fcat = ephcat2
 use_fcat = ephcat3
 use_fcat = ephcat5
-use_fcat = ephcat4
-use_fcat = ephcat6
+#use_fcat = ephcat4
+#use_fcat = ephcat6
 
 view_img = use_fcat.replace('p_eph', 'p').replace('fz.fcat', 'fz')
 
