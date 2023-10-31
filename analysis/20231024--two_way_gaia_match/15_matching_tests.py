@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2023-10-24
-# Last modified: 2023-10-24
+# Last modified: 2023-10-30
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -265,6 +265,10 @@ def twoway_gaia_matches_1(ccd_ra, ccd_de, tol_arcsec):
         #    sys.stderr.write("min_dist:     %.5f\n" % min_dist)
         #    sys.stderr.write("sidx (stars): %d\n" % sidx)
         pass
+ 
+    if not matches:
+        #sys.stderr.write("NO MATCHES!\n")
+        return np.array([]), np.array([]), np.array([])
 
     idx, gra, gde = zip(*matches)
     iorder = np.argsort(idx)
@@ -328,6 +332,10 @@ def twoway_gaia_matches_2(ccd_ra, ccd_de, tol_arcsec):
         #    sys.stderr.write("sidx (stars): %d\n" % sidx)
         pass
 
+    if not matches:
+        #sys.stderr.write("NO MATCHES!\n")
+        return np.array([]), np.array([]), np.array([])
+
     idx, gra, gde = zip(*matches)
     iorder = np.argsort(idx)
     #return np.array(idx), np.array(gra), np.array(gde)
@@ -356,8 +364,11 @@ gm.load_sources_csv(gaia_csv_path)
 
 ##--------------------------------------------------------------------------##
 ## Input file:
-use_fcat = 'wircam_H2_1592961p_eph.fits.fz.fcat'
-use_fcat = 'wircam_J_1319395p_eph.fits.fz.fcat'
+use_fcat = 'wircam_H2_1319412p_eph.fits.fz.fcat'
+#use_fcat = 'wircam_J_1319395p_eph.fits.fz.fcat'
+#use_fcat = 'wircam_H2_1592961p_eph.fits.fz.fcat'
+use_fcat = 'wircam_H2_1838760p_eph.fits.fz.fcat'
+#use_fcat = 'wircam_H2_2200977p_eph.fits.fz.fcat'
 
 view_img = use_fcat.replace('p_eph', 'p').replace('fz.fcat', 'fz')
 
@@ -519,10 +530,16 @@ old_delta_tot = 3600*np.hypot(old_delta_ra, old_delta_de)
 #top_ten_gde = gde2[:ntop]
 
 
-pa_adjustment = np.median(sky_angles - ccd_angles)
+pa_adjustment = np.degrees(np.median(sky_angles - ccd_angles))
+#pa_adjustment = np.median(sky_angles - ccd_angles)
 sys.stderr.write("pa_adjustment: %.4f\n" % pa_adjustment)
 
+cdm_pa_Hband = -3.8559558164649175e-09
+cdm_pa_Jband = -0.05973236686203742
+
+
 adj_cdm_pa = cdm_pa - pa_adjustment
+#adj_cdm_pa = cdm_pa_Jband
 #adj_cdm_pscale = cdm_pscale     # no adjustment
 #orig_cv1 = header['CRVAL1']
 #orig_cv2 = header['CRVAL2']
@@ -557,11 +574,19 @@ def gmatch_at_pa_crval(xrel, yrel, trial_pa, trial_cv1, trial_cv2, match_tol):
     #matches = twoway_gaia_matches_2(calc_ra, calc_de, match_tol)
     #import pdb; pdb.set_trace()
     idx, gra, gde = matches
-    return len(idx)
+    n_matches = len(idx)
+    total_sep = np.nan
+    if n_matches >= 1:
+        seps = angle.dAngSep(gra, gde, calc_ra[idx], calc_de[idx])
+        #sys.stderr.write("seps: %s\n" % str(seps))
+        #total_sep = 3600.0 * np.sum(seps)
+        total_sep = 3600.0 * np.average(seps)
+    return n_matches, total_sep, matches
 
 lr_xrel, lr_yrel = lr_stars['xrel'], lr_stars['yrel']
 
-hits = gmatch_at_pa_crval(lr_xrel, lr_yrel, adj_cdm_pa, adj_cv1, adj_cv2, 2)
+hits, tsep, _ = gmatch_at_pa_crval(lr_xrel, lr_yrel, 
+                            adj_cdm_pa, adj_cv1, adj_cv2, 2)
 
 avg_dec_deg = np.average(lr_stars['dde'])
 avg_cos_dec = np.cos(np.radians(avg_dec_deg))
@@ -583,26 +608,31 @@ shifted_cv2 = orig_cv2 - med_de_shift
 #shifted_cv2 = orig_cv2
 hits_matrix = []
 hits_max = 0
+best_sep = 999.999
 best_ra_nudge = 0.0
 best_de_nudge = 0.0
 best_cv1 = shifted_cv1
 best_cv2 = shifted_cv2
+sys.stderr.write("Entering nudges loop ...\n")
 for ra_nudge in ra_adjustments:
     #use_cv1 = orig_cv1 + ra_nudge
     use_cv1 = shifted_cv1 + ra_nudge
     ra_hitcount = []
     for de_nudge in de_adjustments:
         use_cv2 = shifted_cv2 + de_nudge
-        hits = gmatch_at_pa_crval(lr_xrel, lr_yrel, adj_cdm_pa, 
-                use_cv1, use_cv2, use_mtol)
-        sys.stderr.write("Hits=%4d at RA/DE nudge %+.4f,%+.4f\n"
-                % (hits, ra_nudge, de_nudge))
-        if hits > hits_max:
+        hits, tsep, tmatch = gmatch_at_pa_crval(lr_xrel, lr_yrel,
+                adj_cdm_pa, use_cv1, use_cv2, use_mtol)
+        sys.stderr.write("Hits=%4d, sep=%.5f at RA/DE nudge %+.4f,%+.4f\n"
+                % (hits, tsep, ra_nudge, de_nudge))
+        if (hits > hits_max) or ((hits == hits_max) and (tsep < best_sep)):
             hits_max = hits
+            best_sep = tsep
             best_ra_nudge = ra_nudge
             best_de_nudge = de_nudge
             best_cv1 = use_cv1
             best_cv2 = use_cv2
+            match_info = tmatch
+            sys.stderr.write("--> new best!\n")
         #sys.stderr.write("hits: %d\n" % hits)
         ra_hitcount.append(hits)
         pass
@@ -619,25 +649,92 @@ best_de_offset = best_de_nudge - med_de_shift
 sys.stderr.write("best_ra_offset: %+.7f\n" % best_ra_offset)
 sys.stderr.write("best_de_offset: %+.7f\n" % best_de_offset)
 
+## -----------------------------------------------------------------------
+## Make region files showing tune-up stars:
+
+lr_idx, lr_gra, lr_gde = match_info
+#lr_sep = angle.dAngSep(calc_ra[lr_idx], calc_de[lr_idx], lr_gra, lr_gde)
+matched_dets = lr_stars[lr_idx]
+
+## Gaia matches from tune-up:
+tuneup_sky_reg = view_img + '.tuneup.sky_reg'
+rfy.regify_sky(tuneup_sky_reg, lr_gra, lr_gde, colors=['blue'], rdeg=0.0005)
+
+## Pixel matches from tune-up:
+tuneup_pix_reg = view_img + '.tuneup.pix_reg'
+rfy.regify_ccd(tuneup_pix_reg, matched_dets['x'], matched_dets['y'])
+
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
+
+## Further CRVAL1, CRVAL2 fine-tune using known-good sources:
+sys.stderr.write("%s\n" % fulldiv)
+sys.stderr.write("RECOVERING BEST MATCHES ...\n")
+calc_ra, calc_de = wwt.calc_tan_radec(wwt.pscale, adj_cdm_pa,
+                            best_cv1, best_cv2, lr_xrel, lr_yrel)
+calc_ra = calc_ra % 360.0
+
+## RA/DE offsets:
+cos_dec = np.cos(np.radians(lr_gde))
+tuneup_de_offsets = (calc_de[lr_idx] - lr_gde)
+#tuneup_ra_offsets = (calc_ra[lr_idx] - lr_gra) * cos_dec
+tuneup_ra_offsets = (calc_ra[lr_idx] - lr_gra)
+tuneup_ra_nudge = np.median(tuneup_ra_offsets)
+tuneup_de_nudge = np.median(tuneup_de_offsets)
+
+final_cv1 = best_cv1 - tuneup_ra_nudge
+final_cv2 = best_cv2 - tuneup_de_nudge
+
+fhits, fsep, fmatch = gmatch_at_pa_crval(lr_xrel, lr_yrel, adj_cdm_pa,
+        final_cv1, final_cv2, use_mtol)
+
+# -----------------------------------------------------------------------
+
 # best ra_adjustments: -0.00102, -0.00068
 #        med_ra_shift:  0.0003383379843739931
 # best de_adjustments: -0.00056, -0.00028
 #        med_de_shift:  0.00011615665715680734
 
+cdm_pa_Hband = -3.8559558164649175e-09
+cdm_pa_Jband = -0.05973236686203742
+
+# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------
+#
 ## Produce an image with updated WCS:
+sys.stderr.write("%s\n" % fulldiv)
+## PA from input image is 'cdm_pa'
+
+#fixed_cdmat = tp.make_cdmat(cdm_pa-0.1, wwt.pscale)
+#fixed_cdmat = tp.make_cdmat(cdm_pa_Jband, wwt.pscale)
+fixed_cdmat = tp.make_cdmat(adj_cdm_pa, wwt.pscale)
+#fixed_cdmat = tp.make_cdmat(cdm_pa+0.05, wwt.pscale)
+#fixed_cdmat = tp.make_cdmat(cdm_pa+0.2, wwt.pscale)
+fcd11, fcd12, fcd21, fcd22 = fixed_cdmat.flatten()
 fixed_image = 'fixed_wcs.fits'
 idata, raw_hdrs = pf.getdata(view_img, header=True)
 upd_hdrs = raw_hdrs.copy(strip=True)
 #upd_hdrs['CRVAL1'] = raw_hdrs['CRVAL1'] - best_ra_offset
 #upd_hdrs['CRVAL2'] = raw_hdrs['CRVAL2'] - best_de_offset
-upd_hdrs['CRVAL1'] = best_cv1
-upd_hdrs['CRVAL2'] = best_cv2
+#upd_hdrs['CRVAL1'] = best_cv1
+#upd_hdrs['CRVAL2'] = best_cv2
+upd_hdrs['CRVAL1'] = final_cv1
+upd_hdrs['CRVAL2'] = final_cv2
+upd_hdrs[ 'CD1_1'] = fcd11
+upd_hdrs[ 'CD1_2'] = fcd12
+upd_hdrs[ 'CD2_1'] = fcd21
+upd_hdrs[ 'CD2_2'] = fcd22
 qsave(fixed_image, idata, header=upd_hdrs)
+
+#sys.stderr.write("\n%s\n" % fulldiv)
+#sys.stderr.write("Inspect the nudged image WCS with:\n")
+#sys.stderr.write("ztf --cfht -r %s -r %s -r %s %s\n"
+#        % (oneway_pix_reg, oneway_sky_reg, dedupe_reg, fixed_image))
 
 sys.stderr.write("\n%s\n" % fulldiv)
 sys.stderr.write("Inspect the nudged image WCS with:\n")
-sys.stderr.write("ztf --cfht -r %s -r %s -r %s %s\n"
-        % (oneway_pix_reg, oneway_sky_reg, dedupe_reg, fixed_image))
+sys.stderr.write("ztf --cfht -r %s -r %s %s\n"
+        % (tuneup_pix_reg, tuneup_sky_reg, fixed_image))
 
 sys.exit(0)
 
