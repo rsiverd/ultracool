@@ -364,12 +364,12 @@ gm.load_sources_csv(gaia_csv_path)
 
 ##--------------------------------------------------------------------------##
 ## Input file:
-use_fcat = 'wircam_H2_1319412p_eph.fits.fz.fcat'
-#use_fcat = 'wircam_J_1319395p_eph.fits.fz.fcat'
-#use_fcat = 'wircam_H2_1592961p_eph.fits.fz.fcat'
-use_fcat = 'wircam_H2_1838760p_eph.fits.fz.fcat'
-#use_fcat = 'wircam_H2_2200977p_eph.fits.fz.fcat'
-use_fcat = 'wircam_H2_1838749p_eph.fits.fz.fcat'
+use_fcat = 'data/wircam_H2_1319412p_eph.fits.fz.fcat'
+#use_fcat = 'data/wircam_J_1319395p_eph.fits.fz.fcat'
+#use_fcat = 'data/wircam_H2_1592961p_eph.fits.fz.fcat'
+use_fcat = 'data/wircam_H2_1838760p_eph.fits.fz.fcat'
+use_fcat = 'data/wircam_H2_2200977p_eph.fits.fz.fcat'
+use_fcat = 'data/wircam_H2_1838749p_eph.fits.fz.fcat'
 
 view_img = use_fcat.replace('p_eph', 'p').replace('fz.fcat', 'fz')
 
