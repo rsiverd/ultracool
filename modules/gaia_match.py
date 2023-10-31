@@ -660,7 +660,7 @@ class GaiaMatch(object):
 
         # iterate over input RA/DE and look for matches:
         for idx,(sra, sde) in enumerate(zip(trial_ra, trial_de)):
-            result = gm.nearest_star(sra, sde, tol_deg)
+            result = self.nearest_star(sra, sde, tol_deg)
             if result['match']:
                 gaia_ids.append(int(result['record']['source_id']))
                 star_ids.append(idx)
