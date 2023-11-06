@@ -299,12 +299,7 @@ def gmatch_at_pa_crval(xrel, yrel, trial_pa, trial_cv1, trial_cv2, match_tol):
                                 trial_cv1, trial_cv2, xrel, yrel)
     calc_ra = calc_ra % 360.0
 
-    #matches_1 = twoway_gaia_matches_1(calc_ra, calc_de, match_tol)
-    #matches_2 = twoway_gaia_matches_2(calc_ra, calc_de, match_tol)
-    #matches = match_func(calc_ra, calc_de, match_tol)
     matches = gm.twoway_gaia_matches(calc_ra, calc_de, match_tol)
-    #matches = twoway_gaia_matches_2(calc_ra, calc_de, match_tol)
-    #import pdb; pdb.set_trace()
     idx, gra, gde, gid = matches
     n_matches = len(idx)
     total_sep = np.nan
@@ -413,12 +408,15 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None,
     radec_cols = {'ra_col':'calc_ra', 'de_col':'calc_de'}
 
     # Initial corner tune-up:
+    initial_mtol_asec  = 2.0
+    initial_min_flux   = 1000.0
     #lr_stars         = get_corner_subset_rect(stars)
-    lr_stars           = get_corner_subset_dist(stars, 1.5*radial_dist)
+    lr_stars           = get_corner_subset_dist(stars, 1.5*radial_dist,
+            minflux=initial_min_flux)
     #lr_gaia_matches  = find_gaia_matches_idx_stars(lr_stars, 2.0, **radec_cols)
     #lr_gaia_matches  = find_gaia_matches_idx_stars(lr_stars, 3.0, **radec_cols)
     lr_gaia_matches    = gm.twoway_gaia_matches(
-            lr_stars['calc_ra'], lr_stars['calc_de'], 3.0)
+            lr_stars['calc_ra'], lr_stars['calc_de'], initial_mtol_asec)
     idx, gra, gde, gid = lr_gaia_matches
     match_subset       = lr_stars[idx]
     m_xrel, m_yrel     = match_subset['xrel'], match_subset['yrel']
