@@ -612,7 +612,7 @@ class GaiaMatch(object):
     # Batch (multi-object) matching routines
     # ---------------------------------------
 
-    def twoway_gaia_matches(self, trial_ra, trial_de, tol_arcsec, debug=True):
+    def twoway_gaia_matches(self, trial_ra, trial_de, tol_arcsec, debug=False):
         """
         Match a list of RA, DE positions against the Gaia catalog. This
         routine relies on the single-target matching method nearest_star.
