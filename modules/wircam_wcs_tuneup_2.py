@@ -408,7 +408,7 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None,
     radec_cols = {'ra_col':'calc_ra', 'de_col':'calc_de'}
 
     # Initial corner matching:
-    initial_mtol_asec  = 2.0
+    initial_mtol_asec  = 3.0
     initial_min_flux   = 1000.0
     initial_corner_sep =  800.0
     #lr_stars         = get_corner_subset_rect(stars)
@@ -419,6 +419,9 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None,
     lr_gaia_matches    = gm.twoway_gaia_matches(
             lr_stars['calc_ra'], lr_stars['calc_de'], initial_mtol_asec)
     idx, gra, gde, gid = lr_gaia_matches
+    if not idx:
+        sys.stderr.write("NO MATCHES!!!???\n")
+        sys.exit(1)
     match_subset       = lr_stars[idx]
     m_xrel, m_yrel     = match_subset['xrel'], match_subset['yrel']
 
