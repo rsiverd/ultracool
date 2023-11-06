@@ -419,7 +419,7 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None,
     lr_gaia_matches    = gm.twoway_gaia_matches(
             lr_stars['calc_ra'], lr_stars['calc_de'], initial_mtol_asec)
     idx, gra, gde, gid = lr_gaia_matches
-    if not idx:
+    if len(idx) < 1:
         sys.stderr.write("NO MATCHES!!!???\n")
         sys.exit(1)
     match_subset       = lr_stars[idx]
