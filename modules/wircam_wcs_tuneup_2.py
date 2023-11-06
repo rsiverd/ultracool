@@ -295,7 +295,7 @@ def calc_pa_rotation(det_ra, det_de, cat_ra, cat_de, nmax=20):
 
 ## Count matches at a specific trial (PA, CRVAL1, CRVAL2) parameter set:
 def gmatch_at_pa_crval(xrel, yrel, trial_pa, trial_cv1, trial_cv2, match_tol):
-    calc_ra, calc_de = wwt.calc_tan_radec(wwt.pscale, trial_pa,
+    calc_ra, calc_de = calc_tan_radec(pscale, trial_pa,
                                 trial_cv1, trial_cv2, xrel, yrel)
     calc_ra = calc_ra % 360.0
 
@@ -335,7 +335,7 @@ def brute_force_crval_tuneup(xrel, yrel, nominal_pa, nominal_cv1, nominal_cv2,
         for de_nudge in de_adjustments:
             use_cv2 = nominal_cv2 + de_nudge
             hits, tsep, tmatch = gmatch_at_pa_crval(xrel, yrel,
-                    nominal_pa, use_cv1, use_cv2, use_mtol, gm)
+                    nominal_pa, use_cv1, use_cv2, use_mtol)
             sys.stderr.write("Hits=%4d, sep=%.5f at RA/DE nudge %+.4f,%+.4f\n"
                     % (hits, tsep, ra_nudge, de_nudge))
             if (hits > hits_max) or ((hits == hits_max) and (tsep < best_sep)):
@@ -407,11 +407,12 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None,
             (np.copy(stars['dra']), np.copy(stars['dde'])), usemask=False)
     radec_cols = {'ra_col':'calc_ra', 'de_col':'calc_de'}
 
-    # Initial corner tune-up:
+    # Initial corner matching:
     initial_mtol_asec  = 2.0
     initial_min_flux   = 1000.0
+    initial_corner_sep =  800.0
     #lr_stars         = get_corner_subset_rect(stars)
-    lr_stars           = get_corner_subset_dist(stars, 1.5*radial_dist,
+    lr_stars           = get_corner_subset_dist(stars, initial_corner_sep,
             minflux=initial_min_flux)
     #lr_gaia_matches  = find_gaia_matches_idx_stars(lr_stars, 2.0, **radec_cols)
     #lr_gaia_matches  = find_gaia_matches_idx_stars(lr_stars, 3.0, **radec_cols)
@@ -421,7 +422,37 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None,
     match_subset       = lr_stars[idx]
     m_xrel, m_yrel     = match_subset['xrel'], match_subset['yrel']
 
-    init_params1       = np.array([cdm_pa, header['CRVAL1'], header['CRVAL2']])
+    # Calculate bulk CRVALs offsets from matched subset:
+    med_ra_shift = np.median(match_subset['calc_ra'] - gra)
+    med_de_shift = np.median(match_subset['calc_de'] - gde)
+
+    # Brute-force CRVAL tune-up (to nearest grid cell):
+    guess_cv1 = header['CRVAL1'] - med_ra_shift
+    guess_cv2 = header['CRVAL2'] - med_de_shift
+    guess_pa  = cdm_pa
+    #lr_xrel, lr_yrel   = lr_stars['xrel'], lr_stars['yrel']
+    #brute_mtol = 1.0
+    brute_mtol = 2.0
+    best_cv1, best_cv2, match_info, hits_matrix = \
+        brute_force_crval_tuneup(lr_stars['xrel'], lr_stars['yrel'],
+                    guess_pa, guess_cv1, guess_cv2, use_mtol=brute_mtol)
+    sys.stderr.write("hits_matrix:\n")
+    sys.stderr.write("%s\n" % str(hits_matrix))
+ 
+    # Subtract remaining bulk offset:
+    lr_idx, lr_gra, lr_gde = match_info[:3]
+    calc_ra, calc_de = calc_tan_radec(pscale, guess_pa, best_cv1, best_cv2, 
+            lr_stars['xrel'], lr_stars['yrel'])
+    tuneup_ra_nudge = np.median(calc_ra[lr_idx] - lr_gra)
+    tuneup_de_nudge = np.median(calc_de[lr_idx] - lr_gde)
+    final_cv1 = best_cv1 - tuneup_ra_nudge
+    final_cv2 = best_cv2 - tuneup_de_nudge
+    fhits, fsep, fmatch = gmatch_at_pa_crval(lr_stars['xrel'], lr_stars['yrel'],
+        guess_pa, final_cv1, final_cv2, brute_mtol)
+
+    # Now optimize from a better starting point:
+    #init_params1       = np.array([cdm_pa, header['CRVAL1'], header['CRVAL2']])
+    init_params1       = np.array([guess_pa, final_cv1, final_cv2])
     minimize_this      = partial(evaluator_pacrv, pscale=pscale, xrel=m_xrel,
                                     yrel=m_yrel, true_ra=gra, true_de=gde)
     answer1            = opti.fmin(minimize_this, init_params1)
