@@ -156,35 +156,35 @@ def get_central_sources(data, max_rsep_pix):
 #        pass
 #    return matches
 
-def find_gaia_matches_idx_stars(stars, tol_arcsec, ra_col, de_col): #ra_col='dra', de_col='dde'):
-    tol_deg = tol_arcsec / 3600.0
-    matches = []
-    for idx,target in enumerate(stars):
-        sra, sde = target[ra_col], target[de_col]
-        #sxx, syy = target[xx_col], target[yy_col]
-        result = gm.nearest_star(sra, sde, tol_deg)
-        if result['match']:
-            gcoords = [result['record'][x].values[0] for x in ('ra', 'dec')]
-            matches.append((idx, *gcoords))
-            pass
-        pass
-    idx, gra, gde = zip(*matches)
-    return np.array(idx), np.array(gra), np.array(gde)
-
-def find_gaia_matches_idx_radec(ra_vals, de_vals, tol_arcsec):
-    tol_deg = tol_arcsec / 3600.0
-    matches = []
-    for idx,(sra, sde) in enumerate(zip(ra_vals, de_vals)):
-        #sra, sde = target[ra_col], target[de_col]
-        #sxx, syy = target[xx_col], target[yy_col]
-        result = gm.nearest_star(sra, sde, tol_deg)
-        if result['match']:
-            gcoords = [result['record'][x].values[0] for x in ('ra', 'dec')]
-            matches.append((idx, *gcoords))
-            pass
-        pass
-    idx, gra, gde = zip(*matches)
-    return np.array(idx), np.array(gra), np.array(gde)
+#def find_gaia_matches_idx_stars(stars, tol_arcsec, ra_col, de_col): #ra_col='dra', de_col='dde'):
+#    tol_deg = tol_arcsec / 3600.0
+#    matches = []
+#    for idx,target in enumerate(stars):
+#        sra, sde = target[ra_col], target[de_col]
+#        #sxx, syy = target[xx_col], target[yy_col]
+#        result = gm.nearest_star(sra, sde, tol_deg)
+#        if result['match']:
+#            gcoords = [result['record'][x].values[0] for x in ('ra', 'dec')]
+#            matches.append((idx, *gcoords))
+#            pass
+#        pass
+#    idx, gra, gde = zip(*matches)
+#    return np.array(idx), np.array(gra), np.array(gde)
+#
+#def find_gaia_matches_idx_radec(ra_vals, de_vals, tol_arcsec):
+#    tol_deg = tol_arcsec / 3600.0
+#    matches = []
+#    for idx,(sra, sde) in enumerate(zip(ra_vals, de_vals)):
+#        #sra, sde = target[ra_col], target[de_col]
+#        #sxx, syy = target[xx_col], target[yy_col]
+#        result = gm.nearest_star(sra, sde, tol_deg)
+#        if result['match']:
+#            gcoords = [result['record'][x].values[0] for x in ('ra', 'dec')]
+#            matches.append((idx, *gcoords))
+#            pass
+#        pass
+#    idx, gra, gde = zip(*matches)
+#    return np.array(idx), np.array(gra), np.array(gde)
 
 ## -----------------------------------------------------------------------
 ## Fitting procedure:
