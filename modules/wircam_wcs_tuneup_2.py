@@ -254,6 +254,115 @@ def save_wcspar_results(filename, col_names, data_vals):
     return
 
 ## -----------------------------------------------------------------------
+## -----------------          Tune-Up Helpers               --------------
+## -----------------------------------------------------------------------
+
+## Calculate total, average, and median angular separation between two
+## sets of RA/DE points. Inputs in DEGREES.
+def calc_angsep_stats(ra1, de1, ra2, de2):
+    delta_ra = (ra2 - ra1) * np.cos(np.radians(de2))
+    delta_de = (de2 - de1)
+    total_sep = 3600*np.hypot(delta_ra, delta_de)
+    avg_delta = np.average(total_sep)
+    med_delta = np.median(total_sep)
+    tot_delta = np.sum(total_sep)
+    return len(delta_ra), avg_delta, med_delta, tot_delta
+
+## Compute PA of two-point segments:
+def calc_seg_angles(ra, de, idx1, idx2):
+    delta_ra = ra[idx1] - ra[idx2]
+    delta_de = de[idx1] - de[idx2]
+    #midpt_de = 0.5 * (de[idx1] + de[idx2])
+    #delta_ra *= np.cos(np.radians(midpt_de))
+    delta_ra *= np.cos(np.radians(de[idx1]))
+    return np.arctan2(delta_de, delta_ra)
+
+## Compute the set of segment rotations to rotationally align two data sets:
+def calc_pa_rotation(det_ra, det_de, cat_ra, cat_de, nmax=20):
+    n_use = min(len(det_ra), nmax)
+    #top_combos = itt.combinations(range(n_use), 2)
+    sys.stderr.write("n_use: %d\n" % n_use)
+    top_few_ij = np.array(list(itt.combinations(range(n_use), 2)))
+    #sys.stderr.write("top_few_ij: %s\n" % str(top_few_ij))
+    top_idx1, top_idx2 = top_few_ij.T
+    cat_angles = calc_seg_angles(cat_ra, cat_de, top_idx1, top_idx2)
+    #sys.stderr.write("cat_angles: %s\n" % str(cat_angles))
+    det_angles = calc_seg_angles(det_ra, det_de, top_idx1, top_idx2)
+    #sys.stderr.write("det_angles: %s\n" % str(det_angles))
+    seg_deltas = np.degrees(cat_angles - det_angles)
+    return seg_deltas
+
+
+## Count matches at a specific trial (PA, CRVAL1, CRVAL2) parameter set:
+def gmatch_at_pa_crval(xrel, yrel, trial_pa, trial_cv1, trial_cv2, match_tol):
+    calc_ra, calc_de = wwt.calc_tan_radec(wwt.pscale, trial_pa,
+                                trial_cv1, trial_cv2, xrel, yrel)
+    calc_ra = calc_ra % 360.0
+
+    #matches_1 = twoway_gaia_matches_1(calc_ra, calc_de, match_tol)
+    #matches_2 = twoway_gaia_matches_2(calc_ra, calc_de, match_tol)
+    #matches = match_func(calc_ra, calc_de, match_tol)
+    matches = gm.twoway_gaia_matches(calc_ra, calc_de, match_tol)
+    #matches = twoway_gaia_matches_2(calc_ra, calc_de, match_tol)
+    #import pdb; pdb.set_trace()
+    idx, gra, gde, gid = matches
+    n_matches = len(idx)
+    total_sep = np.nan
+    if n_matches >= 1:
+        seps = angle.dAngSep(gra, gde, calc_ra[idx], calc_de[idx])
+        #sys.stderr.write("seps: %s\n" % str(seps))
+        #total_sep = 3600.0 * np.sum(seps)
+        total_sep = 3600.0 * np.average(seps)
+        sys.stderr.write("seps: %s\n" % str(3600*seps))
+    return n_matches, total_sep, matches
+
+## Brute-force CRVAL tune-up:
+#def brute_force_crval_tuneup(calc_ra, calc_de, 
+def brute_force_crval_tuneup(xrel, yrel, nominal_pa, nominal_cv1, nominal_cv2,
+        use_mtol=1.0, nsteps=7):
+    hits_matrix = []
+    hits_max = 0
+    best_sep = 999.999
+    #best_ra_nudge = 0.0
+    #best_de_nudge = 0.0
+    #use_mtol = 1.0
+    #nsteps = 7
+    best_cv1 = nominal_cv1
+    best_cv2 = nominal_cv2
+    avg_cos_dec = np.cos(np.radians(nominal_cv2))
+    nhalf = (nsteps - 1) / 2
+    steparr = np.arange(nsteps) - nhalf
+    de_adjustments = use_mtol / 3600.0 * steparr
+    ra_adjustments = use_mtol / 3600.0 * steparr / avg_cos_dec
+    for ra_nudge in ra_adjustments:
+        use_cv1 = nominal_cv1 + ra_nudge
+        ra_hitcount = []
+        for de_nudge in de_adjustments:
+            use_cv2 = nominal_cv2 + de_nudge
+            hits, tsep, tmatch = gmatch_at_pa_crval(xrel, yrel,
+                    nominal_pa, use_cv1, use_cv2, use_mtol, gm)
+            sys.stderr.write("Hits=%4d, sep=%.5f at RA/DE nudge %+.4f,%+.4f\n"
+                    % (hits, tsep, ra_nudge, de_nudge))
+            if (hits > hits_max) or ((hits == hits_max) and (tsep < best_sep)):
+                hits_max = hits
+                best_sep = tsep
+                #best_ra_nudge = ra_nudge
+                #best_de_nudge = de_nudge
+                best_cv1 = use_cv1
+                best_cv2 = use_cv2
+                match_info = tmatch
+                sys.stderr.write("--> new best!\n")
+            #sys.stderr.write("hits: %d\n" % hits)
+            ra_hitcount.append(hits)
+            pass
+        hits_matrix.append(ra_hitcount)
+        pass
+    hits_matrix = np.array(hits_matrix)
+    return best_cv1, best_cv2, match_info, hits_matrix
+
+
+
+## -----------------------------------------------------------------------
 ## -----------------         Tune-Up Procedure              --------------
 ## -----------------------------------------------------------------------
 
