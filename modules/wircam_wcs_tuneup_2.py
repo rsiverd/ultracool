@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2023-07-26
-# Last modified: 2023-09-29
+# Last modified: 2023-11-06
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -266,6 +266,7 @@ _fitting_spec = (
 def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None, 
         pixreg1=None, skyreg1=None, pixreg2=None, skyreg2=None,
         pixreg3=None, skyreg3=None):
+
     obs_time = wircam_timestamp_from_header(header)
 
     # Warn if regions requested but not available:
@@ -304,17 +305,19 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None,
 
     # Initial corner tune-up:
     #lr_stars         = get_corner_subset_rect(stars)
-    lr_stars         = get_corner_subset_dist(stars, 1.5*radial_dist)
+    lr_stars           = get_corner_subset_dist(stars, 1.5*radial_dist)
     #lr_gaia_matches  = find_gaia_matches_idx_stars(lr_stars, 2.0, **radec_cols)
-    lr_gaia_matches  = find_gaia_matches_idx_stars(lr_stars, 3.0, **radec_cols)
-    idx, gra, gde    = lr_gaia_matches
-    match_subset     = lr_stars[idx]
-    m_xrel, m_yrel   = match_subset['xrel'], match_subset['yrel']
+    #lr_gaia_matches  = find_gaia_matches_idx_stars(lr_stars, 3.0, **radec_cols)
+    lr_gaia_matches    = gm.twoway_gaia_matches(
+            lr_stars['calc_ra'], lr_stars['calc_de'], 3.0)
+    idx, gra, gde, gid = lr_gaia_matches
+    match_subset       = lr_stars[idx]
+    m_xrel, m_yrel     = match_subset['xrel'], match_subset['yrel']
 
-    init_params1     = np.array([cdm_pa, header['CRVAL1'], header['CRVAL2']])
-    minimize_this    = partial(evaluator_pacrv, pscale=pscale, xrel=m_xrel,
+    init_params1       = np.array([cdm_pa, header['CRVAL1'], header['CRVAL2']])
+    minimize_this      = partial(evaluator_pacrv, pscale=pscale, xrel=m_xrel,
                                     yrel=m_yrel, true_ra=gra, true_de=gde)
-    answer1          = opti.fmin(minimize_this, init_params1)
+    answer1            = opti.fmin(minimize_this, init_params1)
 
     # Make region files if requested:
     if _have_region_utils:
@@ -340,16 +343,18 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None,
     # -------------------------
 
     # Repeat tuning with larger region:
-    lr_stars         = get_corner_subset_dist(stars, 2000.0)
+    lr_stars           = get_corner_subset_dist(stars, 2000.0)
     #lr_gaia_matches  = find_gaia_matches_idx_stars(lr_stars, 2.0, **radec_cols)
-    lr_gaia_matches  = find_gaia_matches_idx_stars(lr_stars, 3.0, **radec_cols)
-    idx, gra, gde    = lr_gaia_matches
-    match_subset     = lr_stars[idx]
-    m_xrel, m_yrel   = match_subset['xrel'], match_subset['yrel']
-    init_params2     = np.copy(answer1)
-    minimize_this    = partial(evaluator_pacrv, pscale=pscale, xrel=m_xrel,
-                                        yrel=m_yrel, true_ra=gra, true_de=gde)
-    answer2          = opti.fmin(minimize_this, init_params2)
+    #lr_gaia_matches  = find_gaia_matches_idx_stars(lr_stars, 3.0, **radec_cols)
+    lr_gaia_matches    = gm.twoway_gaia_matches(
+            lr_stars['calc_ra'], lr_stars['calc_de'], 3.0)
+    idx, gra, gde, gid = lr_gaia_matches
+    match_subset       = lr_stars[idx]
+    m_xrel, m_yrel     = match_subset['xrel'], match_subset['yrel']
+    init_params2       = np.copy(answer1)
+    minimize_this      = partial(evaluator_pacrv, pscale=pscale, xrel=m_xrel,
+                                          yrel=m_yrel, true_ra=gra, true_de=gde)
+    answer2            = opti.fmin(minimize_this, init_params2)
 
     # Make region files if requested:
     if _have_region_utils:
@@ -373,16 +378,18 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None,
     # -------------------------
 
     # Repeat tuning with full image:
-    ff_stars         = stars
+    ff_stars           = stars
     #ff_gaia_matches  = find_gaia_matches_idx_stars(ff_stars, 2.0, **radec_cols)
-    ff_gaia_matches  = find_gaia_matches_idx_stars(ff_stars, 3.0, **radec_cols)
-    idx, gra, gde    = ff_gaia_matches
-    match_subset     = ff_stars[idx]
-    m_xrel, m_yrel   = match_subset['xrel'], match_subset['yrel']
-    init_params3     = np.copy(answer2)
-    minimize_this    = partial(evaluator_pacrv, pscale=pscale, xrel=m_xrel,
-                                        yrel=m_yrel, true_ra=gra, true_de=gde)
-    answer3          = opti.fmin(minimize_this, init_params3)
+    #ff_gaia_matches  = find_gaia_matches_idx_stars(ff_stars, 3.0, **radec_cols)
+    ff_gaia_matches    = gm.twoway_gaia_matches(
+            ff_stars['calc_ra'], ff_stars['calc_de'], 3.0)
+    idx, gra, gde, gid = ff_gaia_matches
+    match_subset       = ff_stars[idx]
+    m_xrel, m_yrel     = match_subset['xrel'], match_subset['yrel']
+    init_params3       = np.copy(answer2)
+    minimize_this      = partial(evaluator_pacrv, pscale=pscale, xrel=m_xrel,
+                                          yrel=m_yrel, true_ra=gra, true_de=gde)
+    answer3            = opti.fmin(minimize_this, init_params3)
 
     # Make region files if requested:
     if _have_region_utils:
