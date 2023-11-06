@@ -23,6 +23,14 @@ for folder in /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_run
    cmde "./17_update_fcat_radec.py -W -I $folder -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv" || break
 done
 
+# all folders, reverse order:
+for folder in `ls -d /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/?????? | sort -r`; do
+   #cmde "./11_test_extract_WIRCam.py -W -I $folder -Q /home/rsiverd/ucd_project/ucd_reu_abby/20230629--final_wcs_params.csv"
+   cmde "./11_test_extract_WIRCam.py -W -I $folder"
+   cmde "./15_add_catalog_ephems.py -W -I $folder -E /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/cfht_eph_calib1_p_NE.csv" || break
+   cmde "./17_update_fcat_radec.py -W -I $folder -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv" || break
+done
+
 # all folders, random order:
 for folder in `ls -d /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/?????? | sort -R`; do
    #cmde "./11_test_extract_WIRCam.py -W -I $folder -Q /home/rsiverd/ucd_project/ucd_reu_abby/20230629--final_wcs_params.csv"
