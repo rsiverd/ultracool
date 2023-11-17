@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2023-07-26
-# Last modified: 2023-11-06
+# Last modified: 2023-11-16
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -21,7 +21,7 @@ from functools import partial
 from numpy.lib.recfunctions import append_fields
 from importlib import reload
 from functools import partial
-
+import itertools as itt
 
 import tangent_proj as tp
 
@@ -140,53 +140,6 @@ def get_central_sources(data, max_rsep_pix):
     return data[rsep <= max_rsep_pix]
 
 ## -----------------------------------------------------------------------
-## Gaia matching routine:
-#def find_gaia_matches(stars, tol_arcsec, ra_col='dra', de_col='dde',
-#        xx_col='x', yy_col='y'):
-#    tol_deg = tol_arcsec / 3600.0
-#    matches = []
-#    for target in stars:
-#        sra, sde = target[ra_col], target[de_col]
-#        sxx, syy = target[xx_col], target[yy_col]
-#        result = gm.nearest_star(sra, sde, tol_deg)
-#        if result['match']:
-#            gcoords = [result['record'][x].values[0] for x in ('ra', 'dec')]
-#            matches.append((sxx, syy, sra, sde, *gcoords))
-#            pass
-#        pass
-#    return matches
-
-#def find_gaia_matches_idx_stars(stars, tol_arcsec, ra_col, de_col): #ra_col='dra', de_col='dde'):
-#    tol_deg = tol_arcsec / 3600.0
-#    matches = []
-#    for idx,target in enumerate(stars):
-#        sra, sde = target[ra_col], target[de_col]
-#        #sxx, syy = target[xx_col], target[yy_col]
-#        result = gm.nearest_star(sra, sde, tol_deg)
-#        if result['match']:
-#            gcoords = [result['record'][x].values[0] for x in ('ra', 'dec')]
-#            matches.append((idx, *gcoords))
-#            pass
-#        pass
-#    idx, gra, gde = zip(*matches)
-#    return np.array(idx), np.array(gra), np.array(gde)
-#
-#def find_gaia_matches_idx_radec(ra_vals, de_vals, tol_arcsec):
-#    tol_deg = tol_arcsec / 3600.0
-#    matches = []
-#    for idx,(sra, sde) in enumerate(zip(ra_vals, de_vals)):
-#        #sra, sde = target[ra_col], target[de_col]
-#        #sxx, syy = target[xx_col], target[yy_col]
-#        result = gm.nearest_star(sra, sde, tol_deg)
-#        if result['match']:
-#            gcoords = [result['record'][x].values[0] for x in ('ra', 'dec')]
-#            matches.append((idx, *gcoords))
-#            pass
-#        pass
-#    idx, gra, gde = zip(*matches)
-#    return np.array(idx), np.array(gra), np.array(gde)
-
-## -----------------------------------------------------------------------
 ## Fitting procedure:
 def calc_tan_radec(pscale, pa_deg, cv1, cv2, xrel, yrel):
     this_cdmat = tp.make_cdmat(pa_deg, pscale)
@@ -278,7 +231,7 @@ def calc_seg_angles(ra, de, idx1, idx2):
     return np.arctan2(delta_de, delta_ra)
 
 ## Compute the set of segment rotations to rotationally align two data sets:
-def calc_pa_rotation(det_ra, det_de, cat_ra, cat_de, nmax=20):
+def calc_pa_rotations(det_ra, det_de, cat_ra, cat_de, nmax=20):
     n_use = min(len(det_ra), nmax)
     #top_combos = itt.combinations(range(n_use), 2)
     sys.stderr.write("n_use: %d\n" % n_use)
@@ -355,6 +308,47 @@ def brute_force_crval_tuneup(xrel, yrel, nominal_pa, nominal_cv1, nominal_cv2,
     hits_matrix = np.array(hits_matrix)
     return best_cv1, best_cv2, match_info, hits_matrix
 
+## Iterative PA, CRVAL1, CRVAL2 correction:
+def iter_update_wcs_pars(initial_pa_deg, initial_crval1, initial_crval2,
+                                        ccd_xrel, ccd_yrel, cat_ra, cat_de,
+                                        passes=3, nmax=20):
+
+    current_pa_deg = initial_pa_deg
+    current_crval1 = initial_crval1
+    current_crval2 = initial_crval2
+    for ii in range(passes):
+        sys.stderr.write("iteration %d of %d ...\n" % (ii+1, passes))
+
+        # Update detection RA/DE:
+        calc_ccd_ra, calc_ccd_de = calc_tan_radec(pscale, current_pa_deg,
+                            current_crval1, current_crval2, ccd_xrel, ccd_yrel)
+        calc_ccd_ra = calc_ccd_ra % 360.0
+
+        # Get updated position angle from two-point segments (rotation):
+        #new_pa_deg = improve_pos_ang_segments(current_pa_deg, 
+        #        calc_ccd_ra, calc_ccd_de, cat_ra, cat_de)
+        #seg_deltas = improve_pos_ang_segments(current_pa_deg, 
+        #        calc_ccd_ra, calc_ccd_de, cat_ra, cat_de)
+        seg_deltas = calc_pa_rotations(calc_ccd_ra, calc_ccd_de,
+                cat_ra, cat_de, nmax=nmax)
+        adjustment = np.median(seg_deltas)
+        current_pa_deg -= adjustment
+
+        # Update detection RA/DE:
+        calc_ccd_ra, calc_ccd_de = calc_tan_radec(pscale, current_pa_deg,
+                            current_crval1, current_crval2, ccd_xrel, ccd_yrel)
+        calc_ccd_ra = calc_ccd_ra % 360.0
+
+        # Compute RA/DE offsets (translation):
+        ra_nudge = np.median(calc_ccd_ra - cat_ra)
+        de_nudge = np.median(calc_ccd_de - cat_de)
+        current_crval1 -= ra_nudge
+        current_crval2 -= de_nudge
+        pass
+
+    # Return the updated parameters:
+    return current_pa_deg, current_crval1, current_crval2
+
 
 
 ## -----------------------------------------------------------------------
@@ -423,7 +417,7 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None,
         sys.stderr.write("NO MATCHES!!!???\n")
         sys.exit(1)
     match_subset       = lr_stars[idx]
-    m_xrel, m_yrel     = match_subset['xrel'], match_subset['yrel']
+    #m_xrel, m_yrel     = match_subset['xrel'], match_subset['yrel']
 
     # Calculate bulk CRVALs offsets from matched subset:
     med_ra_shift = np.median(match_subset['calc_ra'] - gra)
@@ -436,7 +430,7 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None,
     #lr_xrel, lr_yrel   = lr_stars['xrel'], lr_stars['yrel']
     #brute_mtol = 1.0
     brute_mtol = 2.0
-    best_cv1, best_cv2, match_info, hits_matrix = \
+    grid_cv1, grid_cv2, match_info, hits_matrix = \
         brute_force_crval_tuneup(lr_stars['xrel'], lr_stars['yrel'],
                     guess_pa, guess_cv1, guess_cv2, use_mtol=brute_mtol)
     sys.stderr.write("hits_matrix:\n")
@@ -444,18 +438,63 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None,
  
     # Subtract remaining bulk offset:
     lr_idx, lr_gra, lr_gde = match_info[:3]
-    calc_ra, calc_de = calc_tan_radec(pscale, guess_pa, best_cv1, best_cv2, 
+    calc_ra, calc_de = calc_tan_radec(pscale, guess_pa, grid_cv1, grid_cv2, 
             lr_stars['xrel'], lr_stars['yrel'])
+    calc_ra = calc_ra % 360.0
     tuneup_ra_nudge = np.median(calc_ra[lr_idx] - lr_gra)
     tuneup_de_nudge = np.median(calc_de[lr_idx] - lr_gde)
-    final_cv1 = best_cv1 - tuneup_ra_nudge
-    final_cv2 = best_cv2 - tuneup_de_nudge
+    grid_cv1 -= tuneup_ra_nudge
+    grid_cv2 -= tuneup_de_nudge
     fhits, fsep, fmatch = gmatch_at_pa_crval(lr_stars['xrel'], lr_stars['yrel'],
-        guess_pa, final_cv1, final_cv2, brute_mtol)
+        guess_pa, grid_cv1, grid_cv2, brute_mtol)
+    sys.stderr.write("grid_cv1: %+12.6f\n" % grid_cv1)
+    sys.stderr.write("grid_cv2: %+12.6f\n" % grid_cv2)
+    #import pdb; pdb.set_trace()
+
+    # -----------------------------------------------------------------
+    # -------------     Iteratively Update PA+CRVALs       ------------
+    # -----------------------------------------------------------------
+
+    iter_pa_deg, iter_cv1, iter_cv2 = \
+            iter_update_wcs_pars(guess_pa, grid_cv1, grid_cv2, 
+                    lr_stars[lr_idx]['xrel'], lr_stars[lr_idx]['yrel'],
+                    lr_gra, lr_gde)
+
+    sys.stderr.write("After iterations, have:\n")
+    sys.stderr.write("iter_pa_deg: %+15.7f\n" % iter_pa_deg)
+    sys.stderr.write("iter_cv1:    %+15.7f\n" % iter_cv1)
+    sys.stderr.write("iter_cv2:    %+15.7f\n" % iter_cv2)
+
+    sys.stderr.write("Differences from header values:\n")
+    cv1_delta = iter_cv1 - header['CRVAL1']
+    cv2_delta = iter_cv2 - header['CRVAL2']
+    dpa_delta = iter_pa_deg - cdm_pa
+    sys.stderr.write("CRVAL1 delta: %+10.7f\n" % cv1_delta)
+    sys.stderr.write("CRVAL2 delta: %+10.7f\n" % cv2_delta)
+    sys.stderr.write("PA_deg delta: %+10.7f\n" % dpa_delta)
+
+    latest_pa_deg = iter_pa_deg
+    latest_crval1 = iter_cv1
+    latest_crval2 = iter_cv2
+
+    # -----------------------------------------------------------------
+
+    # Redo matching with tuned up CRVALs:
+    calc_ra, calc_de = calc_tan_radec(pscale, latest_pa_deg, latest_crval1,
+            latest_crval2, lr_stars['xrel'], lr_stars['yrel'])
+    upd_gaia_matches   = gm.twoway_gaia_matches(calc_ra, calc_de, initial_mtol_asec)
+    idx, gra, gde, gid = upd_gaia_matches
+    if len(idx) < 1:
+        sys.stderr.write("NO MATCHES!!!???\n")
+        sys.exit(1)
+    match_subset       = lr_stars[idx]
+    m_xrel, m_yrel     = match_subset['xrel'], match_subset['yrel']
+
+    #import pdb; pdb.set_trace()
 
     # Now optimize from a better starting point:
     #init_params1       = np.array([cdm_pa, header['CRVAL1'], header['CRVAL2']])
-    init_params1       = np.array([guess_pa, final_cv1, final_cv2])
+    init_params1       = np.array([latest_pa_deg, latest_crval1, latest_crval2])
     minimize_this      = partial(evaluator_pacrv, pscale=pscale, xrel=m_xrel,
                                     yrel=m_yrel, true_ra=gra, true_de=gde)
     answer1            = opti.fmin(minimize_this, init_params1)
@@ -545,6 +584,15 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None,
     wcspar_vals.extend(answer3.tolist())
     sys.stderr.write("wcspar_cols: %s\n" % str(wcspar_cols))
     sys.stderr.write("wcspar_vals: %s\n" % str(wcspar_vals))
+    sys.stderr.write("grid_cv1: %+12.6f\n" % grid_cv1)
+    sys.stderr.write("grid_cv2: %+12.6f\n" % grid_cv2)
+    f3_pa, f3_cv1, f3_cv2 = answer3
+    cv1_change = 3600.0 * (f3_cv1 - grid_cv1)
+    cv2_change = 3600.0 * (f3_cv2 - grid_cv2)
+    sys.stderr.write("cv1_change: %.3f\n" % cv1_change)
+    sys.stderr.write("cv2_change: %.3f\n" % cv2_change)
+    #sys.stderr.write("Pausing ...\n")
+    #response = input()
 
     # Re-calculate RA/DE:
     calc_ra, calc_de = calc_tan_radec(pscale, *answer3, xrel, yrel)
@@ -609,6 +657,8 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None,
 
     # -------------------------
 
+    #sys.stderr.write("Pausing ...\n")
+    #asdf = input()
     return stars
     
 
