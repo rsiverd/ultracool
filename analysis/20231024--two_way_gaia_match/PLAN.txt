@@ -1,0 +1,23 @@
+How to iteratively improve PA, CRVAL1, CRVAL2 using sources in the lower-right
+corner of the WIRCam detector (near the focal plane center). Working with
+sources near the focal plane center (CRPIX1, CRPIX2) minimizes the effect of
+incorrect/unknown detector position angle on the sky.
+
+1. Coarse match to Gaia with a fairly large tolerance.
+2. Calculate RA/DE offsets, apply to the CRVAL1 and CRVAL2.
+3. Perform grid search for improved CRVAL1 and CRVAL2 relative to the offset
+position obtained in step (2). This process uses the number of matches as its
+primary figure of merit with match distances as a secondary consideration in
+case of ties. This is quite reliable as long as the grid spans the answer!
+4. Once the grid cell is known, calculate and apply RA/DE offsets again. This
+produces a pretty good CRVAL1, CRVAL2 pair.
+5. Re-detect Gaia matches with updated coordinates
+5. Iterate over:
+   --> compute PA rotation from segments, update PA
+   --> recompute detection RA/DE values
+   --> compute median RA/DE offsets, update CRVAL1 and CRVAL2
+
+
+
+calc_ccd_ra, calc_ccd_de
+

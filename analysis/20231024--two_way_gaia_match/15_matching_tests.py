@@ -97,6 +97,11 @@ rfy = region_utils
 fulldiv = 80 * '-'
 halfdiv = 40 * '-'
 
+## Helpers (testing):
+import helpers
+reload(helpers)
+hh = helpers
+
 ##--------------------------------------------------------------------------##
 ## Projections with cartopy:
 #try:
@@ -365,11 +370,18 @@ gm.load_sources_csv(gaia_csv_path)
 ##--------------------------------------------------------------------------##
 ## Input file:
 use_fcat = 'data/wircam_H2_1319412p_eph.fits.fz.fcat'
-#use_fcat = 'data/wircam_J_1319395p_eph.fits.fz.fcat'
-#use_fcat = 'data/wircam_H2_1592961p_eph.fits.fz.fcat'
-use_fcat = 'data/wircam_H2_1838760p_eph.fits.fz.fcat'
-use_fcat = 'data/wircam_H2_2200977p_eph.fits.fz.fcat'
-use_fcat = 'data/wircam_H2_1838749p_eph.fits.fz.fcat'
+use_fcat = 'data/wircam_J_1319395p_eph.fits.fz.fcat'
+use_fcat = 'data/wircam_H2_1592961p_eph.fits.fz.fcat'
+#use_fcat = 'data/wircam_H2_1838760p_eph.fits.fz.fcat'
+#use_fcat = 'data/wircam_H2_2200977p_eph.fits.fz.fcat'
+#use_fcat = 'data/wircam_H2_1838749p_eph.fits.fz.fcat'
+#use_fcat = 'data/wircam_H2_2108902p_eph.fits.fz.fcat'
+#use_fcat = 'data/wircam_J_2094807p_eph.fits.fz.fcat'
+#use_fcat = 'data/wircam_H2_2094847p_eph.fits.fz.fcat'
+#use_fcat = 'data/wircam_H2_1566321p_eph.fits.fz.fcat'
+#use_fcat = 'data/wircam_H2_2289557p_eph.fits.fz.fcat'
+#use_fcat = 'data/wircam_H2_1539100p_eph.fits.fz.fcat'
+use_fcat = 'data/wircam_H2_2626515p_eph.fits.fz.fcat'
 
 view_img = use_fcat.replace('p_eph', 'p').replace('fz.fcat', 'fz')
 
@@ -422,7 +434,7 @@ corner_dist = 800.0
 #corner_dist = 2000.0
 lr_stars = wwt.get_corner_subset_dist(stars, corner_dist, minflux=1000)
 match_tol = 2.0
-#match_tol = 3.0
+match_tol = 3.0
 
 use_cols = {'ra_col':'dra', 'de_col':'dde'}
 lr_gaia_matches = find_gaia_matches_idx(lr_stars, match_tol, **use_cols)
@@ -576,6 +588,14 @@ old_delta_tot = 3600*np.hypot(old_delta_ra, old_delta_de)
 ## Relative segment rotations, in degrees:
 segment_angles = np.degrees(sky_angles - ccd_angles)
 
+
+helpseg_angles = hh.calc_pa_rotations(ccd_ra, ccd_de, gra2, gde2)
+
+
+old_sep_stats = hh.calc_angsep_stats(ccd_ra, ccd_de, gra2, gde2)
+
+
+
 ## Illustrate the unreliability of angle differences from short arcs:
 _DO_SHORT_ARC_PLOT = True
 if _DO_SHORT_ARC_PLOT:
@@ -603,11 +623,17 @@ pa_adjustment  = np.degrees(np.median(sky_angles - ccd_angles))
 #pa_adjustment = np.median(sky_angles - ccd_angles)
 sys.stderr.write("pa_adjustment: %.4f\n" % pa_adjustment)
 
+pa_adjustment  = np.median(segment_angles)
+sys.stderr.write("pa_adjustment: %.4f\n" % pa_adjustment)
+
 #cdm_pa_Hband = -3.8559558164649175e-09
 #cdm_pa_Jband = -0.05973236686203742
 
 
 adj_cdm_pa = cdm_pa - pa_adjustment
+adj_cdm_pa = cdm_pa
+#adj_cdm_pa = cdm_pa + pa_adjustment
+#adj_cdm_pa - cdm_pa
 #adj_cdm_pa = cdm_pa_Jband
 #adj_cdm_pscale = cdm_pscale     # no adjustment
 #orig_cv1 = header['CRVAL1']
@@ -624,6 +650,9 @@ new_delta_ra = (gra2 - calc_ra) * np.cos(np.radians(gde2))
 new_delta_de = (gde2 - calc_de)
 new_delta_tot = 3600*np.hypot(new_delta_ra, new_delta_de)
 
+new_sep_stats = hh.calc_angsep_stats(calc_ra, calc_de, gra2, gde2)
+
+#sys.exit(0)
 # -----------------------------------------------------------------------
 # -----------------------------------------------------------------------
 # -----------------------------------------------------------------------
@@ -650,6 +679,7 @@ def gmatch_at_pa_crval(xrel, yrel, trial_pa, trial_cv1, trial_cv2, match_tol):
         #sys.stderr.write("seps: %s\n" % str(seps))
         #total_sep = 3600.0 * np.sum(seps)
         total_sep = 3600.0 * np.average(seps)
+        sys.stderr.write("seps: %s\n" % str(3600*seps))
     return n_matches, total_sep, matches
 
 lr_xrel, lr_yrel = lr_stars['xrel'], lr_stars['yrel']
@@ -657,71 +687,96 @@ lr_xrel, lr_yrel = lr_stars['xrel'], lr_stars['yrel']
 hits, tsep, _ = gmatch_at_pa_crval(lr_xrel, lr_yrel, 
                             adj_cdm_pa, adj_cv1, adj_cv2, 2)
 
-avg_dec_deg = np.average(lr_stars['dde'])
-avg_cos_dec = np.cos(np.radians(avg_dec_deg))
+#avg_dec_deg = np.average(lr_stars['dde'])
+#avg_cos_dec = np.cos(np.radians(avg_dec_deg))
 use_mtol = 1.0
-nsteps = 7
-#nsteps = 3
-nhalf  = (nsteps - 1) / 2
-steparr = np.arange(nsteps) - nhalf
-#steparr = np.arange(
-#de_adjustments = 2.0 / 3600.0 * steparr
-#ra_adjustments = 2.0 / 3600.0 * steparr
-de_adjustments = use_mtol / 3600.0 * steparr
-ra_adjustments = use_mtol / 3600.0 * steparr / avg_cos_dec
-
-tik = time.time()
+#nsteps = 7
+##nsteps = 3
+#nhalf  = (nsteps - 1) / 2
+#steparr = np.arange(nsteps) - nhalf
+##steparr = np.arange(
+##de_adjustments = 2.0 / 3600.0 * steparr
+##ra_adjustments = 2.0 / 3600.0 * steparr
+#de_adjustments = use_mtol / 3600.0 * steparr
+#ra_adjustments = use_mtol / 3600.0 * steparr / avg_cos_dec
+#
+#tik = time.time()
 shifted_cv1 = orig_cv1 - med_ra_shift
 shifted_cv2 = orig_cv2 - med_de_shift
-#shifted_cv1 = orig_cv1
-#shifted_cv2 = orig_cv2
-hits_matrix = []
-hits_max = 0
-best_sep = 999.999
-best_ra_nudge = 0.0
-best_de_nudge = 0.0
-best_cv1 = shifted_cv1
-best_cv2 = shifted_cv2
-sys.stderr.write("Entering nudges loop ...\n")
-for ra_nudge in ra_adjustments:
-    #use_cv1 = orig_cv1 + ra_nudge
-    use_cv1 = shifted_cv1 + ra_nudge
-    ra_hitcount = []
-    for de_nudge in de_adjustments:
-        use_cv2 = shifted_cv2 + de_nudge
-        hits, tsep, tmatch = gmatch_at_pa_crval(lr_xrel, lr_yrel,
-                adj_cdm_pa, use_cv1, use_cv2, use_mtol)
-        sys.stderr.write("Hits=%4d, sep=%.5f at RA/DE nudge %+.4f,%+.4f\n"
-                % (hits, tsep, ra_nudge, de_nudge))
-        if (hits > hits_max) or ((hits == hits_max) and (tsep < best_sep)):
-            hits_max = hits
-            best_sep = tsep
-            best_ra_nudge = ra_nudge
-            best_de_nudge = de_nudge
-            best_cv1 = use_cv1
-            best_cv2 = use_cv2
-            match_info = tmatch
-            sys.stderr.write("--> new best!\n")
-        #sys.stderr.write("hits: %d\n" % hits)
-        ra_hitcount.append(hits)
-        pass
-    hits_matrix.append(ra_hitcount)
+##shifted_cv1 = orig_cv1
+##shifted_cv2 = orig_cv2
+#hits_matrix = []
+#hits_max = 0
+#best_sep = 999.999
+#best_ra_nudge = 0.0
+#best_de_nudge = 0.0
+#best_cv1 = shifted_cv1
+#best_cv2 = shifted_cv2
+##sys.stderr.write("Entering nudges loop ...\n")
+#for ra_nudge in ra_adjustments:
+#    #use_cv1 = orig_cv1 + ra_nudge
+#    use_cv1 = shifted_cv1 + ra_nudge
+#    ra_hitcount = []
+#    for de_nudge in de_adjustments:
+#        use_cv2 = shifted_cv2 + de_nudge
+#        hits, tsep, tmatch = gmatch_at_pa_crval(lr_xrel, lr_yrel,
+#                adj_cdm_pa, use_cv1, use_cv2, use_mtol)
+#        sys.stderr.write("Hits=%4d, sep=%.5f at RA/DE nudge %+.4f,%+.4f\n"
+#                % (hits, tsep, ra_nudge, de_nudge))
+#        if (hits > hits_max) or ((hits == hits_max) and (tsep < best_sep)):
+#            hits_max = hits
+#            best_sep = tsep
+#            best_ra_nudge = ra_nudge
+#            best_de_nudge = de_nudge
+#            best_cv1 = use_cv1
+#            best_cv2 = use_cv2
+#            match_info = tmatch
+#            sys.stderr.write("--> new best!\n")
+#        #sys.stderr.write("hits: %d\n" % hits)
+#        ra_hitcount.append(hits)
+#        pass
+#    hits_matrix.append(ra_hitcount)
+#
+#hits_matrix = np.array(hits_matrix)
+#tok = time.time()
+#sys.stderr.write("Gridded check took %.3f sec\n" % (tok-tik))
+#sys.stderr.write("best_ra_nudge:  %+.7f\n" % best_ra_nudge)
+#sys.stderr.write("best_de_nudge:  %+.7f\n" % best_de_nudge)
+#
+#best_ra_offset = best_ra_nudge - med_ra_shift
+#best_de_offset = best_de_nudge - med_de_shift
+#sys.stderr.write("best_ra_offset: %+.7f\n" % best_ra_offset)
+#sys.stderr.write("best_de_offset: %+.7f\n" % best_de_offset)
 
-hits_matrix = np.array(hits_matrix)
+## -----------------------------------------------------------------------
+
+tik = time.time()
+h_best_cv1, h_best_cv2, h_match_info, h_hits_matrix \
+        = hh.brute_force_crval_tuneup(lr_xrel, lr_yrel, adj_cdm_pa, 
+                shifted_cv1, shifted_cv2, gm, nsteps=7, use_mtol=2.0)
+                #shifted_cv1, shifted_cv2, gm, nsteps=15)
 tok = time.time()
-sys.stderr.write("Gridded check took %.3f sec\n" % (tok-tik))
-sys.stderr.write("best_ra_nudge:  %+.7f\n" % best_ra_nudge)
-sys.stderr.write("best_de_nudge:  %+.7f\n" % best_de_nudge)
 
-best_ra_offset = best_ra_nudge - med_ra_shift
-best_de_offset = best_de_nudge - med_de_shift
-sys.stderr.write("best_ra_offset: %+.7f\n" % best_ra_offset)
-sys.stderr.write("best_de_offset: %+.7f\n" % best_de_offset)
+
+best_cv1 = h_best_cv1
+best_cv2 = h_best_cv2
+match_info = h_match_info
+hits_matrix = h_hits_matrix
+sys.stderr.write("Gridded check took %.3f sec\n" % (tok-tik))
+sys.stderr.write("best_cv1: %.6f\n" % best_cv1)
+sys.stderr.write("best_cv2: %.6f\n" % best_cv2)
+
+
+
+## -----------------------------------------------------------------------
+
+
 
 ## -----------------------------------------------------------------------
 ## Make region files showing tune-up stars:
 
-lr_idx, lr_gra, lr_gde = match_info
+#lr_idx, lr_gra, lr_gde = match_info
+lr_idx, lr_gra, lr_gde = match_info[:3]
 #lr_sep = angle.dAngSep(calc_ra[lr_idx], calc_de[lr_idx], lr_gra, lr_gde)
 matched_dets = lr_stars[lr_idx]
 
@@ -744,7 +799,7 @@ calc_ra, calc_de = wwt.calc_tan_radec(wwt.pscale, adj_cdm_pa,
 calc_ra = calc_ra % 360.0
 
 ## RA/DE offsets:
-cos_dec = np.cos(np.radians(lr_gde))
+#cos_dec = np.cos(np.radians(lr_gde))
 tuneup_de_offsets = (calc_de[lr_idx] - lr_gde)
 #tuneup_ra_offsets = (calc_ra[lr_idx] - lr_gra) * cos_dec
 tuneup_ra_offsets = (calc_ra[lr_idx] - lr_gra)
@@ -756,6 +811,68 @@ final_cv2 = best_cv2 - tuneup_de_nudge
 
 fhits, fsep, fmatch = gmatch_at_pa_crval(lr_xrel, lr_yrel, adj_cdm_pa,
         final_cv1, final_cv2, use_mtol)
+
+## Final update to calculated positions:
+calc_ra, calc_de = wwt.calc_tan_radec(wwt.pscale, adj_cdm_pa,
+                            final_cv1, final_cv2, lr_xrel, lr_yrel)
+calc_ra = calc_ra % 360.0
+
+
+# -----------------------------------------------------------------------
+
+iterated_pa_deg, iterated_crval1, iterated_crval2 = \
+        hh.iter_update_wcs_pars(adj_cdm_pa, final_cv1, final_cv2,
+              matched_dets['xrel'], matched_dets['yrel'], lr_gra, lr_gde)
+
+#sys.exit(0)
+#
+### Testing: calculate rotation adjustment directly from matches:
+#fixed_cdmat = tp.make_cdmat(adj_cdm_pa, wwt.pscale)
+#inv_X_rel, inv_Y_rel = \
+#        wwt.tp.sky2xy_cd(fixed_cdmat, lr_gra, lr_gde, final_cv1, final_cv2)
+#inv_R_rel = np.hypot(inv_X_rel, inv_Y_rel)
+#inv_theta = np.degrees(np.arctan2(inv_Y_rel, inv_X_rel))
+#
+#lrm_X_rel = lr_xrel[lr_idx]
+#lrm_Y_rel = lr_yrel[lr_idx]
+#lrm_R_rel = np.hypot(lrm_X_rel, lrm_Y_rel)
+#lrm_theta = np.degrees(np.arctan2(lrm_Y_rel, lrm_X_rel))
+#
+#rot_nudge = np.median(lrm_theta - inv_theta)
+#
+#new_pa_deg = adj_cdm_pa - rot_nudge
+##new_pa_deg = adj_cdm_pa + rot_nudge
+new_pa_deg = adj_cdm_pa
+#sys.stderr.write("first rot_nudge: %.7f\n" % rot_nudge)
+#
+#rhits, rsep, rmatch = gmatch_at_pa_crval(lr_xrel, lr_yrel, new_pa_deg,
+#        final_cv1, final_cv2, use_mtol)
+#
+#
+#helprot_angles = hh.calc_pa_rotations(calc_ra[lr_idx], calc_de[lr_idx],
+#                                        lr_gra, lr_gde)
+#
+#rot_nudge = np.median(helprot_angles)
+#new_pa_deg = adj_cdm_pa - rot_nudge
+#sys.stderr.write("other rot_nudge: %.7f\n" % rot_nudge)
+#
+#
+### Post-rotation CRVAL1, CRVAL2 fine-tune using known-good sources:
+#sys.stderr.write("%s\n" % fulldiv)
+#sys.stderr.write("RECOVERING BEST MATCHES ...\n")
+#calc_ra, calc_de = wwt.calc_tan_radec(wwt.pscale, new_pa_deg,
+#                            final_cv1, final_cv2, lr_xrel, lr_yrel)
+#calc_ra = calc_ra % 360.0
+#
+#tuneup_de_offsets = (calc_de[lr_idx] - lr_gde)
+##tuneup_ra_offsets = (calc_ra[lr_idx] - lr_gra) * cos_dec
+#tuneup_ra_offsets = (calc_ra[lr_idx] - lr_gra)
+#tuneup_ra_nudge = np.median(tuneup_ra_offsets)
+#tuneup_de_nudge = np.median(tuneup_de_offsets)
+#
+#final_cv1 -= tuneup_ra_nudge
+#final_cv2 -= tuneup_de_nudge
+
 
 # -----------------------------------------------------------------------
 
@@ -776,10 +893,13 @@ sys.stderr.write("%s\n" % fulldiv)
 
 #fixed_cdmat = tp.make_cdmat(cdm_pa-0.1, wwt.pscale)
 #fixed_cdmat = tp.make_cdmat(cdm_pa_Jband, wwt.pscale)
-fixed_cdmat = tp.make_cdmat(adj_cdm_pa, wwt.pscale)
+#fixed_cdmat = tp.make_cdmat(adj_cdm_pa, wwt.pscale)
+derot_cdmat = tp.make_cdmat(new_pa_deg, wwt.pscale)
+#derot_cdmat = tp.make_cdmat(iterated_pa_deg, wwt.pscale)
 #fixed_cdmat = tp.make_cdmat(cdm_pa+0.05, wwt.pscale)
 #fixed_cdmat = tp.make_cdmat(cdm_pa+0.2, wwt.pscale)
-fcd11, fcd12, fcd21, fcd22 = fixed_cdmat.flatten()
+#fcd11, fcd12, fcd21, fcd22 = fixed_cdmat.flatten()
+fcd11, fcd12, fcd21, fcd22 = derot_cdmat.flatten()
 fixed_image = 'fixed_wcs.fits'
 idata, raw_hdrs = pf.getdata(view_img, header=True)
 upd_hdrs = raw_hdrs.copy(strip=True)
@@ -789,6 +909,8 @@ upd_hdrs = raw_hdrs.copy(strip=True)
 #upd_hdrs['CRVAL2'] = best_cv2
 upd_hdrs['CRVAL1'] = final_cv1
 upd_hdrs['CRVAL2'] = final_cv2
+#upd_hdrs['CRVAL1'] = iterated_crval1
+#upd_hdrs['CRVAL2'] = iterated_crval2
 upd_hdrs[ 'CD1_1'] = fcd11
 upd_hdrs[ 'CD1_2'] = fcd12
 upd_hdrs[ 'CD2_1'] = fcd21
@@ -804,6 +926,11 @@ sys.stderr.write("\n%s\n" % fulldiv)
 sys.stderr.write("Inspect the nudged image WCS with:\n")
 sys.stderr.write("ztf --cfht -r %s -r %s %s\n"
         % (tuneup_pix_reg, tuneup_sky_reg, fixed_image))
+
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
+
 
 sys.exit(0)
 
