@@ -184,10 +184,23 @@ def jdtdb_sorted(array):
     return array[order]
 
 ##--------------------------------------------------------------------------##
+## Magnitude conversions:
+
+## Magnitude to flux conversion:
+def kadu(mag, zeropt=25.0):
+    return 10.0**(0.4 * (zeropt - mag))
+
+## Flux to magnitude conversion:
+def kmag(adu, zeropt=25.0):
+    return (zeropt - 2.5 * np.log10(adu))
+
+##--------------------------------------------------------------------------##
 ## Load data for quick analysis:
 
 data_file_H2 = 'process/calib1_H2_fcat.pickle'
 data_file_J  = 'process/calib1_J_fcat.pickle'
+#data_file_H2 = 'process/calib1_Jdet_H2_fcat.pickle'
+#data_file_J  = 'process/calib1_Jdet_J_fcat.pickle'
 #targets = {}
 
 sys.stderr.write("Loading data ... ")
@@ -227,6 +240,7 @@ fast_B = targets['G12524B']
 
 ref_jdtdb = np.median(fast_A['jdtdb'])
 
+#sys.exit(0)
 
 ##--------------------------------------------------------------------------##
 ## Source counts for all associated targets:
@@ -236,10 +250,22 @@ want_dets = max(n_sources.values()) / 2
 proc_objs = [sid for sid,nn in n_sources.items() if nn > want_dets]
 proc_data = {sid:targets[sid] for sid in proc_objs}
 
+## Determine typical fluxes:
+imag_avgs = {}
+for targ in proc_objs:
+    #signal = proc_data[targ]['flux'] * proc_data[targ]['exptime']
+    signal = proc_data[targ]['flux']
+    instmag = kmag(signal)
+    med_mag, iqr_mag = rs.calc_ls_med_IQR(instmag)
+    imag_avgs[targ] = med_mag
+
+
+sys.exit(0)
 ## Initialize fitters:
 fitters = {sid:at2.AstFit() for sid in proc_objs}
 
 ## Run processing:
+num_todo = 0
 sig_thresh = 3
 save_fitters  = {}
 save_bestpars = {}
@@ -260,6 +286,28 @@ for targ in proc_objs:
     save_bestpars[targ] = afn.nice_units(iterpars)
     save_fitters[targ] = afn
     pass
+
+## Gather data for an RMS plot:
+targ_instmag  = {}
+targ_ast_rms  = {}
+targ_mag_rms  = {}
+for targ in proc_objs:
+    #signal = proc_data[targ]['flux'] * proc_data[targ]['exptime']
+    signal = proc_data[targ]['flux']
+    instmag = kmag(signal)
+    med_mag, iqr_mag = rs.calc_ls_med_IQR(instmag)
+    targ_instmag[targ] = med_mag
+    targ_mag_rms[targ] = iqr_mag
+    this_fit = save_fitters[targ]
+    ra_errs_mas, de_errs_mas = \
+            this_fit.get_radec_minus_model_mas(cos_dec_mult=True)
+    tot_ast_mas = np.hypot(ra_errs_mas, de_errs_mas)
+    med_ast_err, iqr_ast_err = rs.calc_ls_med_IQR(tot_ast_mas)
+    targ_ast_rms[targ] = np.median(tot_ast_mas)
+
+
+p_instmag = [targ_instmag[x] for x in proc_objs]
+p_ast_rms = [targ_ast_rms[x] for x in proc_objs]
 
 
 ##--------------------------------------------------------------------------##
