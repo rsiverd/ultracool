@@ -57,6 +57,7 @@ downloaded. A script in the ultracool repository handles this. Commands:
 $ source ~/anaconda3/bin/activate; conda activate astrom
 $ cd ~/ucd_project/ultracool                                                          # cd into base repo folder
 $ source ENVIRONMENT.sh                                                               # update PYTHONPATH
+$ cd CFHT
 $ ./02_get_CFHT_ephemeris.py -W \
    -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid \
    -o /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/cfht_eph_calib1_p_NE.csv
