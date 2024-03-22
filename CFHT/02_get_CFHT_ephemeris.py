@@ -332,6 +332,54 @@ img_bases = [img_bases[x] for x in order]
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
+## Use astropy directly instead!
+from astropy.coordinates import solar_system_ephemeris, EarthLocation
+from astropy.coordinates import get_body_barycentric, get_body
+from astropy.coordinates import get_body_barycentric_posvel
+from astropy.coordinates import GCRS, ICRS
+
+solar_system_ephemeris.set('de430')
+sites = EarthLocation.get_site_names()
+cfht_observatory = EarthLocation.of_site('cfht')
+
+earth_position = get_body_barycentric('earth', timestamps)
+
+cfht_in_gcrs = cfht_observatory.get_gcrs(timestamps)
+cfht_gcrs_pos, cfht_gcrs_vel = cfht_observatory.get_gcrs_posvel(timestamps)
+
+cfht_in_icrs = cfht_in_gcrs.transform_to(ICRS())
+
+
+#cfht_obs_x = cfht
+#derp = cfht_in_icrs.velocity.to_cartesian()
+
+cfht_obs_vel = cfht_in_icrs.velocity.to_cartesian().xyz.to('au / day')
+cfh_x = cfht_in_icrs.cartesian.x.to('au')
+cfh_y = cfht_in_icrs.cartesian.y.to('au')
+cfh_z = cfht_in_icrs.cartesian.z.to('au')
+
+cfh_vx, cfh_vy, cfh_vz = cfht_obs_vel
+
+## CSV output columns need to include:
+## filename, jdtdb, obs_x, obs_y, obs_z, obs_vx, obs_vy, obs_vz
+## Horizons responses also include: lighttime, range, range_rate
+sys.stderr.write("Saving data to output CSV ... ")
+with open(context.output_file, 'w') as ephcsv:
+    ephcsv.write("filename,jdtdb,obs_x,obs_y,obs_z,obs_vx,obs_vy,obs_vz\n")
+    for things in zip(img_bases, timestamps.tdb.jd, 
+            cfh_x.value, cfh_y.value, cfh_z.value,
+            cfh_vx.value, cfh_vy.value, cfh_vz.value):
+        #sys.stderr.write("things: %s\n" % str(things))
+        eph_line = ','.join([str(x) for x in things])
+        ephcsv.write(eph_line + '\n')
+        #break
+    pass
+sys.stderr.write("done.\n")
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
 ## For more information about how to specify the observing site, visit:
 ## https://ssd.jpl.nasa.gov/horizons/manual.html#center
 ## https://astroquery.readthedocs.io/en/latest/jplhorizons/jplhorizons.html
@@ -353,7 +401,7 @@ img_bases = [img_bases[x] for x in order]
 
 
 
-#sys.exit(0)
+sys.exit(0)
 ## Retrieve Spitzer ephemeris:
 #spitzkw = {'id':'Spitzer Space Telescope', 'id_type':'id'}
 #cfht_kw = {'id':'Spitzer Space Telescope', 'id_type':'id'}
@@ -368,7 +416,8 @@ ssb_kw = {'id':'T14', 'id_type':None}
 #cfht_kw = {'id':'267@399', 'id_type':None}
 #cfht_kw = {'id':'CFH', 'id_type':None}
 #fhe.set_target(ssb_kw)
-fhe.set_target(cfh_kw)
+#fhe.set_target(cfh_kw)
+fhe.set_target_id(cfh_kw)
 fhe.set_imdata(img_bases, timestamps)
 sst_table = fhe.get_ephdata()
 
