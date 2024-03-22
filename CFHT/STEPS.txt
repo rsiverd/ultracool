@@ -65,6 +65,10 @@ $ ./02_get_CFHT_ephemeris.py -W \
 # For the CFHT-specific location:
 %run ./02_get_CFHT_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid -o /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/cfht_eph_calib1_p_NE.CFH.csv
 
+%run ./02_get_CFHT_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/SDSS_J0805_proc/sdss_0805_p_NE/by_runid -o /home/rsiverd/ucd_project/ucd_cfh_data/SDSS_J0805_proc/sdss_0805_p_NE/cfht_eph_sdss_0805_p_NE.CFH.csv
+
+
+
 5) Extract initial catalogs from images in a particular directory (or all 
 directories). This uses an existing script based ~entirely on Spitzer
 analysis code. Steps to perform:
