@@ -1,0 +1,7 @@
+
+# astrometry.net config instructions:
+https://astroquery.readthedocs.io/en/latest/astrometry_net/astrometry_net.html
+
+# my ast.net user page:
+https://nova.astrometry.net/users/48900
+
