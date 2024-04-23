@@ -322,11 +322,15 @@ for ii,fcat_path in enumerate(cat_files, 1):
 
     # perform the tune-up:
     #new_stars = wwt.wcs_tuneup(stars, header)
-    new_stars = wwt.wcs_tuneup(stars, header, 
-            save_matches=gmst_path, save_wcspars=wpar_path,
-            pixreg1=pix_reg_1, skyreg1=sky_reg_1,
-            pixreg2=pix_reg_2, skyreg2=sky_reg_2,
-            pixreg3=pix_reg_3, skyreg3=sky_reg_3)
+    try:
+        new_stars = wwt.wcs_tuneup(stars, header, 
+                save_matches=gmst_path, save_wcspars=wpar_path,
+                pixreg1=pix_reg_1, skyreg1=sky_reg_1,
+                pixreg2=pix_reg_2, skyreg2=sky_reg_2,
+                pixreg3=pix_reg_3, skyreg3=sky_reg_3)
+    except:
+        sys.stderr.write("Skipping this object ...\n")
+        continue
 
     # update the catalog:
     ecl.set_catalog(new_stars)
