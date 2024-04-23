@@ -152,6 +152,10 @@ mkdir -p process
 ./23_cfht_match_and_group.py -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv \
    -T targets/G12524A.par -T targets/G12524B.par -D process/calib1_detections_H2.txt \
    -C collections/calib1_wircam_H2_fixed_fcat.txt -o process/calib1_H2det_H2_fcat.pickle
+# Match SDSS J0805:
+./23_cfht_match_and_group.py -G /home/rsiverd/ucd_project/ucd_cfh_data/SDSS_J0805_proc/gaia_sdss_0805_NE.csv \
+   -T targets/SDSS0805.par -D process/sdss0805_detections_J.txt \
+   -C collections/sdss0805_wircam_J_fixed_fcat.txt -o process/sdss0805_Jdet_J_fcat.pickle
 
 # Perform astrometry on the two calib1 fast-movers (run in ipython or ipynb for plots):
 ./31_G125_24_diags.py
