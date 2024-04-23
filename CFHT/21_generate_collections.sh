@@ -165,7 +165,8 @@ cat_flavors=( fixed ) #eph fixed )
 ## Breakdown by filter:
 for suff in ${cat_suffixes[*]}; do
    echo "Catalog type: $suff"
-   find $runid_dir -type f -name "*${ctype}" > $foo
+   #find $runid_dir -type f -name "*${ctype}" > $foo
+   find $runid_dir -type f -name "*${suff}" > $foo
    #cmde "wc -l $foo"
    ncat=$(cat $foo | wc -l)
    echo "Found $ncat $suff file(s)."
@@ -188,6 +189,8 @@ for suff in ${cat_suffixes[*]}; do
          echo "csave: $csave"
          grep "$chtag" $bar > $baz
          head $baz
+         cmde "sort $baz > $qux"  || exit $?
+         cmde "mv -f $qux  $baz"  || exit $?
          cmde "mv -f $baz $csave" || exit $?
       done
    done
