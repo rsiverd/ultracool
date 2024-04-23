@@ -93,6 +93,9 @@ $ ./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_a
 # Process everything:
 ./15_add_catalog_ephems.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid -E /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/cfht_eph_calib1_p_NE.csv
 
+./15_add_catalog_ephems.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/SDSS_J0805_proc/sdss_0805_p_NE/by_runid \
+   -E /home/rsiverd/ucd_project/ucd_cfh_data/SDSS_J0805_proc/sdss_0805_p_NE/cfht_eph_sdss_0805_p_NE.CFH.csv
+
 7) Update WCS in extracted catalogs
 # First folder only:
 ./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15 -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
@@ -103,6 +106,8 @@ $ ./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_a
 ./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/17AQ07 -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
 # Process everything:
 ./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
+
+./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/SDSS_J0805_proc/sdss_0805_p_NE/by_runid -G /home/rsiverd/ucd_project/ucd_cfh_data/SDSS_J0805_proc/gaia_sdss_0805_NE.csv
 
 7a) Per-run joint WCS and distortion tune-up:
 # First folder only:
@@ -119,6 +124,7 @@ $ ./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_a
 8) Make a list of all the catalogs:
 mkdir -p collections
 ./21_generate_collections.sh calib1 /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid --START
+./21_generate_collections.sh sdss0805 /home/rsiverd/ucd_project/ucd_cfh_data/SDSS_J0805_proc/sdss_0805_p_NE/by_runid
 
 9) Make a master source list:
 mkdir -p process
@@ -128,6 +134,8 @@ mkdir -p process
 ../10_make_master_source_list.py -C collections/calib1_wircam_H2_fixed_fcat.txt \
    -o process/calib1_detections_H2.txt
 # ~46 seconds
+../10_make_master_source_list.py -C collections/sdss0805_wircam_J_fixed_fcat.txt \
+   -o process/sdss0805_detections_J.txt
 
 10) Match and group sources for analysis:
 # Matching against J list:
