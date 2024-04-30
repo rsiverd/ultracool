@@ -1,0 +1,16 @@
+http://simbad.cds.unistra.fr/simbad/sim-id?Ident=%40469090&Name=2MASS%20J08053189%2b4812330&submit=submit
+
+----------------------------------------------------------------------- 
+
+Gaia DR3 933054951834436352
+
+https://vizier.cds.unistra.fr/viz-bin/VizieR-5?-ref=VIZ662fed67921a2&-out.add=.&-source=I/355/gaiadr3&-c=121.37963288441%20%2b48.20938799759,eq=ICRS,rs=2&-out.orig=o
+
+@epoch=2016
+RA = 121.37963288441 
+DE = +48.20938799759 
+
+prlx =   42.5946  +/- 0.9766  
+pmra = -460.919   +/- 1.009      # pmRA*cosDE
+pmde =   41.551   +/- 0.779
+
