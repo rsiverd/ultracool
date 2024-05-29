@@ -147,6 +147,8 @@ mkdir -p process
 # ~46 seconds
 ../10_make_master_source_list.py -C collections/sdss0805_wircam_J_fixed_fcat.txt \
    -o process/sdss0805_detections_J.txt
+../10_make_master_source_list.py -C collections/2M0249ABc_wircam_J_fixed_fcat.txt \
+   -o process/2M0249ABc_detections_J.txt
 
 10) Match and group sources for analysis:
 # Matching against J list:
