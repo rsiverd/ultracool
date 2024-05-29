@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2019-09-05
-# Last modified: 2021-12-16
+# Last modified: 2024-05-29
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -214,12 +214,13 @@ if __name__ == '__main__':
                           formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
     #parser.set_defaults(cone_rad_deg=0.5)
+    parser.set_defaults(overwrite=False)
     # ------------------------------------------------------------------
     parser.add_argument('RA_deg', help='target RA in degrees', type=float)
     parser.add_argument('DE_deg', help='target RA in degrees', type=float)
     #parser.add_argument('-w', '--whatever', required=False, default=5.0,
     #        help='some option with default [def: %(default)s]', type=float)
-    parser.add_argument('--overwrite', required=False, default=False,
+    parser.add_argument('--overwrite', required=False, action='store_true',
             help='enable overwrite of existing output file')
     parser.add_argument('-o', '--output_file', required=True, default=None,
             help='output file for Gaia sources (CSV)', type=str)
@@ -277,10 +278,21 @@ hits = qobj.get_results()
 tok  = time.time()
 sys.stderr.write("Query time: %.3f seconds.\n" % (tok-tik))
 
+## Force column names to lower-case (with dupe check):
+have_cols = hits.keys()
+want_cols = [x.lower() for x in have_cols]
+if len(set(want_cols)) != len(have_cols):
+    # this should never happen, but it's a big problem if it does ...
+    sys.stderr.write("Column names appear to be duplicated ...\n")
+    sys.stderr.write("You should never see this!  Manual rename needed ...\n")
+    sys.exit(1)
+for old,new in zip(have_cols, want_cols):
+    hits.rename_column(old, new)
+
 ## Save results:
 if context.output_file:
     sys.stderr.write("Saving to %s ... " % context.output_file)
-    hits.write(context.output_file, format='ascii.csv')
+    hits.write(context.output_file, format='ascii.csv', overwrite=True)
     sys.stderr.write("done.\n")
 
 
@@ -288,6 +300,16 @@ if context.output_file:
 ######################################################################
 # CHANGELOG (fetch_gaia_nearby.py):
 #---------------------------------------------------------------------
+#
+#  2024-05-29:
+#     -- Increased __version__ to 0.3.0.
+#     -- Now force all Gaia column names to lower-case.
+#     -- Added overwrite=True to results output to silence warnings.
+#     -- Fixed missing store_true in --overwrite argparse spec.
+#
+#  2021-12-16:
+#     -- Increased __version__ to 0.2.0.
+#     -- Various changes.
 #
 #  2019-09-05:
 #     -- Increased __version__ to 0.1.0.
