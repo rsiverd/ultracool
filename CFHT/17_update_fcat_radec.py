@@ -96,8 +96,8 @@ try:
     import wircam_wcs_tuneup_2
     reload(wircam_wcs_tuneup_2)
     #ecl = extended_catalog.ExtendedCatalog()
-    #wwt = wircam_wcs_tuneup
-    wwt = wircam_wcs_tuneup_2
+    wwt = wircam_wcs_tuneup
+    #wwt = wircam_wcs_tuneup_2
 except ImportError:
     logger.error("failed to import wircam_wcs_tuneup module!")
     sys.exit(1)
