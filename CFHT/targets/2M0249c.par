@@ -1,0 +1,9 @@
+{
+     'name'             :  '2M0249c',
+     'ra_deg'           :  42.4769477,
+     'de_deg'           :  -5.9672920,
+   'pmra_cosdec_asyr'   :   0.0460,        # pmRA * cos(dec)
+   'pmde_asyr'          :  -0.0320,
+   'parallax_as'        :   0.0201,
+   'epoch_jdutc'        :   2455780.14,
+}
