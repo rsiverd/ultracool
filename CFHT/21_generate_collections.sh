@@ -4,14 +4,14 @@
 #
 # Rob Siverd
 # Created:      2023-07-26
-# Last updated: 2023-07-26
+# Last updated: 2024-06-03
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Default options:
 debug=0 ; clobber=0 ; force=0 ; timer=0 ; vlevel=0
-script_version="0.01"
+script_version="0.02"
 this_prog="${0##*/}"
 #shopt -s nullglob
 # Propagate errors through pipelines: set -o pipefail
@@ -162,11 +162,22 @@ cat_flavors=( fixed ) #eph fixed )
 #find $runid_dir -type f -name "*${cflav}*${ctype}" > $foo
 #cmde "wc -l $foo"
 
+## Exclude anything listed here from collections:
+exclude_file="exclusions.txt"
+nexclude=$(cat $exclude_file 2>/dev/null | wc -l)
+
 ## Breakdown by filter:
 for suff in ${cat_suffixes[*]}; do
    echo "Catalog type: $suff"
    #find $runid_dir -type f -name "*${ctype}" > $foo
    find $runid_dir -type f -name "*${suff}" > $foo
+   if [[ $nexclude -gt 0 ]]; then
+      n1=$(cat $foo | wc -l)
+      cat $foo | grep -v -f $exclude_file > $bar
+      mv -f $bar $foo
+      n2=$(cat $foo | wc -l)
+      echo "Files before/after exclusion: $n1 / $n2"
+   fi
    #cmde "wc -l $foo"
    ncat=$(cat $foo | wc -l)
    echo "Found $ncat $suff file(s)."
@@ -188,7 +199,7 @@ for suff in ${cat_suffixes[*]}; do
          csave="${colls_dir}/${targ_name}_${chtag}_${ppalg}_${suff}.txt"
          echo "csave: $csave"
          grep "$chtag" $bar > $baz
-         head $baz
+         #head $baz
          cmde "sort $baz > $qux"  || exit $?
          cmde "mv -f $qux  $baz"  || exit $?
          cmde "mv -f $baz $csave" || exit $?
