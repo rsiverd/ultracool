@@ -243,7 +243,11 @@ class CoordDetrending(object):
             sys.stderr.write("No clean data available!\n")
             sys.stderr.write("Try running detrend() first ...\n")
             return None
-        return self._time_vec, self._cln_vals, self._filt
+        return {
+                'time'   :   self._time_vec,
+               'clean'   :   self._cln_vals,
+                'filt'   :   self._filt,
+                }
 
     # ---------------------------------------
     # Helpers for creating aligned arrays
@@ -428,16 +432,17 @@ class InstCooDetrend(object):
         _iparts = []
         for ii in self._inst_list:
             #tt, cc = self._cdtr_objs[ii].get_results()
-            # time, cleaned, filter
-            tt, cc, ff = self._cdtr_objs[ii].get_results_all()
-            _tparts.append(tt)
-            _cparts.append(cc)
-            _fparts.append(ff)
-            _iparts.append([ii for x in tt])
+            # all results for this instrument:
+            results = self._cdtr_objs[ii].get_results_all()
+            #tt, cc, ff = self._cdtr_objs[ii].get_results_all()
+            _tparts.append(results[ 'time'])
+            _cparts.append(results['clean'])
+            _fparts.append(results[ 'filt'])
+            _iparts.append([ii for x in results['time']])
         return {
                 'time'  :   np.concatenate(_tparts), 
                'clean'  :   np.concatenate(_cparts),
-              'filter'  :   np.concatenate(_fparts),
+                'filt'  :   np.concatenate(_fparts),
                 'inst'  :   np.concatenate(_iparts),
                 }
 
