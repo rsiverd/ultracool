@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2022-03-10
-# Last modified: 2022-03-15
+# Last modified: 2024-06-17
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 ## Modules:
 import gc
@@ -237,6 +237,14 @@ class CoordDetrending(object):
             return None
         return self._time_vec, self._cln_vals
 
+    def get_results_all(self):
+        """Return (time, cleaned residuals, filter) after detrending."""
+        if not isinstance(self._cln_vals, np.ndarray):
+            sys.stderr.write("No clean data available!\n")
+            sys.stderr.write("Try running detrend() first ...\n")
+            return None
+        return self._time_vec, self._cln_vals, self._filt
+
     # ---------------------------------------
     # Helpers for creating aligned arrays
     # ---------------------------------------
@@ -412,6 +420,26 @@ class InstCooDetrend(object):
         return (np.concatenate(_tparts), 
                 np.concatenate(_cparts),
                 np.concatenate(_iparts))
+
+    def get_results_all(self):
+        _tparts = []
+        _cparts = []
+        _fparts = []
+        _iparts = []
+        for ii in self._inst_list:
+            #tt, cc = self._cdtr_objs[ii].get_results()
+            # time, cleaned, filter
+            tt, cc, ff = self._cdtr_objs[ii].get_results_all()
+            _tparts.append(tt)
+            _cparts.append(cc)
+            _fparts.append(ff)
+            _iparts.append([ii for x in tt])
+        return {
+                'time'  :   np.concatenate(_tparts), 
+               'clean'  :   np.concatenate(_cparts),
+              'filter'  :   np.concatenate(_fparts),
+                'inst'  :   np.concatenate(_iparts),
+                }
 
     @staticmethod
     def _vectors_are_okay(vec1, vec2):
