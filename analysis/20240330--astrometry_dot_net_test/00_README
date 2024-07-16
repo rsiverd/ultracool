@@ -2,3 +2,26 @@ It would be useful if I could easily use astrometry.net for second opinions
 on WCS solutions. This investigation aims to sort out how I can get ast.net
 solutions from 'fcat' catalogs already on disk.
 
+# -----------------------------------------------------------------------
+# Testing instructions:
+
+# Before running, make sure ultracool stuff is loaded:
+cd ../..
+source ENVIRONMENT.sh
+cd -
+
+# Then execute the test script:
+%run ./01_test_solve.py
+
+# -----------------------------------------------------------------------
+# Batch solve instructions:
+
+# 1) Make a list of fcat files I have lying around. Include data from calib1
+# and SDSS_J0805.
+find /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid \
+   -type f -name "*p.fits.fz.fcat" | sort  > tmp_fcat
+find /home/rsiverd/ucd_project/ucd_cfh_data/SDSS_J0805_proc/sdss_0805_p_NE/by_runid \
+   -type f -name "*p.fits.fz.fcat" | sort >> tmp_fcat
+mv -f tmp_fcat fcat_paths.txt
+
+
