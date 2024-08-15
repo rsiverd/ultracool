@@ -652,7 +652,7 @@ class GaiaMatch(object):
         idx         -- index of match in the input RA/DE arrays
         gaia_ra     -- Gaia RA of matched source
         gaia_dec    -- Gaia DE of matched source
-        souce_id    -- Gaia source_id of matched source (for record lookup)
+        source_id   -- Gaia source_id of matched source (for record lookup)
         """
 
         tol_deg  = tol_arcsec / 3600.0
