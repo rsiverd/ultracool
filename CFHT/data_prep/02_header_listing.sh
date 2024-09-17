@@ -86,23 +86,26 @@ cmde "source config.sh" || exit $?
 #imlist="image_list.txt"
 #targ_dir="calib1_p_NE"
 yecho "Searching for images ... "
-find $targ_dir -type f -name "*p.fits.fz" | sort > $foo
+#find $targ_dir -type f -name "*p.fits.fz" | sort > $foo
+find $data_dir -type f -name "*p.fits.fz" | sort > $foo
 #cmde "ls calib1_p_NE/*.fits.fz > $foo" || exit $?
 gecho "done.\n"
 cmde "mv -f $foo $imlist"              || exit $?
 
 ## Retrieve header content:
+gh_opts="-N --progress"
 get_keys="MJD-OBS DATE-OBS UTIME EXPTIME FILTER RUNID QRUNID CRUNID"
 get_keys+=" MCTR_RA MCTR_DEC"
 #key_data="image_hdrs.txt"
-cmde "imhget -N --progress -l $imlist $get_keys -o $foo" || exit $?
-cmde "mv -f $foo $key_data"                              || exit $?
+cmde "imhget $gh_opts -l $imlist $get_keys -o $foo"   || exit $?
+cmde "mv -f $foo $key_data"                           || exit $?
 
 ## Separately retrieve version data (text) into a CSV:
+gh_opts="-N --progress -d,"
 get_keys="MJD-OBS DATE-OBS UTIME EXPTIME FILTER RUNID QRUNID CRUNID"
 get_keys+=" MCTR_RA MCTR_DEC IMAGESWV CONSWV PCISWV"
-cmde "imhget -N --progress -l $imlist $get_keys -o $foo" || exit $?
-cmde "mv -f $foo $key_data"                              || exit $?
+cmde "imhget $gh_opts -l $imlist $get_keys -o $foo"   || exit $?
+cmde "mv -f $foo $vers_csv"                           || exit $?
 
 ##--------------------------------------------------------------------------##
 ## Clean up:
