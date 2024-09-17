@@ -4,14 +4,14 @@
 #
 # Rob Siverd
 # Created:      2023-05-31
-# Last updated: 2023-06-02
+# Last updated: 2024-09-17
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Default options:
 debug=0 ; clobber=0 ; force=0 ; timer=0 ; vlevel=0
-script_version="0.02"
+script_version="0.03"
 this_prog="${0##*/}"
 #shopt -s nullglob
 # Propagate errors through pipelines: set -o pipefail
@@ -95,6 +95,12 @@ cmde "mv -f $foo $imlist"              || exit $?
 get_keys="MJD-OBS DATE-OBS UTIME EXPTIME FILTER RUNID QRUNID CRUNID"
 get_keys+=" MCTR_RA MCTR_DEC"
 #key_data="image_hdrs.txt"
+cmde "imhget -N --progress -l $imlist $get_keys -o $foo" || exit $?
+cmde "mv -f $foo $key_data"                              || exit $?
+
+## Separately retrieve version data (text) into a CSV:
+get_keys="MJD-OBS DATE-OBS UTIME EXPTIME FILTER RUNID QRUNID CRUNID"
+get_keys+=" MCTR_RA MCTR_DEC IMAGESWV CONSWV PCISWV"
 cmde "imhget -N --progress -l $imlist $get_keys -o $foo" || exit $?
 cmde "mv -f $foo $key_data"                              || exit $?
 

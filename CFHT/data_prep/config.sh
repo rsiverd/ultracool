@@ -8,5 +8,6 @@ data_dir="${HOME}/ucd_project/ucd_cfh_data/${target}/download"
 imlist="image_list.txt"
 targ_dir="calib1_p_${use_quad}"
 key_data="image_hdrs.txt"
+vers_csv="image_vers.csv"
 runid_base="${targ_dir}/by_runid"
 
