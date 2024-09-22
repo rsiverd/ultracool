@@ -124,20 +124,27 @@ def load_pickled_object(filename):
 #    sys.exit(1)
 
 ## Various from astropy:
-#try:
+try:
 #    import astropy.io.ascii as aia
 #    import astropy.io.fits as pf
 #    import astropy.io.votable as av
 #    import astropy.table as apt
-#    import astropy.time as astt
+    import astropy.time as astt
 #    import astropy.wcs as awcs
 #    from astropy import constants as aconst
-#    from astropy import coordinates as coord
+    from astropy import coordinates as coord
 #    from astropy import units as uu
-#except ImportError:
+except ImportError:
 #    logger.error("astropy module not found!  Install and retry.")
-#    sys.stderr.write("\nError: astropy module not found!\n")
-#    sys.exit(1)
+    sys.stderr.write("\nError: astropy module not found!\n")
+    sys.exit(1)
+
+## For Earth position:
+from astropy.time import Time
+from astropy.coordinates import solar_system_ephemeris, EarthLocation
+from astropy.coordinates import get_body_barycentric, get_body
+from astropy.coordinates import get_body_barycentric_posvel
+from astropy.coordinates import GCRS, ICRS
 
 ##--------------------------------------------------------------------------##
 ## Colors for fancy terminal output:
@@ -437,6 +444,14 @@ prev_soln_de = params['de_deg'] + delta_de_deg
 resid_ra = j0805['ra_deg'] - prev_soln_ra
 resid_de = j0805['de_deg'] - prev_soln_de
 
+jpts = 300
+nyrs = 12.0
+filled_dt_years = np.arange(jpts) / float(jpts) * nyrs
+filled_jd_range = filled_dt_years * 365.25 + params['epoch_jdtdb']
+date_range = astt.Time(filled_jd_range, scale='utc', format='jd')
+
+
+
 ## Fix offsets:
 #resid_ra -= np.median(resid_ra)
 #resid_de -= np.median(resid_de)
@@ -450,6 +465,55 @@ resid_ra, resid_de = afn.get_radec_minus_prmot_mas(cos_dec_mult=True)
 #ra_pmra_model_deg, de_pmra_model_deg = afn.get_bestfit_prmot_deg()
 #resid_ra
 resid_ra_all, resid_de_all = afn.get_radec_minus_model_mas(cos_dec_mult=True)
+jdtdb_all = afn.dataset['jdtdb']
+
+## Generate groups in JDTDB for averaging. A new group starts when the
+## difference exceeds daytol (about half a day).
+ep_tol_days = 0.5
+grp_num = 0
+ep_list = [0]
+prev_jd = jdtdb_all[0]
+for jj in jdtdb_all[1:]:
+    if (jj - prev_jd) > ep_tol_days:
+        # next group
+        grp_num += 1
+    #if (jj - prev_jd) < ep_tol_days:
+        # same group
+    ep_list.append(grp_num)
+    prev_jd = jj
+    pass
+ep_list = np.array(ep_list)
+
+## Per-epoch medians:
+epoch_avg_ra_resid = []
+epoch_med_ra_resid = []
+epoch_avg_de_resid = []
+epoch_med_de_resid = []
+epoch_avg_jdtdb    = []
+epoch_med_jdtdb    = []
+for ep in np.unique(ep_list):
+    which = (ep_list == ep)
+    these_ra = resid_ra_all[which]
+    these_de = resid_de_all[which]
+    these_jd = jdtdb_all[which]
+    epoch_avg_jdtdb.append(np.mean(these_jd))
+    epoch_med_jdtdb.append(np.median(these_jd))
+    epoch_avg_ra_resid.append(np.mean(these_ra))
+    epoch_med_ra_resid.append(np.median(these_ra))
+    epoch_avg_de_resid.append(np.mean(these_de))
+    epoch_med_de_resid.append(np.median(these_de))
+
+epoch_avg_jdtdb    = np.array(epoch_avg_jdtdb)
+epoch_med_jdtdb    = np.array(epoch_med_jdtdb)
+epoch_avg_de_resid = np.array(epoch_avg_de_resid)
+epoch_med_de_resid = np.array(epoch_med_de_resid)
+epoch_avg_ra_resid = np.array(epoch_avg_ra_resid)
+epoch_med_ra_resid = np.array(epoch_med_ra_resid)
+epoch_avg_jd_yrs   = (epoch_avg_jdtdb - epoch_avg_jdtdb[0]) / 365.25
+epoch_med_jd_yrs   = (epoch_med_jdtdb - epoch_med_jdtdb[0]) / 365.25
+
+
+#sys.exit(0)
 
 ## Gimme a 'light curve' I can analyze:
 lcfile = 'pos_curve_j0805.txt'
@@ -621,7 +685,7 @@ inv_sigma2 = 1.0 / fitme_rade_errs**2
 
 
 _PERFORM_MCMC = False
-_PERFORM_MCMC = True
+#_PERFORM_MCMC = True
 
 #niter, thinned =  2000,  5
 #niter, thinned =  4000, 15
@@ -774,12 +838,15 @@ forb = plt.figure(2, figsize=fig_dims)
 forb.clf()
 fax1 = forb.add_subplot(221, aspect='equal')
 fax2 = forb.add_subplot(222, aspect='equal')
+fax3 = forb.add_subplot(223, aspect='equal')
 skw = {'lw':0, 's':15}
 fax1.scatter(resid_ra_all, resid_de_all, c=dt_years, **skw)
 fax1.set_xlim(-200, 200)
 fax1.set_ylim(-200, 200)
 fax2.scatter(test_dra, test_dde, **skw)
 fax2.grid(True)
+#fax3.scatter(epoch_avg_ra_resid, epoch_avg_de_resid, c=epoch_avg_jd_yrs, **skw)
+fax3.scatter(epoch_med_ra_resid, epoch_med_de_resid, c=epoch_med_jd_yrs, **skw)
 #orblims = (-1.5, 1.5)
 orblims = np.array([-1.5, 1.5])
 orblims *= 3.6e6* 180
