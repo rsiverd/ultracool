@@ -23,5 +23,5 @@ I plan to do rapid prototyping with my C utilities and Bash scripts and then
 follow up with Python code to replicate it.
 
 SETUP:
-ln -s /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/17AQ07
+ln -s /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/17AQ07 cfh_17AQ07
 
