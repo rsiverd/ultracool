@@ -1,0 +1,27 @@
+Starting in semester 2015B, the CFHT/WIRCam pipeline began to replace saturated
+pixels with 0s instead of 65535. This causes havoc with detections around
+bright stars and seriously degrades our astrometric capabilities. The
+immediate goal is patching the data in 2015B and beyond such that the
+saturated pixels are once again 65535-valued. If raw data were available for
+all images, this would be the most appropriate path. In the raw frames, the
+saturated pixels are still 65535-valued. Unfortunately, raws are unavailable
+for a large number of otherwise useful processed images. 
+
+This investigation aims to back out the bad pixel mask from the processed
+images by selecting zero-valued pixels and stacking. The pixels that are zero-
+valued in all images are from the mask. We can then OR that with the set of
+all zero-valued pixels in the image to dig out the saturated pixels. This
+assumes that pixels are not set to zero for reasons other than saturation or
+the bad pixel mask. 
+
+General idea:
+* identify zero-valued pixels in each image within the run, store as mask
+* stack the masks
+* pixels ==1 after stacking must be part of the bad pixel mask
+
+I plan to do rapid prototyping with my C utilities and Bash scripts and then
+follow up with Python code to replicate it.
+
+SETUP:
+ln -s /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/17AQ07
+
