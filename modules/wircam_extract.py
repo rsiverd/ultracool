@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2023-07-06
-# Last modified: 2023-07-06
+# Last modified: 2024-09-23
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 ## Python version-agnostic module reloading:
 try:
@@ -166,10 +166,11 @@ class WIRCamFind(object):
 
     # ----------------------------------------
 
-    def use_images(self, ipath=None, upath=None):
+    def use_images(self, ipath=None, upath=None, layer=0):
         """Load images for analysis. Inputs:
         ipath   --  path to image for analysis
         upath   --  path to uncertainty image
+        layer   --  which layer to use in case of 3-D cube
         """
         #self._confirmed = False
         self._reset_everything()
@@ -179,12 +180,22 @@ class WIRCamFind(object):
             logger.info("Loading data image %s" % ipath)
             try:
                 self._idata, self._ihdrs = self._get_data_and_header(ipath)
+                ndims = len(self._idata.shape)
+                if (ndims != 2):
+                    logger.warning("Not a 2-D image! Image shape: %s" % str(self._idata.shape))
+                    logger.warning("Keeping layer %d and discarding the rest." % layer)
+                    # for now, just take top layer:
+                    #sys.stderr.write("before\n")
+                    self._idata = self._idata[layer]
+                    #sys.stderr.write("after\n")
                 self._imask = np.isnan(self._idata)
                 self._imwcs = awcs.WCS(self._ihdrs)
                 self._ipath = ipath
                 self._pse.set_image(self._idata, _docopy=False)
                 self._pse.set_mask(self._imask)
                 self._pse.set_imwcs(self._imwcs.all_pix2world)
+                ndims = len(self._idata.shape)
+
             except:
                 logger.error("Failed to load file: %s" % ipath)
                 #self._ipath, self._idata, self._ihdrs = None, None, None
