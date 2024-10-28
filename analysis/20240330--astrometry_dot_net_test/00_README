@@ -22,6 +22,21 @@ find /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid \
    -type f -name "*p.fits.fz.fcat" | sort  > tmp_fcat
 find /home/rsiverd/ucd_project/ucd_cfh_data/SDSS_J0805_proc/sdss_0805_p_NE/by_runid \
    -type f -name "*p.fits.fz.fcat" | sort >> tmp_fcat
-mv -f tmp_fcat fcat_paths.txt
+mv -f tmp_fcat fcat_paths_v1.txt
 
+
+# -----------------------------------------------------------------------
+# Make a second set of fcat paths:
+find /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/by_runid \
+   -type f -name "*p.fits.fz.fcat" | sort  > tmp_fcat
+mv -f tmp_fcat fcat_paths_v2.txt
+
+# Name fix for v2:
+ls solutions | cut -d. -f1 | sort -u > newprefix
+cat newprefix | cut -d_ -f3 > oldprefix
+paste oldprefix newprefix \
+   | awk '{printf "rename %s %s %s.*\n", $1, $2, $1 }' > rename_cmds.txt
+
+# In individual folders:
+ls -d /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/by_runid/?????? > fldr_list.txt
 
