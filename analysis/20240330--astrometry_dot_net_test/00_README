@@ -38,6 +38,6 @@ mv -f tmp_fcat fcat_paths_v2.txt
 #   | awk '{printf "rename %s %s %s.*\n", $1, $2, $1 }' > rename_cmds.txt
 #rm oldprefix newprefix
 
-# In individual folders:
-ls -d /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/by_runid/?????? > fldr_list.txt
+## In individual folders (now part of 10_rename_for_v2.sh):
+#ls -d /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/by_runid/?????? > fldr_list.txt
 

@@ -90,6 +90,8 @@ paste oldprefix newprefix \
    | awk '{printf "rename %s %s %s.*\n", $1, $2, $1 }' > rename_cmds.txt
 rm oldprefix newprefix
 
+## List the folders I want to iterate over:
+cmde "ls -d /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/by_runid/?????? > fldr_list.txt"
 
 
 ##**************************************************************************##
@@ -117,10 +119,10 @@ done
 ##--------------------------------------------------------------------------##
 ## Clean up:
 #[[ -d $tmp_dir ]] && [[ -O $tmp_dir ]] && rm -rf $tmp_dir
-#[[ -f $foo ]] && rm -f $foo
-#[[ -f $bar ]] && rm -f $bar
-#[[ -f $baz ]] && rm -f $baz
-#[[ -f $qux ]] && rm -f $qux
+[[ -f $foo ]] && rm -f $foo
+[[ -f $bar ]] && rm -f $bar
+[[ -f $baz ]] && rm -f $baz
+[[ -f $qux ]] && rm -f $qux
 exit 0
 
 ######################################################################
