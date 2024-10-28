@@ -32,8 +32,8 @@ tmp_dir="$tmp_root"
 #mkdir -p $tmp_dir
 foo="$tmp_dir/foo_$$.txt"
 bar="$tmp_dir/bar_$$.txt"
-baz="$tmp_dir/baz_$$.fits"
-qux="$tmp_dir/qux_$$.fits"
+baz="$tmp_dir/baz_$$.txt"
+qux="$tmp_dir/qux_$$.txt"
 jnk="$foo $bar $baz $qux"  # working copy
 def_jnk="$jnk"             # original set
 dir_cleanup='(echo -e "\nAutomatic clean up ... " ; cmde "rm -vrf $tmp_dir")'
@@ -74,6 +74,23 @@ if [[ "$1" != "--START" ]]; then
    usage >&2
    exit 1
 fi
+
+##**************************************************************************##
+##==========================================================================##
+##--------------------------------------------------------------------------##
+
+## Folder with solutions needs to exist ...
+sol_dir="solutions"
+[[ -d $sol_dir ]] || PauseAbort "Can't find directory: $sol_dir"
+
+## First, make the rename commands:
+ls $sol_dir | cut -d. -f1 | sort -u > newprefix
+cat newprefix | cut -d_ -f3 > oldprefix
+paste oldprefix newprefix \
+   | awk '{printf "rename %s %s %s.*\n", $1, $2, $1 }' > rename_cmds.txt
+rm oldprefix newprefix
+
+
 
 ##**************************************************************************##
 ##==========================================================================##

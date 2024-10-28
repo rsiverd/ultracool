@@ -31,12 +31,12 @@ find /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/by_runid \
    -type f -name "*p.fits.fz.fcat" | sort  > tmp_fcat
 mv -f tmp_fcat fcat_paths_v2.txt
 
-# Name fix for v2:
-ls solutions | cut -d. -f1 | sort -u > newprefix
-cat newprefix | cut -d_ -f3 > oldprefix
-paste oldprefix newprefix \
-   | awk '{printf "rename %s %s %s.*\n", $1, $2, $1 }' > rename_cmds.txt
-rm oldprefix newprefix
+## Name fix for v2 (now part of 10_rename_for_v2.sh):
+#ls solutions | cut -d. -f1 | sort -u > newprefix
+#cat newprefix | cut -d_ -f3 > oldprefix
+#paste oldprefix newprefix \
+#   | awk '{printf "rename %s %s %s.*\n", $1, $2, $1 }' > rename_cmds.txt
+#rm oldprefix newprefix
 
 # In individual folders:
 ls -d /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/by_runid/?????? > fldr_list.txt
