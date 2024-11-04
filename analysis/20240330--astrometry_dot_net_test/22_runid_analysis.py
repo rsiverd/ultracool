@@ -490,6 +490,10 @@ for this_runid in use_runids:
     by_img_yrel = []
     by_img_xraw = []
     by_img_yraw = []
+    by_img_filt = []
+    by_res_filt = []
+    jresid_stddev[this_runid] = {}
+    jresid_maddev[this_runid] = {}
     for ii,this_fcat in enumerate(have_files, 1):
         ibase = ibase_from_filename(this_fcat)
         sys.stderr.write("Loading %s ... " % this_fcat)
@@ -519,6 +523,9 @@ for this_runid in use_runids:
         by_img_yrel.append(yrel)
         by_img_xraw.append(matches['x'])
         by_img_yraw.append(matches['y'])
+        by_img_filt.append(matches['filter'])
+        by_res_filt.append(matches['filter'])   # once for RA
+        by_res_filt.append(matches['filter'])   # again for DE
 
         ## fmin solution, absolute residuals:
         #minimize_this = partial(evaluator_cdmcrv, expo=1,
@@ -597,12 +604,28 @@ for this_runid in use_runids:
     tok = time.time()
     tsolve = tok - tik
     sys.stderr.write("least_squares solved in %.4f seconds\n" % tsolve)
-    jresid_stddev[this_runid] = np.std(jnt_resids)
+    jresid_stddev[this_runid]['all'] = np.std(jnt_resids)
     jnt_resid_med, jnt_resid_iqrn = rs.calc_ls_med_MAD(jnt_resids)
-    jresid_maddev[this_runid] = jnt_resid_iqrn
+    jresid_maddev[this_runid]['all'] = jnt_resid_iqrn
 
     big_results[this_runid] = jnt_full_result
 
+    # Breakout by filter:
+    jresid_filt = np.concatenate(by_res_filt)
+    is_Hband    = jresid_filt == 'H2'
+    is_Jband    = jresid_filt == 'J'
+    jnt_resids_H = jnt_resids[is_Hband]
+    jnt_resids_J = jnt_resids[is_Jband]
+
+    jresid_stddev[this_runid]['H2'] = np.std(jnt_resids_H)
+    jnt_resid_med_H, jnt_resid_iqrn_H = rs.calc_ls_med_MAD(jnt_resids_H)
+    jresid_maddev[this_runid]['H2'] = jnt_resid_iqrn_H
+
+    jresid_stddev[this_runid]['J'] = np.std(jnt_resids_J)
+    jnt_resid_med_J, jnt_resid_iqrn_J = rs.calc_ls_med_MAD(jnt_resids_J)
+    jresid_maddev[this_runid]['J'] = jnt_resid_iqrn_J
+
+    #sys.exit(0)
     continue
     #break
     ###break
