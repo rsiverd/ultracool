@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2024-07-22
-# Last modified: 2024-07-22
+# Last modified: 2024-10-28
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 ## Optional matplotlib control:
 #from matplotlib import use, rc, rcParams
@@ -339,6 +339,10 @@ def make_aligned_gvec(ndata, idx, vals, placeholder):
 ## Gaia matching tolerance:
 mtol_arcsec = 2.
 
+## Expected calib1 coords:
+calib1_ra = 294.7028
+calib1_de = +35.2101
+
 ## Randomly permute the ibases before starting (for parallel):
 random.shuffle(fcat_ibases)
 
@@ -393,6 +397,17 @@ for ii,ibase in enumerate(fcat_ibases, 1):
         wcs_headers = load_pickled_object(pfile)
         sln = awcs.WCS(wcs_headers)
         anra, ande = sln.all_pix2world(imcat['x'], imcat['y'], 1)
+        offsets = angle.dAngSep(anra, ande, calib1_ra, calib1_de)
+        # Offsets larger than 0.5 deg are a problem:
+        largest_offset = np.max(offsets)
+        if largest_offset > 0.5:
+            sys.stderr.write("Detected probable solution failure ...\n")
+            sys.stderr.write("pfile: %s\n" % pfile)
+            sys.stderr.write("Max offset (deg): %.3f\n" % largest_offset)
+            continue
+        else:
+            sys.stderr.write("Coordinates from %s seem on target ...\n" % pfile)
+        #sys.exit(0)
         ra_coords.append(anra)
         de_coords.append(ande)
         #test_ra, test_de = sln.all_pix2world(test_xpix, test_ypix, 1)
@@ -404,6 +419,14 @@ for ii,ibase in enumerate(fcat_ibases, 1):
         #save_line(save_file, payload)
         #sys.stderr.write("poly=%d, xscale=%.5f, yscale=%.5f\n" % (kk, xscale, yscale))
         pass
+
+    # skip this one if all of the solutions seem bad ...
+    n_good_solves = len(ra_coords)
+    sys.stderr.write("Have %d good coordinate sets ...\n" % n_good_solves)
+    if n_good_solves < 1:
+        sys.stderr.write("Nothing to work with, skip this object.\n")
+        continue
+
     mean_ra = np.mean(ra_coords, axis=0)
     mean_de = np.mean(de_coords, axis=0)
 
