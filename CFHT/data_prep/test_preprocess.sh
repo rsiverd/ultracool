@@ -160,6 +160,10 @@ while read ipath <&10; do
    qrunid=$(imhget QRUNID $ipath | awk '{print $1}') || exit $?
    echo "Got qrunid: '$qrunid'"
 
+   # Get filter from image header:
+   filter=$(imhget FILTER $ipath | awk '{print $1}') || exit $?
+   echo "Got filter: '$filter'"
+
    # Output folder based on QRUNID:
    save_dir="${save_base}/${qrunid}"
    echo "save_dir: $save_dir"
@@ -169,7 +173,7 @@ while read ipath <&10; do
       Recho "\nPixel mask missing: ${pix_mask}\n"
       continue
    fi
-   isave="${save_dir}/${ibase}"
+   isave="${save_dir}/wircam_${filter}_${ibase}"
    echo "isave: $isave"
    #exit
 
