@@ -25,3 +25,6 @@ follow up with Python code to replicate it.
 SETUP:
 ln -s /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/17AQ07 cfh_17AQ07
 
+TESTING:
+./01_quick_and_dirty.sh cfh_17AQ07
+
