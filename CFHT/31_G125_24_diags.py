@@ -247,6 +247,7 @@ ref_jdtdb = np.median(fast_A['jdtdb'])
 n_sources = {kk:len(vv) for kk,vv in targets.items()}
 #huge_srcs = max(n_sources.values())
 want_dets = max(n_sources.values()) / 2
+want_dets = int(max(n_sources.values()) * 0.95)
 proc_objs = [sid for sid,nn in n_sources.items() if nn > want_dets]
 proc_data = {sid:targets[sid] for sid in proc_objs}
 
@@ -260,7 +261,7 @@ for targ in proc_objs:
     imag_avgs[targ] = med_mag
 
 
-sys.exit(0)
+#sys.exit(0)
 ## Initialize fitters:
 fitters = {sid:at2.AstFit() for sid in proc_objs}
 

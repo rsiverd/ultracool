@@ -52,6 +52,9 @@ $ ./fetch_gaia_nearby.py -R 0.3 294.70280000  +35.21010000 \
 ./fetch_gaia_nearby.py -R 0.3 042.4850 -05.9598 \
    -o /home/rsiverd/ucd_project/ucd_cfh_data/2M0249ABc_proc/gaia_2M0249ABc_NE.csv
 
+./fetch_gaia_nearby.py -R 0.3 294.70280000  +35.21010000 \
+   -o /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/gaia_calib1_NE.csv
+
 $ wc -l /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv            # make sure it has data
 
 4) Retrieve Earth barycenter (we need to update this for the CFHT telescope
@@ -72,6 +75,8 @@ $ ./02_get_CFHT_ephemeris.py -W \
 
 ./02_get_CFHT_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/2M0249ABc_proc/2M0249ABc_p_NE/by_runid -o /home/rsiverd/ucd_project/ucd_cfh_data/2M0249ABc_proc/2M0249ABc_p_NE/cfht_eph_2M0249ABc_p_NE.csv
 
+./02_get_CFHT_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/by_runid -o /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/cfht_eph_calib1_p_NE.csv
+
 
 5) Extract initial catalogs from images in a particular directory (or all 
 directories). This uses an existing script based ~entirely on Spitzer
@@ -90,6 +95,8 @@ $ ./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_a
 
 ./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/2M0249ABc_proc/2M0249ABc_p_NE/by_runid
 
+./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/by_runid/
+
 6) Add Earth ephemerides to extracted catalogs
 # First folder only:
 ./15_add_catalog_ephems.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid/11AQ15 -E /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/cfht_eph_calib1_p_NE.csv
@@ -103,6 +110,9 @@ $ ./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_a
 
 ./15_add_catalog_ephems.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/2M0249ABc_proc/2M0249ABc_p_NE/by_runid \
    -E /home/rsiverd/ucd_project/ucd_cfh_data/2M0249ABc_proc/2M0249ABc_p_NE/cfht_eph_2M0249ABc_p_NE.csv
+
+./15_add_catalog_ephems.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/by_runid \
+   -E /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/cfht_eph_calib1_p_NE.csv
 
 7) Update WCS in extracted catalogs
 # First folder only:
@@ -118,6 +128,8 @@ $ ./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/for_a
 ./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/SDSS_J0805_proc/sdss_0805_p_NE/by_runid -G /home/rsiverd/ucd_project/ucd_cfh_data/SDSS_J0805_proc/gaia_sdss_0805_NE.csv
 
 ./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/2M0249ABc_proc/2M0249ABc_p_NE/by_runid -G /home/rsiverd/ucd_project/ucd_cfh_data/2M0249ABc_proc/gaia_2M0249ABc_NE.csv
+
+./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/by_runid -G /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/gaia_calib1_NE.csv
 
 7a) Per-run joint WCS and distortion tune-up:
 # First folder only:
@@ -136,6 +148,7 @@ mkdir -p collections
 ./21_generate_collections.sh calib1 /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/calib1_p_NE/by_runid --START
 ./21_generate_collections.sh sdss0805 /home/rsiverd/ucd_project/ucd_cfh_data/SDSS_J0805_proc/sdss_0805_p_NE/by_runid --START
 ./21_generate_collections.sh 2M0249ABc /home/rsiverd/ucd_project/ucd_cfh_data/2M0249ABc_proc/2M0249ABc_p_NE/by_runid --START
+./21_generate_collections.sh ncalib1 /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/by_runid --START
 
 9) Make a master source list:
 mkdir -p process
@@ -149,6 +162,10 @@ mkdir -p process
    -o process/sdss0805_detections_J.txt
 ../10_make_master_source_list.py -C collections/2M0249ABc_wircam_J_fixed_fcat.txt \
    -o process/2M0249ABc_detections_J.txt
+../10_make_master_source_list.py -C collections/ncalib1_wircam_J_fixed_fcat.txt \
+   -o process/ncalib1_detections_J.txt
+../10_make_master_source_list.py -C collections/ncalib1_wircam_H2_fixed_fcat.txt \
+   -o process/ncalib1_detections_H2.txt
 
 10) Match and group sources for analysis:
 # Matching against J list:
@@ -158,6 +175,13 @@ mkdir -p process
 ./23_cfht_match_and_group.py -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv \
    -T targets/G12524A.par -T targets/G12524B.par -D process/calib1_detections_J.txt \
    -C collections/calib1_wircam_H2_fixed_fcat.txt -o process/calib1_Jdet_H2_fcat.pickle
+# Matching against J list (ncalib1):
+./23_cfht_match_and_group.py -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv \
+   -T targets/G12524A.par -T targets/G12524B.par -D process/ncalib1_detections_J.txt \
+   -C collections/ncalib1_wircam_J_fixed_fcat.txt -o process/ncalib1_Jdet_J_fcat.pickle
+./23_cfht_match_and_group.py -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv \
+   -T targets/G12524A.par -T targets/G12524B.par -D process/ncalib1_detections_J.txt \
+   -C collections/ncalib1_wircam_H2_fixed_fcat.txt -o process/ncalib1_Jdet_H2_fcat.pickle
 # Matching against H2 list:
 ./23_cfht_match_and_group.py -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv \
    -T targets/G12524A.par -T targets/G12524B.par -D process/calib1_detections_H2.txt \
@@ -165,12 +189,26 @@ mkdir -p process
 ./23_cfht_match_and_group.py -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv \
    -T targets/G12524A.par -T targets/G12524B.par -D process/calib1_detections_H2.txt \
    -C collections/calib1_wircam_H2_fixed_fcat.txt -o process/calib1_H2det_H2_fcat.pickle
+# Matching against H2 list (ncalib1):
+./23_cfht_match_and_group.py -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv \
+   -T targets/G12524A.par -T targets/G12524B.par -D process/ncalib1_detections_H2.txt \
+   -C collections/ncalib1_wircam_J_fixed_fcat.txt -o process/ncalib1_H2det_J_fcat.pickle
+./23_cfht_match_and_group.py -G /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv \
+   -T targets/G12524A.par -T targets/G12524B.par -D process/ncalib1_detections_H2.txt \
+   -C collections/ncalib1_wircam_H2_fixed_fcat.txt -o process/ncalib1_H2det_H2_fcat.pickle
 # Match SDSS J0805:
 ./23_cfht_match_and_group.py -G /home/rsiverd/ucd_project/ucd_cfh_data/SDSS_J0805_proc/gaia_sdss_0805_NE.csv \
    -T targets/SDSS0805.par -D process/sdss0805_detections_J.txt \
    -C collections/sdss0805_wircam_J_fixed_fcat.txt -o process/sdss0805_Jdet_J_fcat.pickle
 # Match 2M0249ABc:
 ./23_cfht_match_and_group.py -G /home/rsiverd/ucd_project/ucd_cfh_data/2M0249ABc_proc/gaia_2M0249ABc_NE.csv \
+   -T targets/2M0249AB.par -T targets/2M0249c.par -D process/2M0249ABc_detections_J.txt \
+   -C collections/2M0249ABc_wircam_J_fixed_fcat.txt -o process/2M0249ABc_Jdet_J_fcat.pickle
+./23_cfht_match_and_group.py -G /home/rsiverd/ucd_project/ucd_cfh_data/2M0249ABc_proc/gaia_2M0249ABc_NE.csv \
+   -T targets/2M0249AB.par -T targets/2M0249c.par -D process/2M0249ABc_detections_J.txt \
+   -C collections/2M0249ABc_wircam_H2_fixed_fcat.txt -o process/2M0249ABc_Jdet_H2_fcat.pickle
+# Match ncalib1:
+./23_cfht_match_and_group.py -G /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/gaia_calib1_NE.csv \
    -T targets/2M0249AB.par -T targets/2M0249c.par -D process/2M0249ABc_detections_J.txt \
    -C collections/2M0249ABc_wircam_J_fixed_fcat.txt -o process/2M0249ABc_Jdet_J_fcat.pickle
 ./23_cfht_match_and_group.py -G /home/rsiverd/ucd_project/ucd_cfh_data/2M0249ABc_proc/gaia_2M0249ABc_NE.csv \
