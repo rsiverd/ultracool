@@ -293,13 +293,16 @@ class WIRCamFind(object):
             cleaned = cleaned[~drop_me]
         return cleaned
 
-    # include filter as part of instrument tag:
+    # append additional identifying information to the dataset such as image
+    # name, filter, instrument tag, and detection index:
     def _append_instrument_tag(self, dataset):
         filt = self._ihdrs['FILTER']
         itag = 'wircam_%s' % filt
         nsrc = len(dataset)
-        dataset = append_fields(dataset, ('filter', 'instrument'),
-                (nsrc*[filt], nsrc*[itag]), usemask=False)
+        dindx = np.arange(nsrc)                     # detection index
+        iname = os.path.basename(self._ipath)       # image base name
+        dataset = append_fields(dataset, ('filter', 'instrument', 'iname'),
+                (nsrc*[filt], nsrc*[itag], nsrc*[iname]), usemask=False)
         return dataset
 
     # ----------------------------------------
