@@ -1,11 +1,11 @@
 #!/bin/bash
 #
-# Dump astrometric solutions from Gaia CSV file for listed objects.
+# Dump parameters for all Gaia solutions. 
 #
-# NOTE: GAIA IDs ARE TOO LONG TO PRINT AS AWK INTEGERS!!  USE STRING!!
+# NOTE: GAIA ID MUST PRINT AS STRING!!  TOO BIG FOR INTEGER IN AWK!!
 #
 # Rob Siverd
-# Created:      2024-12-16
+# Created:      2025-01-06
 # Last updated: 2025-01-06
 #--------------------------------------------------------------------------
 #**************************************************************************
@@ -34,8 +34,8 @@ tmp_dir="$tmp_root"
 #mkdir -p $tmp_dir
 foo="$tmp_dir/foo_$$.txt"
 bar="$tmp_dir/bar_$$.txt"
-baz="$tmp_dir/baz_$$.txt"
-qux="$tmp_dir/qux_$$.txt"
+baz="$tmp_dir/baz_$$.fits"
+qux="$tmp_dir/qux_$$.fits"
 jnk="$foo $bar $baz $qux"  # working copy
 def_jnk="$jnk"             # original set
 dir_cleanup='(echo -e "\nAutomatic clean up ... " ; cmde "rm -vrf $tmp_dir")'
@@ -76,86 +76,47 @@ if [[ "$1" != "--START" ]]; then
    usage >&2
    exit 1
 fi
-gid_list="gid_proc.txt"
 csv_file="gaia_calib1_NE.csv"
-[[ -f $gid_list ]] || PauseAbort "Can't find file: $gid_list"
 [[ -f $csv_file ]] || PauseAbort "Can't find file: $csv_file"
 
 ##**************************************************************************##
 ##==========================================================================##
 ##--------------------------------------------------------------------------##
 
-#head -1 $csv_file
-save_full="everything.txt"
-save_file="solutions.txt"
+save_file="everything.txt"
+#cmde "head $csv_file"
+#sed '1 d' $csv_file | head | awk -F, '{
+#   id = $3
+#   printf "%d %s\n", id, id
+#}'
+#exit
 
-src_list=( $(cat $gid_list) )
-total=${#src_list[*]}
+sed '1 d' $csv_file | awk -F, '{
+   id = $3
+   ra = $6
+   de = $8
+   prlx = $10
+   pmra = $13
+   pmde = $15
+   printf "%s %15.10f %15.10f %8.3f %8.3f %8.4f\n", id, ra, de, pmra, pmde, prlx
+}' > $foo
 
-## First, convert the whole Gaia CSV file:
-if [[ ! -f $save_full ]]; then
-   #sed '1 d' $csv_file | awk -F, 'NR == 1 { next; }
-   sed '1 d' $csv_file | awk -F, '{
-         id = $3
-         ra = $6
-         de = $8
-         prlx = $10
-         pmra = $13
-         pmde = $15
-         printf "%s %15.10f %15.10f %8.3f %8.3f %8.4f\n", id, ra, de, pmra, pmde, prlx
-   }' > $foo
-   cmde "mv -f $foo $save_full" || exit $?
-fi
-
-## Next, pick out objects from the list:
-rm $bar 2>/dev/null
-count=0
-for gid in `cat $gid_list`; do
-   (( count++ ))
-   echo -ne "\rChecking source $count of $total ... "
-   #awk -F, -v gid=$gid '$3 == gid {
-   grep $gid $csv_file | awk -F, '{
-      id = $3
-      ra = $6
-      de = $8
-      prlx = $10
-      pmra = $13
-      pmde = $15
-      printf "%s %15.10f %15.10f %8.3f %8.3f %8.4f\n", id, ra, de, pmra, pmde, prlx
-   }' > $foo
-   hits=$(cat $foo | wc -l)
-   #echo -ne "hits: $hits"
-   if [[ $hits -ne 1 ]]; then
-      echo "PANIC!!"
-      echo "gid == $gid"
-      echo
-      cat $foo
-      echo
-      cmde "grep $gid $csv_file"
-      exit
-   fi
-   cat $foo >> $bar
-done
-echo "done."
-
-## Sort by RA:
-cmde "sort -nk2 $bar > $baz" || exit $?
-cmde "mv $baz $save_file"    || exit $?
+cmde "mv -f $foo $save_file" || exit $?
 
 ##--------------------------------------------------------------------------##
 ## Clean up:
 #[[ -d $tmp_dir ]] && [[ -O $tmp_dir ]] && rm -rf $tmp_dir
 [[ -f $foo ]] && rm -f $foo
-[[ -f $bar ]] && rm -f $bar
-[[ -f $baz ]] && rm -f $baz
-[[ -f $qux ]] && rm -f $qux
+#[[ -f $bar ]] && rm -f $bar
+#[[ -f $baz ]] && rm -f $baz
+#[[ -f $qux ]] && rm -f $qux
 exit 0
 
 ######################################################################
-# CHANGELOG (03_dump_solns.sh):
+# CHANGELOG (02_every_soln.sh):
 #---------------------------------------------------------------------
 #
-#  2024-12-16:
+#  2025-01-06:
 #     -- Increased script_version to 0.01.
-#     -- First created 03_dump_solns.sh.
+#     -- First created 02_every_soln.sh.
 #
