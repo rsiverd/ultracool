@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2021-08-30
-# Last modified: 2023-07-28
+# Last modified: 2025-01-06
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 ## Modules:
 import os
@@ -120,6 +120,8 @@ class AstFit(object):
         self._is_converged = False
 
         # solutions:
+        self._par_guess   = None   # initial guess (all 5 parameters)
+        self._noplx_guess = None   # initial guess (before parallax)
         self.full_result  = None
         self.iresult      = None
         self.iresult_prev = None
@@ -435,6 +437,7 @@ class AstFit(object):
         return np.hypot(*self._calc_radec_residuals_sigma(params))
 
     def _calc_chi_square(self, params, negplxhit=100.):
+    #def _calc_chi_square(self, params, negplxhit=10000.):
         #model_ra, model_de = self._solver_eval(params)
         ##resid_ra = (model_ra - self._RA_rad) #/ np.cos(model_de)
         ##resid_de = (model_de - self._DE_rad)
@@ -496,13 +499,17 @@ class AstFit(object):
             sys.stderr.write("\n")
         guess = uguess  # adopt unweighted for now
         #guess[4] = 1000. / _MAS_PER_RADIAN
+        self._noplx_guess = guess.copy()
 
-        # initial crack at parallax and zero-point:
+        # initial crack at parallax and zero-point (ignore if negative):
         self._plx0 = self._calc_initial_parallax(guess)
         self._vlwrite("plx0: %s\n" % str(self._plx0), 2)
         ra_nudge_rad, plx_rad = self._plx0 / _ARCSEC_PER_RADIAN
-        guess[0] += ra_nudge_rad
-        guess[4] = plx_rad
+        if (plx_rad > 0):
+            guess[0] += ra_nudge_rad
+            guess[4] = plx_rad
+        else:
+            sys.stderr.write("Ignored negative parallax guess.\n")
 
         # estimate RA,Dec uncertainty from residuals if not known a priori:
         if self._need_resid_errors:
@@ -543,7 +550,8 @@ class AstFit(object):
         # find minimum:
         spamming = True if self._vlevel >= 2 else False
         self.full_result = opti.fmin(self._calc_chi_square, guess, 
-                xtol=1e-7, ftol=1e-7, full_output=True, disp=spamming)
+                xtol=1e-8, ftol=1e-8, full_output=True, disp=spamming)
+                #xtol=1e-7, ftol=1e-7, full_output=True, disp=spamming)
                 #xtol=1e-9, ftol=1e-9, full_output=True)
         self.result = self.full_result[0]
 
