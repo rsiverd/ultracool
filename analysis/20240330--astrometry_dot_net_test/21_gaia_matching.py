@@ -256,7 +256,7 @@ gm.load_sources_csv(gaia_csv_path)
 
 ## Grab the ibase from a filename:
 def ibase_from_filename(fits_path):
-    return os.path.basename(fits_path).split('.')[0]
+    return os.path.basename(fits_path).split('.')[0].split('_eph')[0]
 
 ## Create a by-ibase lookup dictionary from a list of paths:
 def make_ibase_lookup_dict(files_list):
