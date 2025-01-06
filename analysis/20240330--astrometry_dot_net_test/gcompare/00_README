@@ -1,0 +1,24 @@
+Compare astrometric results from my fitting tests to Gaia.
+
+# Symlink the Gaia catalog:
+ln -s ../../../../ucd_cfh_data/calib1_proc/gaia_calib1_NE.csv
+
+# To build the column listing:
+enumerate_columns -d, gaia_calib1_NE.csv > column_map.txt
+
+# To dump object IDs into a file:
+with open('gcompare/gid_proc.txt', 'w') as gp:
+#with open('gid_proc.txt', 'w') as gp:
+    for gid in proc_objs:
+        gp.write("%d\n" % gid)
+        pass
+    pass
+
+# Extract corresponding useful data from Gaia CSV:
+./03_dump_solns.sh --START
+
+# To print out live solutions for comparison:
+asdf = [x.nice_units(x.get_latest_params()) for x in save_fitters.values()]
+order = np.argsort([x[0] for x in asdf])
+np.array(asdf)[order]
+
