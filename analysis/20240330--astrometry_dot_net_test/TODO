@@ -1,0 +1,22 @@
+
+* pipeline version  **CHANGED, but not corresponding to issues**
+* more H2 images?  **NO**
+* FWHM per runid
+* Gaia epoch???
+* wide dither steps?
+* bright pixel artifacts?
+* compare residuals to CD matrix values. are the latter runids just rotated?
+* weighted fit?
+* refraction first
+* gaia dr3
+
+updated runid_residuals:
+* N_images, dets / img
+
+
+* Relative refraction at the extraction stage
+* SolSys ephemeris at the extraction stage
+* RMS model, per-filter
+
+* Nail down (finally) whether RUNID or QRUNID divides camera orientation
+
