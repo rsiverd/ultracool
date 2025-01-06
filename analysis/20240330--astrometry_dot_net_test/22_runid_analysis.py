@@ -34,7 +34,7 @@ import math
 import pickle
 #import ephem
 import numpy as np
-#from numpy.lib.recfunctions import append_fields
+from numpy.lib.recfunctions import append_fields
 #import datetime as dt
 #from dateutil import parser as dtp
 #import scipy.linalg as sla
@@ -439,25 +439,32 @@ def ibase_from_filename(fits_path):
 
 
 ##--------------------------------------------------------------------------##
-## Where to look for update catalogs:
-save_root = 'matched'
-if not os.path.isdir(save_root):
-    sys.stderr.write("Folder not found: %s\n" % save_root)
+## Where to look for catalogs with Gaia matches:
+load_root = 'matched'
+#load_root = 'matched_v2'
+if not os.path.isdir(load_root):
+    sys.stderr.write("Folder not found: %s\n" % load_root)
     sys.stderr.write("Run 21_gaia_matching.py first ...\n")
     sys.exit(1)
 
+## Where to save catalogs with recalculated RA/DE:
+save_root = 'jointupd'
+if not os.path.isdir(save_root):
+    os.mkdir(save_root)
+
 ## Get a list of runid folders and RUNIDs themselves:
-runids_list = sorted(glob.glob('%s/??????' % save_root))
+runids_list = sorted(glob.glob('%s/??????' % load_root))
 runid_dirs  = {os.path.basename(x):x for x in runids_list}
 runid_files = {kk:sorted(glob.glob('%s/wir*fcat'%dd)) \
                             for kk,dd in runid_dirs.items()}
 
 ## Pick one for now:
-use_runids = ['12BQ01']
-use_runids = ['12BQ01', '14AQ08']
+#use_runids = ['12BQ01']
+#use_runids = ['12BQ01', '14AQ08']
 #use_runids = ['14AQ08']
 use_runids = sorted(runid_dirs.keys())
 
+#use_runids = ['11AQ15']
 ##--------------------------------------------------------------------------##
 dist_mod = 'dl12'
 _xdw_key = 'xdw_dl12'
@@ -471,6 +478,7 @@ de_residuals = {}
 big_results = {}  # jnt_full_result for each runid
 jresid_stddev = {}
 jresid_maddev = {}
+jresid_points = {}
 flux_cut = 1000.  # ~15th percentile
 flux_cut = 10000.  # ~15th percentile
 for this_runid in use_runids:
@@ -492,8 +500,20 @@ for this_runid in use_runids:
     by_img_yraw = []
     by_img_filt = []
     by_res_filt = []
+    by_res_size = []
+    by_res_rade = []  # whether residual is RA or DE
+    by_res_isrc = []  # source ibase
+    by_res_indx = []  # index in detections catalog
     jresid_stddev[this_runid] = {}
     jresid_maddev[this_runid] = {}
+    jresid_points[this_runid] = {}
+
+    # ensure output folder for joint-updated catalogs:
+    save_jdir = os.path.join(save_root, this_runid)
+    if not os.path.isdir(save_jdir):
+        os.mkdir(save_jdir)
+
+    #jresid_src
     for ii,this_fcat in enumerate(have_files, 1):
         ibase = ibase_from_filename(this_fcat)
         sys.stderr.write("Loading %s ... " % this_fcat)
@@ -526,6 +546,14 @@ for this_runid in use_runids:
         by_img_filt.append(matches['filter'])
         by_res_filt.append(matches['filter'])   # once for RA
         by_res_filt.append(matches['filter'])   # again for DE
+        fakeFWHM = 2*np.sqrt(matches['a'] * matches['b'])
+        by_res_size.append(fakeFWHM)
+        by_res_rade.append(['ra' for x in gaia_ra])
+        by_res_rade.append(['de' for x in gaia_ra])
+        by_res_isrc.append([ibase for x in gaia_ra])    # once for RA
+        by_res_isrc.append([ibase for x in gaia_ra])    # again for DE
+        by_res_indx.append(np.arange(len(gaia_ra)))     # once for RA
+        by_res_indx.append(np.arange(len(gaia_ra)))     # again for DE
 
         ## fmin solution, absolute residuals:
         #minimize_this = partial(evaluator_cdmcrv, expo=1,
@@ -607,23 +635,66 @@ for this_runid in use_runids:
     jresid_stddev[this_runid]['all'] = np.std(jnt_resids)
     jnt_resid_med, jnt_resid_iqrn = rs.calc_ls_med_MAD(jnt_resids)
     jresid_maddev[this_runid]['all'] = jnt_resid_iqrn
+    jresid_points[this_runid]['all'] = len(jnt_resids)
 
     big_results[this_runid] = jnt_full_result
 
+    # ----------------------------------------------------------------------- 
+    # Recalculate positions for input catalogs:
+    jnt_cdm = jnt_answer[:4]
+    jnt_crvals = jnt_answer[4:].reshape(-1, 2)
+
+    for idx,this_fcat in enumerate(have_files, 0):
+        sys.stderr.write("Loading %s ... " % this_fcat)
+        #fbase = os.path.basename(this_fcat)
+        #save_fcat = os.path.join(save_root, this_runid, fbase)
+        save_fcat = os.path.join(save_jdir, os.path.basename(this_fcat))
+        ccc.load_from_fits(this_fcat)
+        stars = ccc.get_catalog()
+        xrel = stars[_xdw_key] - crpix1
+        yrel = stars[_ydw_key] - crpix2
+        astpars = jnt_cdm.tolist() + jnt_crvals[idx].tolist()
+        jntupd_ra, jntupd_de = eval_cdmcrv(astpars, xrel, yrel)
+        jntupd_ra = jntupd_ra % 360.0
+        newcat = stars.copy()
+        newcat = append_fields(newcat, ('jntupd_ra', 'jntupd_de'),
+                (jntupd_ra, jntupd_de), usemask=False)
+        ccc.set_catalog(newcat)
+        ccc.save_as_fits(save_fcat, overwrite=True)
+        #break
+        pass
+
+
+    # ----------------------------------------------------------------------- 
     # Breakout by filter:
+    jresid_rade = np.concatenate(by_res_rade)
+    jresid_indx = np.concatenate(by_res_indx)
+    jresid_isrc = np.concatenate(by_res_isrc)
     jresid_filt = np.concatenate(by_res_filt)
     is_Hband    = jresid_filt == 'H2'
     is_Jband    = jresid_filt == 'J'
     jnt_resids_H = jnt_resids[is_Hband]
     jnt_resids_J = jnt_resids[is_Jband]
 
+    # lookie catalog:
+    is_outlier  = (jnt_resids * 3600.0) > 0.3
+    which_Jbad  = is_outlier & is_Jband
+    Jbad_ibase  = jresid_isrc[which_Jbad]
+    Jbad_index  = jresid_indx[which_Jbad]
+    #examine_me  = []
+    #for ibase,idx in zip(Jbad_ibase, Jbad_index):
+    #    examine_me.append(np.atleast_1d(cats[ibase][idx]))
+    #examine_me  = np.concatenate(examine_me)
+
     jresid_stddev[this_runid]['H2'] = np.std(jnt_resids_H)
     jnt_resid_med_H, jnt_resid_iqrn_H = rs.calc_ls_med_MAD(jnt_resids_H)
     jresid_maddev[this_runid]['H2'] = jnt_resid_iqrn_H
+    jresid_points[this_runid]['H2'] = len(jnt_resids_H)
 
     jresid_stddev[this_runid]['J'] = np.std(jnt_resids_J)
     jnt_resid_med_J, jnt_resid_iqrn_J = rs.calc_ls_med_MAD(jnt_resids_J)
     jresid_maddev[this_runid]['J'] = jnt_resid_iqrn_J
+    jresid_points[this_runid]['J'] = len(jnt_resids_J)
 
     #sys.exit(0)
     continue
