@@ -451,6 +451,7 @@ sig_thresh = 3
 save_fitters  = {}
 save_bestpars = {}
 maxiters = 30
+pruned_results = {}
 for ii,targ in enumerate(proc_objs, 1):
     sys.stderr.write("%s\n" % fulldiv)
     sys.stderr.write("Initial fit of: %s\n" % targ)
@@ -473,40 +474,36 @@ for ii,targ in enumerate(proc_objs, 1):
             break
     save_bestpars[targ] = afn.nice_units(iterpars)
     save_fitters[targ] = afn
+    pruned_results[targ] = afn.collect_result_dataset(prune_outliers=True)
     if (num_todo > 0) and (ii >= num_todo):
         break
     pass
 
 ## Initial gathering of data for undetrended RMS plot (plus trend selection):
-#ra_deltas = []
-#de_deltas = []
-#meas_flux = []
-#meas_filt = []
 full_data = []
 for ii,targ in enumerate(proc_objs, 1):
-    afn = save_fitters[targ]
-    errs_ra, errs_de = afn.get_radec_minus_model_mas(cos_dec_mult=True)
+    #afn = save_fitters[targ]
+    #_data = afn.collect_result_dataset(prune_outliers=True)
+    #errs_ra, errs_de = afn.get_radec_minus_model_mas(cos_dec_mult=True)
     #ra_deltas.append(errs_ra)
     #de_deltas.append(errs_de)
     #meas_flux.append(afn.dataset['flux'])
     #meas_filt.append(afn.dataset['filter'])
-    tdata = pd.DataFrame.from_records(afn.dataset)
-    tdata['ra_deltas_mas'] = errs_ra
-    tdata['de_deltas_mas'] = errs_de
-    tdata['tot_delta_mas'] = np.hypot(errs_ra, errs_de)
+    #tdata = pd.DataFrame.from_records(_data)
+    #tdata = pd.DataFrame.from_records(
+    #            afn.collect_result_dataset(prune_outliers=True))
+    tdata = pd.DataFrame.from_records(pruned_results[targ])
+    #tdata = pd.DataFrame.from_records(afn.dataset)
+    #tdata['ra_deltas_mas'] = errs_ra
+    #tdata['de_deltas_mas'] = errs_de
+    #tdata['tot_delta_mas'] = np.hypot(errs_ra, errs_de)
+    tdata['tot_delta_mas'] = np.hypot(tdata['fit_resid_ra_mas'], tdata['fit_resid_de_mas'])
     tdata['fake_fwhm'] = 2. * np.sqrt(tdata['a'] * tdata['b'])
-    tdata['inst_mag'] = kmag(tdata['flux'])
+    tdata['instmag'] = kmag(tdata['flux'])
     full_data.append(tdata)
     pass
-#ra_deltas = np.concatenate(ra_deltas)
-#de_deltas = np.concatenate(de_deltas)
-#meas_flux = np.concatenate(meas_flux)
-#meas_filt = np.concatenate(meas_filt)
-#inst_mags = kmag(meas_flux)
+
 full_data = pd.concat(full_data, ignore_index=True)
-#ra_deltas = full_data['ra_deltas_mas']
-#de_deltas = full_data['de_deltas_mas']
-#tot_delta = np.hypot(ra_deltas, de_deltas)
 
 jwhich = (full_data['filter'] == 'J')
 hwhich = (full_data['filter'] == 'H2')
@@ -521,8 +518,10 @@ trcount = {'UL':0, 'UR':0, 'LL':0, 'LR':0}
 tr_qmax = 2
 trend_targlist = []
 for ii,targ in enumerate(proc_objs, 1):
-    vals = save_fitters[targ].dataset
-    # skip skimpy data sets:
+    #vals = save_fitters[targ].dataset
+    #vals = save_fitters[targ].collect_result_dataset(prune_outliers=True)
+    vals = pruned_results[targ]
+    # avoid skimpy data sets:
     if len(vals) < tr_npts:
         continue
     avgx = np.average(vals['x'])
@@ -550,14 +549,19 @@ for ii,targ in enumerate(proc_objs, 1):
 
 ## Collect residual vectors from trend targets:
 trend_resid_vecs = {}   # JDTDB, RA, DE, instr
+want_trend_cols = ('jdtdb', 'fit_resid_ra_mas', 'fit_resid_de_mas', 'instrument')
 for targ in trend_targlist:
-    this_fit = save_fitters[targ]
-    this_jdtdb = this_fit.dataset['jdtdb']
-    this_instr = this_fit.dataset['instrument']
-    ra_errs_mas, de_errs_mas = \
-            this_fit.get_radec_minus_model_mas(cos_dec_mult=True)
-    trend_resid_vecs[targ] = \
-            (this_jdtdb, ra_errs_mas, de_errs_mas, this_instr)
+    #this_fit   = save_fitters[targ]
+    #this_jdtdb = this_fit.dataset['jdtdb']
+    #this_instr = this_fit.dataset['instrument']
+    #ra_errs_mas, de_errs_mas = \
+    #        this_fit.get_radec_minus_model_mas(cos_dec_mult=True)
+    #trend_resid_vecs[targ] = \
+    #        (this_jdtdb, ra_errs_mas, de_errs_mas, this_instr)
+    #tdata = save_fitters[targ].
+    #_data = save_fitters[targ].collect_result_dataset(prune_outliers=True)
+    _data = pruned_results[targ]
+    trend_resid_vecs[targ] = [_data[x] for x in want_trend_cols]
     pass
 
 ## Detrend residuals:
@@ -565,6 +569,8 @@ for targ in trend_targlist:
 #ICD_DE = detrending.InstCooDetrend()
 save_dtr_ra = {}
 save_dtr_de = {}
+want_ra_cols = ('jdtdb', 'fit_resid_ra_mas', 'instrument')
+want_de_cols = ('jdtdb', 'fit_resid_ra_mas', 'instrument')
 for targ in proc_objs:
     sys.stderr.write("%s\n" % fulldiv)
     sys.stderr.write("Target: %s\n" % targ)
@@ -575,13 +581,21 @@ for targ in proc_objs:
     others = [x for x in trend_targlist if x!= targ]
 
     # load object data into detrender:
-    this_fit = save_fitters[targ]
-    this_jdtdb = this_fit.dataset['jdtdb']
-    this_instr = this_fit.dataset['instrument']
-    ra_errs_mas, de_errs_mas = \
-            this_fit.get_radec_minus_model_mas(cos_dec_mult=True)
-    this_ICD_RA.set_data(this_jdtdb, ra_errs_mas, this_instr)
-    this_ICD_DE.set_data(this_jdtdb, de_errs_mas, this_instr)
+    #_data = save_fitters[targ].collect_result_dataset(prune_outliers=True)
+    _data = pruned_results[targ]
+    #this_ICD_RA.set_data(_data['jdtdb'], _data['fit_resid_ra_mas'], _data['instrument'])
+    this_ICD_RA.set_data(*[_data[x] for x in want_ra_cols])
+    this_ICD_RA.set_data(*[_data[x] for x in want_de_cols])
+
+    ## load object data into detrender:
+    #this_fit = save_fitters[targ]
+    #this_jdtdb = this_fit.dataset['jdtdb']
+    #this_instr = this_fit.dataset['instrument']
+    #ra_errs_mas, de_errs_mas = \
+    #        this_fit.get_radec_minus_model_mas(cos_dec_mult=True)
+    #this_ICD_RA.set_data(this_jdtdb, ra_errs_mas, this_instr)
+    #this_ICD_DE.set_data(this_jdtdb, de_errs_mas, this_instr)
+
     # load trend data into detrender:
     for trtarg in others:
         tr_jdtdb, tr_ra_errs, tr_de_errs, tr_inst = trend_resid_vecs[trtarg]
@@ -598,9 +612,9 @@ for targ in proc_objs:
 ## Gather data for analysis after detrending:
 full_data = []
 for ii,targ in enumerate(proc_objs, 1):
-    this_fit = save_fitters[targ]
-    tdata = pd.DataFrame.from_records(this_fit.dataset)
-    errs_ra, errs_de = this_fit.get_radec_minus_model_mas(cos_dec_mult=True)
+    #this_fit = save_fitters[targ]
+    #tdata = pd.DataFrame.from_records(this_fit.dataset)
+    #errs_ra, errs_de = this_fit.get_radec_minus_model_mas(cos_dec_mult=True)
 
     this_dtr_ra = save_dtr_ra[targ]
     this_dtr_de = save_dtr_de[targ]
@@ -608,17 +622,21 @@ for ii,targ in enumerate(proc_objs, 1):
     clean_de_resids = this_dtr_de.get_results()[1]
     clean_tot_resid = np.hypot(clean_ra_resids, clean_de_resids)
 
+
+    tdata = pd.DataFrame.from_records(pruned_results[targ])
+    tdata['raw_tot_delta_mas'] = np.hypot(tdata['fit_resid_ra_mas'], tdata['fit_resid_de_mas'])
+
     #meas_flux.append(afn.dataset['flux'])
     #meas_filt.append(afn.dataset['filter'])
     #tdata = pd.DataFrame.from_records(afn.dataset)
-    tdata['raw_ra_deltas_mas'] = errs_ra
-    tdata['raw_de_deltas_mas'] = errs_de
-    tdata['raw_tot_delta_mas'] = np.hypot(errs_ra, errs_de)
+    #tdata['raw_ra_deltas_mas'] = errs_ra
+    #tdata['raw_de_deltas_mas'] = errs_de
+    #tdata['raw_tot_delta_mas'] = np.hypot(errs_ra, errs_de)
     tdata['cln_ra_deltas_mas'] = clean_ra_resids
     tdata['cln_de_deltas_mas'] = clean_de_resids
     tdata['cln_tot_delta_mas'] = np.hypot(clean_ra_resids, clean_de_resids)
     tdata['fake_fwhm'] = 2. * np.sqrt(tdata['a'] * tdata['b'])
-    tdata['inst_mag'] = kmag(tdata['flux'])
+    tdata['instmag'] = kmag(tdata['flux'])
     full_data.append(tdata)
     pass
 
@@ -730,14 +748,14 @@ full_plot = 'tfa_scatter_full.png'
 crop_plot = 'tfa_scatter_crop.png'
 
 skw = {'lw':0, 's':5}
-ax1.scatter(full_data['inst_mag'][jwhich], 
+ax1.scatter(full_data['instmag'][jwhich], 
             full_data['cln_tot_delta_mas'][jwhich], label='J', **skw)
-ax1.plot(jb_avg['inst_mag'], jb_avg['cln_tot_delta_mas'], c='r', label='J per-bin avg')
-ax1.plot(jb_med['inst_mag'], jb_med['cln_tot_delta_mas'], c='g', label='J per-bin med')
-ax2.scatter(full_data['inst_mag'][hwhich],
+ax1.plot(jb_avg['instmag'], jb_avg['cln_tot_delta_mas'], c='r', label='J per-bin avg')
+ax1.plot(jb_med['instmag'], jb_med['cln_tot_delta_mas'], c='g', label='J per-bin med')
+ax2.scatter(full_data['instmag'][hwhich],
             full_data['cln_tot_delta_mas'][hwhich], label='H2', **skw)
-ax2.plot(hb_avg['inst_mag'], hb_avg['cln_tot_delta_mas'], c='r', label='H per-bin avg')
-ax2.plot(hb_med['inst_mag'], hb_med['cln_tot_delta_mas'], c='g', label='H per-bin med')
+ax2.plot(hb_avg['instmag'], hb_avg['cln_tot_delta_mas'], c='r', label='H per-bin avg')
+ax2.plot(hb_med['instmag'], hb_med['cln_tot_delta_mas'], c='g', label='H per-bin med')
 ax2.set_xlabel('instrumental mag')
 #ax1.set_ylabel('total residual [mas]')
 fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
