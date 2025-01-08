@@ -377,10 +377,19 @@ class AstFit(object):
 
     # RA/DE residuals in true units (cos(dec) corrected):
     def _calc_radec_residuals_tru(self, params, inliers=False):
-        """This is the 'coordinate' version of the residual
+        """
+        This is the 'angular distance' version of the residual
         calculator. The RA component IS CORRECTED by cos(dec).
         The residuals returned by this routine are the differences
         between RA, Dec data and model in proper spherical units.
+        Results are reported IN RADIANS.
+
+        Returns
+        -------
+        resid_RA : ndarray
+            An array containing (data_RA - model_RA) * cos(model_DE)   [RADIANS]
+        resid_DE : ndarray
+            An array containing (data_DE - model_DE)                   [RADIANS]
         """
         model_RA, model_DE = self._solver_eval(params)
         resid_RA = (self._RA_rad - model_RA) * np.cos(model_DE)
@@ -392,10 +401,19 @@ class AstFit(object):
 
     # RA/DE residuals in coordinate units (no cos(dec) correction):
     def _calc_radec_residuals_coo(self, params, inliers=False):
-        """This is the 'coordinate' version of the residual
+        """
+        This is the 'coordinate' version of the residual
         calculator. The RA component is NOT corrected by cos(dec).
         The residuals returned by this routine are the actual coordinate
-        differences between RA, Dec data and model."""
+        differences between RA, Dec data and model IN RADIANS.
+
+        Returns
+        -------
+        resid_RA : ndarray
+            An array containing (data_RA - model_RA)                  [RADIANS]
+        resid_DE : ndarray
+            An array containing (data_DE - model_DE)                  [RADIANS]
+        """
         model_RA, model_DE = self._solver_eval(params)
         resid_RA = self._RA_rad - model_RA
         resid_DE = self._DE_rad - model_DE
@@ -405,13 +423,15 @@ class AstFit(object):
             return resid_RA, resid_DE
 
     def _calc_radec_residuals(self, params, inliers=False):
-        """This is the OLD AND DEPRECATED 'coordinate' version of the residual
+        """
+        This is the OLD AND DEPRECATED 'coordinate' version of the residual
         calculator. The RA component is NOT corrected by cos(dec).
         The residuals returned by this routine are the actual differences
         in RA, Dec coordinates between model and data. This version of
         the routine (with ambiguous name) is DEPRECATED in favor of
         the identical '_coo' variant above. This should help avoid
-        confusion in the long term."""
+        confusion in the long term.
+        """
         sys.stderr.write("_calc_radec_residuals() is DEPRECATED!\n")
         model_RA, model_DE = self._solver_eval(params)
         resid_RA = self._RA_rad - model_RA
