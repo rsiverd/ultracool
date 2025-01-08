@@ -220,11 +220,15 @@ class AstFit(object):
                 self._calc_radec_residuals_tru(self._latest_pars)
         ra_res_mas = self._mas_per_rad * ra_res_rad 
         de_res_mas = self._mas_per_rad * de_res_rad 
-        signal = self.dataset['flux'] * self.dataset['exptime']
         rdata = append_fields(self.dataset,
-                ('fit_resid_ra_mas', 'fit_resid_de_mas', 'signal', 'inliers'),
-                (ra_res_mas, de_res_mas, signal, self.inliers),
-                usemask=False)
+                ('fit_resid_ra_mas', 'fit_resid_de_mas', 'inliers'),
+                (ra_res_mas, de_res_mas, self.inliers), usemask=False)
+
+        #signal = self.dataset['flux'] * self.dataset['exptime']
+        #rdata = append_fields(self.dataset,
+        #        ('fit_resid_ra_mas', 'fit_resid_de_mas', 'signal', 'inliers'),
+        #        (ra_res_mas, de_res_mas, signal, self.inliers),
+        #        usemask=False)
 
         # strip outliers if requested:
         if prune_outliers:
