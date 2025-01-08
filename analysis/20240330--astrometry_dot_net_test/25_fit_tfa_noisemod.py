@@ -640,13 +640,13 @@ bwid = 0.25
 jmin = 6.5
 hmin = 9.5
 jsubset = full_data[jwhich].copy()
-jsubset['bin'] = np.int_((jsubset['inst_mag'] - jmin) / bwid)
+jsubset['bin'] = np.int_((jsubset['instmag'] - jmin) / bwid)
 jb_avg = jsubset.groupby("bin").mean()
 jb_med = jsubset.groupby("bin").median()
 del jsubset
 
 hsubset = full_data[hwhich].copy()
-hsubset['bin'] = np.int_((hsubset['inst_mag'] - hmin) / bwid)
+hsubset['bin'] = np.int_((hsubset['instmag'] - hmin) / bwid)
 hb_avg = hsubset.groupby("bin").mean()
 hb_med = hsubset.groupby("bin").median()
 
@@ -689,14 +689,14 @@ full_plot = 'raw_scatter_full.png'
 crop_plot = 'raw_scatter_crop.png'
 
 skw = {'lw':0, 's':5}
-ax1.scatter(full_data['inst_mag'][jwhich], 
+ax1.scatter(full_data['instmag'][jwhich], 
             full_data['raw_tot_delta_mas'][jwhich], label='J', **skw)
-ax1.plot(jb_avg['inst_mag'], jb_avg['raw_tot_delta_mas'], c='r', label='J per-bin avg')
-ax1.plot(jb_med['inst_mag'], jb_med['raw_tot_delta_mas'], c='g', label='J per-bin med')
-ax2.scatter(full_data['inst_mag'][hwhich],
+ax1.plot(jb_avg['instmag'], jb_avg['raw_tot_delta_mas'], c='r', label='J per-bin avg')
+ax1.plot(jb_med['instmag'], jb_med['raw_tot_delta_mas'], c='g', label='J per-bin med')
+ax2.scatter(full_data['instmag'][hwhich],
             full_data['raw_tot_delta_mas'][hwhich], label='H2', **skw)
-ax2.plot(hb_avg['inst_mag'], hb_avg['raw_tot_delta_mas'], c='r', label='H per-bin avg')
-ax2.plot(hb_med['inst_mag'], hb_med['raw_tot_delta_mas'], c='g', label='H per-bin med')
+ax2.plot(hb_avg['instmag'], hb_avg['raw_tot_delta_mas'], c='r', label='H per-bin avg')
+ax2.plot(hb_med['instmag'], hb_med['raw_tot_delta_mas'], c='g', label='H per-bin med')
 ax2.set_xlabel('instrumental mag')
 #ax1.set_ylabel('total residual [mas]')
 fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
