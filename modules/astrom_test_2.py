@@ -224,12 +224,6 @@ class AstFit(object):
                 ('fit_resid_ra_mas', 'fit_resid_de_mas', 'inliers'),
                 (ra_res_mas, de_res_mas, self.inliers), usemask=False)
 
-        #signal = self.dataset['flux'] * self.dataset['exptime']
-        #rdata = append_fields(self.dataset,
-        #        ('fit_resid_ra_mas', 'fit_resid_de_mas', 'signal', 'inliers'),
-        #        (ra_res_mas, de_res_mas, signal, self.inliers),
-        #        usemask=False)
-
         # strip outliers if requested:
         if prune_outliers:
             rdata = rdata[rdata['inliers']]
