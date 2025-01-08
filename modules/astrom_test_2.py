@@ -210,7 +210,7 @@ class AstFit(object):
     # ------------------------------- #
 
     # Retrieve some useful output when done:
-    def collect_result_dataset(self):
+    def collect_result_dataset(self, prune_outliers=False):
         # first, identify best solution:
         if not self._have_result:
             sys.stderr.write("No solution to collect yet!\n")
@@ -225,6 +225,10 @@ class AstFit(object):
                 ('fit_resid_ra_mas', 'fit_resid_de_mas', 'signal', 'inliers'),
                 (ra_res_mas, de_res_mas, signal, self.inliers),
                 usemask=False)
+
+        # strip outliers if requested:
+        if prune_outliers:
+            rdata = rdata[rdata['inliers']]
 
         # include inlier/outlier flags:
         return rdata
