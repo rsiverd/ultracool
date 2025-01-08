@@ -13,10 +13,18 @@
 updated runid_residuals:
 * N_images, dets / img
 
+* add binning to 25_tfa_noisemod plot
+* visual inspection of joint fit positions/matches. are we good?
+   --> in particular, is there evidence that the FOV center is wrong?
+
+* inliers-only TFA noise model ...
 
 * Relative refraction at the extraction stage
 * SolSys ephemeris at the extraction stage
 * RMS model, per-filter
 
 * Nail down (finally) whether RUNID or QRUNID divides camera orientation
+
+* QSOGRADE filtering after download
+* incorporate GAIN into the extraction process (note GAINERR and GAINMEAS)
 

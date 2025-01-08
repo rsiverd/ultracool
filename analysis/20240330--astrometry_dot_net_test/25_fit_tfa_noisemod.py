@@ -431,11 +431,12 @@ sys.stderr.write("done. Took %.3f seconds.\n" % (tok-tik))
 targ_npts = {gg:len(dd) for gg,dd in targ_data.items()}
 
 ## Select some large ones:
-min_pts = 1500
+min_pts = 1000
 biggies = {gg:nn for gg,nn in targ_npts.items() if nn > min_pts}
 sys.stderr.write("Have %d sources with N>%d.\n" % (len(biggies), min_pts))
 proc_objs = list(biggies.keys())
 proc_data = {sid:targ_data[sid] for sid in proc_objs}
+
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
@@ -502,7 +503,7 @@ for ii,targ in enumerate(proc_objs, 1):
 #meas_flux = np.concatenate(meas_flux)
 #meas_filt = np.concatenate(meas_filt)
 #inst_mags = kmag(meas_flux)
-full_data = pd.concat(full_data)
+full_data = pd.concat(full_data, ignore_index=True)
 #ra_deltas = full_data['ra_deltas_mas']
 #de_deltas = full_data['de_deltas_mas']
 #tot_delta = np.hypot(ra_deltas, de_deltas)
@@ -515,11 +516,15 @@ hwhich = (full_data['filter'] == 'H2')
 ##--------------------------------------------------------------------------##
 
 ## Trend star selection:
+tr_npts = 1500
 trcount = {'UL':0, 'UR':0, 'LL':0, 'LR':0}
 tr_qmax = 2
 trend_targlist = []
 for ii,targ in enumerate(proc_objs, 1):
     vals = save_fitters[targ].dataset
+    # skip skimpy data sets:
+    if len(vals) < tr_npts:
+        continue
     avgx = np.average(vals['x'])
     avgy = np.average(vals['y'])
     # Lower-left:
@@ -617,7 +622,7 @@ for ii,targ in enumerate(proc_objs, 1):
     full_data.append(tdata)
     pass
 
-full_data = pd.concat(full_data)
+full_data = pd.concat(full_data, ignore_index=True)
 #ra_deltas = full_data['ra_deltas_mas']
 #de_deltas = full_data['de_deltas_mas']
 #tot_delta = np.hypot(ra_deltas, de_deltas)
@@ -626,6 +631,24 @@ full_data = pd.concat(full_data)
 
 jwhich = (full_data['filter'] == 'J')
 hwhich = (full_data['filter'] == 'H2')
+
+##--------------------------------------------------------------------------##
+## Binning to aid the plot:
+
+bwid = 0.25
+
+jmin = 6.5
+hmin = 9.5
+jsubset = full_data[jwhich].copy()
+jsubset['bin'] = np.int_((jsubset['inst_mag'] - jmin) / bwid)
+jb_avg = jsubset.groupby("bin").mean()
+jb_med = jsubset.groupby("bin").median()
+del jsubset
+
+hsubset = full_data[hwhich].copy()
+hsubset['bin'] = np.int_((hsubset['inst_mag'] - hmin) / bwid)
+hb_avg = hsubset.groupby("bin").mean()
+hb_med = hsubset.groupby("bin").median()
 
 #sys.exit(0)
 ##--------------------------------------------------------------------------##
@@ -657,28 +680,35 @@ ax1 = fig.add_subplot(211)
 ax2 = fig.add_subplot(212)
 #ax1 = fig.add_subplot(111, polar=True)
 #ax1 = fig.add_axes([0, 0, 1, 1])
-#ax1.patch.set_facecolor((0.8, 0.8, 0.8))
-ax1.grid(True)
-ax2.grid(True)
+for ax in (ax1, ax2):
+    ax.patch.set_facecolor((0.8, 0.8, 0.8))
+    ax.grid(True)
 #ax1.axis('off')
 
-plot_name = 'raw_scatter.png'
+full_plot = 'raw_scatter_full.png'
+crop_plot = 'raw_scatter_crop.png'
+
 skw = {'lw':0, 's':5}
 ax1.scatter(full_data['inst_mag'][jwhich], 
             full_data['raw_tot_delta_mas'][jwhich], label='J', **skw)
+ax1.plot(jb_avg['inst_mag'], jb_avg['raw_tot_delta_mas'], c='r', label='J per-bin avg')
+ax1.plot(jb_med['inst_mag'], jb_med['raw_tot_delta_mas'], c='g', label='J per-bin med')
 ax2.scatter(full_data['inst_mag'][hwhich],
             full_data['raw_tot_delta_mas'][hwhich], label='H2', **skw)
+ax2.plot(hb_avg['inst_mag'], hb_avg['raw_tot_delta_mas'], c='r', label='H per-bin avg')
+ax2.plot(hb_med['inst_mag'], hb_med['raw_tot_delta_mas'], c='g', label='H per-bin med')
 ax2.set_xlabel('instrumental mag')
 #ax1.set_ylabel('total residual [mas]')
+fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
+[ax.legend(loc='best') for ax in (ax1,ax2)]
+fig.savefig(full_plot, bbox_inches='tight')
 for ax in (ax1, ax2):
     ax.set_ylim(-10, 250)
     ax.set_ylabel('total residual [mas]')
 #ax1.set_ylim(-10, 250)
 ax1.set_xlim(6.5, 11.5)
-ax1.legend(loc='best')
-fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
 plt.draw()
-fig.savefig(plot_name, bbox_inches='tight')
+fig.savefig(crop_plot, bbox_inches='tight')
 
 # ----------------------------------------------------------------------- 
 # TFA RMS PLOT:
@@ -692,28 +722,34 @@ ax1 = fig.add_subplot(211)
 ax2 = fig.add_subplot(212)
 #ax1 = fig.add_subplot(111, polar=True)
 #ax1 = fig.add_axes([0, 0, 1, 1])
-#ax1.patch.set_facecolor((0.8, 0.8, 0.8))
-ax1.grid(True)
-ax2.grid(True)
-#ax1.axis('off')
+for ax in (ax1, ax2):
+    ax.patch.set_facecolor((0.8, 0.8, 0.8))
+    ax.grid(True)
 
-plot_name = 'tfa_scatter.png'
+full_plot = 'tfa_scatter_full.png'
+crop_plot = 'tfa_scatter_crop.png'
+
 skw = {'lw':0, 's':5}
 ax1.scatter(full_data['inst_mag'][jwhich], 
             full_data['cln_tot_delta_mas'][jwhich], label='J', **skw)
+ax1.plot(jb_avg['inst_mag'], jb_avg['cln_tot_delta_mas'], c='r', label='J per-bin avg')
+ax1.plot(jb_med['inst_mag'], jb_med['cln_tot_delta_mas'], c='g', label='J per-bin med')
 ax2.scatter(full_data['inst_mag'][hwhich],
             full_data['cln_tot_delta_mas'][hwhich], label='H2', **skw)
+ax2.plot(hb_avg['inst_mag'], hb_avg['cln_tot_delta_mas'], c='r', label='H per-bin avg')
+ax2.plot(hb_med['inst_mag'], hb_med['cln_tot_delta_mas'], c='g', label='H per-bin med')
 ax2.set_xlabel('instrumental mag')
 #ax1.set_ylabel('total residual [mas]')
+fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
+[ax.legend(loc='best') for ax in (ax1,ax2)]
+fig.savefig(full_plot, bbox_inches='tight')
 for ax in (ax1, ax2):
     ax.set_ylim(-10, 250)
     ax.set_ylabel('total residual [mas]')
 #ax1.set_ylim(-10, 250)
 ax1.set_xlim(6.5, 11.5)
-ax1.legend(loc='best')
-fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
 plt.draw()
-fig.savefig(plot_name, bbox_inches='tight')
+fig.savefig(crop_plot, bbox_inches='tight')
 
 ## Polar scatter:
 #skw = {'lw':0, 's':15}
