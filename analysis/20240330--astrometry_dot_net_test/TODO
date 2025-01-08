@@ -27,4 +27,10 @@ updated runid_residuals:
 
 * QSOGRADE filtering after download
 * incorporate GAIN into the extraction process (note GAINERR and GAINMEAS)
+* ensure 'signal' (flux * exptime =~ counts) is included at extraction time
+* decide FWHM measure, incorporate into extraction and use for noise model
+* decide what to call "signal" and make sure it is included at extraction stage
+* implement AstFit pruning based on high rweight when selecting output data?
+      --> alternatively, update inliers?
+      --> NOTE 1: this is already included in the _use_XX_err array
 
