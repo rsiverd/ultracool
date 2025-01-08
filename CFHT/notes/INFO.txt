@@ -19,10 +19,12 @@
 * 0.3 arcsec / pixel
 * 14x14 pixel guide region
 * 10.3 x 10.3 arcmin FOV per sensor (21 x 21 arcmin mosaic)
+* gain ~ 3.8 e- / ADU
 
 # Teledyne HAWAII 2RG sensor:
 * HgCdTe (mer cad tel) design
 * 2048 x 2048 array, 18 x 18 micron pixels
 * total area 36.9 x 36.9 mm
+* full well depth ~ 100,000 electrons
 * guide window output
 
