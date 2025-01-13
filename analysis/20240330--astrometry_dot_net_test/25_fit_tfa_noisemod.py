@@ -453,9 +453,9 @@ sys.stderr.write("\n%s\n" % fulldiv)
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
-sys.stderr.write("Creating fitters ... ")
-fitters = {sid:at2.AstFit() for sid in proc_objs}
-sys.stderr.write("done.\n")
+#sys.stderr.write("Creating fitters ... ")
+#fitters = {sid:at2.AstFit() for sid in proc_objs}
+#sys.stderr.write("done.\n")
 
 ## Run processing:
 num_todo = 0
@@ -468,14 +468,15 @@ pruned_results = {}
 ## Files for checkpointing:
 savefile_data = 'pass1_data.pickle'
 savefile_pars = 'pass1_pars.pickle'
-savefile_fits = 'pass1_fits.pickle'
-p1_files_list = [savefile_data, savefile_pars, savefile_fits]
+#savefile_fits = 'pass1_fits.pickle'
+#p1_files_list = [savefile_data, savefile_pars, savefile_fits]
+p1_files_list = [savefile_data, savefile_pars]
 
 ## Try to load from pickles:
 if all([os.path.isfile(x) for x in p1_files_list]):
     pruned_results = load_pickled_object(savefile_data)
     save_bestpars  = load_pickled_object(savefile_pars)
-    save_fitters   = load_pickled_object(savefile_fits)
+    #save_fitters   = load_pickled_object(savefile_fits)
 else:
     # If no pickles, redo from scratch:
     for ii,targ in enumerate(proc_objs, 1):
@@ -510,7 +511,7 @@ else:
     sys.stderr.write("Stashing pass1 results ... ")
     stash_as_pickle(savefile_data, pruned_results)
     stash_as_pickle(savefile_pars, save_bestpars)
-    stash_as_pickle(savefile_fits, save_fitters)
+    #stash_as_pickle(savefile_fits, save_fitters)
     tok = time.time()
     sys.stderr.write("done. Took %.2f seconds.\n" % (tok-tik))
     sys.stderr.write("\n%s\n" % fulldiv)
