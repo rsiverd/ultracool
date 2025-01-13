@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2022-03-10
-# Last modified: 2024-06-17
+# Last modified: 2025-01-13
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 ## Modules:
 import gc
@@ -140,6 +140,13 @@ _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 #        matched_data.append(mdata)
 #    return matched_data
 
+
+##--------------------------------------------------------------------------##
+##------------------       Exception Handling Classes       ----------------##
+##--------------------------------------------------------------------------##
+
+class NotReadyException(Exception):
+    pass
 
 ##--------------------------------------------------------------------------##
 ##------------------    Low-Level Coordinate Detrending     ----------------##
@@ -383,6 +390,8 @@ class InstCooDetrend(object):
         return
 
     def add_trend(self, name, times, values, insts):
+        if not self._have_data:
+            raise NotReadyException("Add data with set_data() before adding trends ...")
         #self._reset_math()     # maybe wise
         if not self._vectors_are_okay(times, values):
             sys.stderr.write("Mismatched times/values in trend %s!\n" % name)
@@ -406,6 +415,8 @@ class InstCooDetrend(object):
         return
 
     def detrend(self):
+        if not self._have_data:
+            raise NotReadyException("No data to detrend!  Use set_data() first ...")
         for ii in self._inst_list:
             sys.stderr.write("Detrending %s ... " % ii)
             self._cdtr_objs[ii].detrend()
