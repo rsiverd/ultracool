@@ -131,9 +131,9 @@ sys.stderr = Unbuffered(sys.stderr)
 
 unlimited = (resource.RLIM_INFINITY, resource.RLIM_INFINITY)
 if (resource.getrlimit(resource.RLIMIT_DATA) == unlimited):
-    resource.setrlimit(resource.RLIMIT_DATA,  (3e9, 6e9))
+    resource.setrlimit(resource.RLIMIT_DATA,  (6e9, 12e9))
 if (resource.getrlimit(resource.RLIMIT_AS) == unlimited):
-    resource.setrlimit(resource.RLIMIT_AS, (3e9, 6e9))
+    resource.setrlimit(resource.RLIMIT_AS, (6e9, 12e9))
 
 ## Memory management:
 #def get_memory():
@@ -326,16 +326,29 @@ if not os.path.isdir(save_dir):
 ##--------------------------------------------------------------------------##
 flux_cut = 1000.  # ~15th percentile
 flux_cut = 10000.  # ~15th percentile
+flux_cut = 100
 
 ## Master list of Gaia IDs:
 have_gaia_ids = set()
-gaia_match_dfs = []
-gaia_match_cats = []
+#gaia_match_dfs = []
+#gaia_match_cats = []
 nfcat = 0
-ntodo = 0
+ntodo = 0       # number of runids to process
 nruns = 0
 
-## Iterate over runids:
+## OVERVIEW:
+## To keep the total RAM requirements from overwhelming my computer, this
+## script will operate piecewise. An initial pass over all fcat files will
+## identify the Gaia IDs that we want to dump to a file. This master list
+## is broken into chunks that will be handled individually. In this way,
+## the total amount of data tracked at any given time will be significantly
+## lessened.
+
+##--------------------------------------------------------------------------##
+##------------------         Pass 1: make Gaia ID list      ----------------##
+##--------------------------------------------------------------------------##
+
+## Initial pass: iterate over runids and gather Gaia sources:
 for this_runid in use_runids:
     nruns += 1
     have_files = runid_files[this_runid]
@@ -354,34 +367,97 @@ for this_runid in use_runids:
         #srcs[ibase] = matches
         have_gaia_ids = have_gaia_ids.union(set(matches['gaia_id']))
         #gaia_match_cats.append(matches.copy())
-        gaia_match_dfs.append(pd.DataFrame.from_records(matches))
+        #gaia_match_dfs.append(pd.DataFrame.from_records(matches))
 
     if (ntodo > 0) and (nruns >= ntodo):
         break
 
-## Concatenate the Gaia matches:
-sys.stderr.write("RAM before concat: %.3f\n" % check_mem_usage_MB())
-#all_gaia_matches = pd.concat(gaia_match_dfs)
-gaia_hits = pd.concat(gaia_match_dfs)
-sys.stderr.write("RAM  after concat: %.3f\n" % check_mem_usage_MB())
-#sys.exit(0)
+use_gaia_ids   = sorted(list(have_gaia_ids))
+n_matches      = len(use_gaia_ids)
+#master_id_list = np.array(use_gaia_ids)
+#n_gaia_sources = len(master_id_list)
+sys.stderr.write("Master Gaia ID list includes %d sources.\n" % n_matches)
 
-## Next, iterate over Gaia IDs:
-use_gaia_ids = sorted(list(have_gaia_ids))
-n_matches = len(use_gaia_ids)
+nparts = 4
+id_chunks = np.array_split(use_gaia_ids, nparts)
 
-## Group by Gaia ID:
-chunks = gaia_hits.groupby('gaia_id')
 
-## What fraction of images should have the detection? If something is only
-## visible in J, the count is already cut in half. 
-filters = pd.unique(gaia_hits['filter'])
-nfilter = len(filters)
-detfrac = 0.5
-min_pts = int(nfcat / nfilter * detfrac)
+## Iterate over chunks:
+for cnk in id_chunks:
+    gaia_match_dfs = []     # clear the list
+    nfcat = 0               # initialize for each chunk
+    nruns = 0               # initialize for each chunk
 
-## Note the number of points for each object:
-ts_sizes = {x:len(y) for x,y in chunks}
+    # Iterate over runids:
+    for this_runid in use_runids:
+        nruns += 1
+        have_files = runid_files[this_runid]
+    
+        for ii,this_fcat in enumerate(have_files, 1):
+            nfcat += 1
+            ibase = ibase_from_filename(this_fcat)
+            sys.stderr.write("Loading %s ... " % this_fcat)
+            ccc.load_from_fits(this_fcat)
+            stars = ccc.get_catalog()
+            #cats[ibase] = stars
+            sys.stderr.write("done.\n")
+            #which_gaia = (stars['gaia_id'] > 0)
+            #brightish  = (stars['flux'] > flux_cut)
+            #matches    = stars[which_gaia & brightish]
+            ##srcs[ibase] = matches
+            #have_gaia_ids = have_gaia_ids.union(set(matches['gaia_id']))
+            #gaia_match_cats.append(matches.copy())
+            stars = pd.DataFrame.from_records(stars)
+            #gaia_match_dfs.append(pd.DataFrame.from_records(matches))
+            gaia_match_dfs.append(
+                    stars[stars.gaia_id.isin(cnk)].copy().reset_index(drop=True))
+
+        if (ntodo > 0) and (nruns >= ntodo):
+            break
+
+    # Concatenate the Gaia matches:
+    sys.stderr.write("RAM before concat: %.3f\n" % check_mem_usage_MB())
+    #all_gaia_matches = pd.concat(gaia_match_dfs)
+    gaia_hits = pd.concat(gaia_match_dfs, ignore_index=True)
+    sys.stderr.write("RAM  after concat: %.3f\n" % check_mem_usage_MB())
+
+
+    ## Next, iterate over Gaia IDs:
+    #use_gaia_ids = sorted(list(have_gaia_ids))
+    #n_matches = len(use_gaia_ids)
+
+    # Group by Gaia ID:
+    chunks = gaia_hits.groupby('gaia_id')
+
+    # What fraction of images should have the detection? If something is only
+    # visible in J, the count is already cut in half. 
+    filters = pd.unique(gaia_hits['filter'])
+    nfilter = len(filters)
+    detfrac = 0.5
+    min_pts = int(nfcat / nfilter * detfrac)
+
+    # Note the number of points for each object:
+    ts_sizes = {x:len(y) for x,y in chunks}
+
+    # Iterate over objects again and dump data for objects that 
+    # exceed the threshold:
+    tik = time.time()
+    for ii,(gid,subset) in enumerate(chunks, 1):
+        #save_base = 'gm_%d.fits' % gid
+        save_base = 'gm_%d.csv' % gid
+        save_file = os.path.join(save_dir, save_base)
+        npts = len(subset)
+        if npts < min_pts:
+            continue
+        sys.stderr.write("gid=%d npts=%d\n" % (gid, npts))
+        subset.to_csv(save_file, index=False)
+        #if npts > 50:
+        #    subset.to_csv(save_file, index=False)
+    tok = time.time()
+    taken = tok - tik
+    sys.stderr.write("Iterated in %.3f sec\n" % taken)
+
+sys.exit(0)
 ## Iterate over objects and check points per Gaia source:
 #ts_sizes = {}
 #tik = time.time()
@@ -395,23 +471,23 @@ ts_sizes = {x:len(y) for x,y in chunks}
 #taken = tok - tik
 #sys.stderr.write("Iterated in %.3f sec\n" % taken)
 
-## Iterate over objects again and dump data for objects that 
-## exceed the threshold:
-tik = time.time()
-for ii,(gid,subset) in enumerate(chunks, 1):
-    #save_base = 'gm_%d.fits' % gid
-    save_base = 'gm_%d.csv' % gid
-    save_file = os.path.join(save_dir, save_base)
-    npts = len(subset)
-    if npts < min_pts:
-        continue
-    sys.stderr.write("gid=%d npts=%d\n" % (gid, npts))
-    subset.to_csv(save_file, index=False)
-    #if npts > 50:
-    #    subset.to_csv(save_file, index=False)
-tok = time.time()
-taken = tok - tik
-sys.stderr.write("Iterated in %.3f sec\n" % taken)
+### Iterate over objects again and dump data for objects that 
+### exceed the threshold:
+#tik = time.time()
+#for ii,(gid,subset) in enumerate(chunks, 1):
+#    #save_base = 'gm_%d.fits' % gid
+#    save_base = 'gm_%d.csv' % gid
+#    save_file = os.path.join(save_dir, save_base)
+#    npts = len(subset)
+#    if npts < min_pts:
+#        continue
+#    sys.stderr.write("gid=%d npts=%d\n" % (gid, npts))
+#    subset.to_csv(save_file, index=False)
+#    #if npts > 50:
+#    #    subset.to_csv(save_file, index=False)
+#tok = time.time()
+#taken = tok - tik
+#sys.stderr.write("Iterated in %.3f sec\n" % taken)
 
 
 ######################################################################
