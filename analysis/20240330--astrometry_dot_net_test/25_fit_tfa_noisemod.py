@@ -7,7 +7,7 @@
 #
 # Rob Siverd
 # Created:       2024-12-09
-# Last modified: 2024-12-09
+# Last modified: 2025-01-13
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 
 ## Optional matplotlib control:
 #from matplotlib import use, rc, rcParams
@@ -59,7 +59,7 @@ import gc
 import os
 import sys
 import time
-#import pickle
+import pickle
 #import vaex
 #import calendar
 #import ephem
@@ -161,9 +161,9 @@ sys.stderr = Unbuffered(sys.stderr)
 
 unlimited = (resource.RLIM_INFINITY, resource.RLIM_INFINITY)
 if (resource.getrlimit(resource.RLIMIT_DATA) == unlimited):
-    resource.setrlimit(resource.RLIMIT_DATA,  (3e9, 6e9))
+    resource.setrlimit(resource.RLIMIT_DATA,  (6e9, 12e9))
 if (resource.getrlimit(resource.RLIMIT_AS) == unlimited):
-    resource.setrlimit(resource.RLIMIT_AS, (3e9, 6e9))
+    resource.setrlimit(resource.RLIMIT_AS, (6e9, 12e9))
 
 ## Memory management:
 #def get_memory():
@@ -180,9 +180,9 @@ if (resource.getrlimit(resource.RLIMIT_AS) == unlimited):
 #    resource.setrlimit(resource.RLIMIT_AS, (get_memory() * 1024 / 2, hard))
 
 ### Measure memory used so far:
-#def check_mem_usage_MB():
-#    max_kb_used = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-#    return max_kb_used / 1000.0
+def check_mem_usage_MB():
+    max_kb_used = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    return max_kb_used / 1000.0
 
 ##--------------------------------------------------------------------------##
 
@@ -412,6 +412,14 @@ def gaia_id_from_filename(filename):
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
+## Only load a subset of CSV columns to lower RAM consumption:
+want_cols = None    # all of them
+want_cols = ['x', 'y', 'a', 'b', 'flux', 'xpeak', 'ypeak', 'flag',
+        'filter', 'instrument', 'xdw_dl12', 'ydw_dl12',
+        'jdtdb', 'obs_x', 'obs_y', 'obs_z', 'obs_vx', 'obs_vy', 'obs_vz',
+        'gaia_ra', 'gaia_de', 'gaia_id', 'jntupd_ra', 'jntupd_de']
+
+
 ## Get list of CSV files with object data:
 targ_dir = 'by_object'
 csv_files = glob.glob('%s/gm_*.csv' % targ_dir)
@@ -423,7 +431,7 @@ targ_files = {gaia_id_from_filename(x):x for x in csv_files}
 sys.stderr.write("Loading data ... ") 
 targ_data = {}
 tik = time.time()
-targ_data = {gg:pd.read_csv(cc) for gg,cc in targ_files.items()}
+targ_data = {gg:pd.read_csv(cc, usecols=want_cols) for gg,cc in targ_files.items()}
 tok = time.time()
 sys.stderr.write("done. Took %.3f seconds.\n" % (tok-tik))
 
@@ -436,6 +444,10 @@ biggies = {gg:nn for gg,nn in targ_npts.items() if nn > min_pts}
 sys.stderr.write("Have %d sources with N>%d.\n" % (len(biggies), min_pts))
 proc_objs = list(biggies.keys())
 proc_data = {sid:targ_data[sid] for sid in proc_objs}
+
+sys.stderr.write("\n%s\n" % fulldiv)
+sys.stderr.write("\nRAM used after load: %.2f MB" % check_mem_usage_MB())
+sys.stderr.write("\n%s\n" % fulldiv)
 
 
 ##--------------------------------------------------------------------------##
@@ -452,32 +464,61 @@ save_fitters  = {}
 save_bestpars = {}
 maxiters = 30
 pruned_results = {}
-for ii,targ in enumerate(proc_objs, 1):
-    sys.stderr.write("%s\n" % fulldiv)
-    sys.stderr.write("Initial fit of: %s\n" % targ)
-    afn = at2.AstFit()
-    _data = proc_data[targ].to_records()
-    #afn.setup(_data, ra_key='calc_ra', de_key='calc_de')
-    #afn.setup(_data, ra_key='dra', de_key='dde')
-    #afn.setup(_data, ra_key='mean_anet_ra', de_key='mean_anet_de')
-    afn.setup(_data, ra_key='jntupd_ra', de_key='jntupd_de')
-    bestpars = afn.fit_bestpars(sigcut=sig_thresh)
-    if not isinstance(bestpars, np.ndarray):
-        sys.stderr.write("Error performing fit!\n")
-        sys.exit(1)
-    iterpars = bestpars.copy()
-    for i in range(maxiters):
-        sys.stderr.write("Iteration %d ...\n" % i)
-        iterpars = afn.iter_update_bestpars(iterpars)
-        if afn.is_converged():
-            sys.stderr.write("Converged!  Iteration: %d\n" % i)
+
+## Files for checkpointing:
+savefile_data = 'pass1_data.pickle'
+savefile_pars = 'pass1_pars.pickle'
+savefile_fits = 'pass1_fits.pickle'
+p1_files_list = [savefile_data, savefile_pars, savefile_fits]
+
+## Try to load from pickles:
+if all([os.path.isfile(x) for x in p1_files_list]):
+    pruned_results = load_pickled_object(savefile_data)
+    save_bestpars  = load_pickled_object(savefile_pars)
+    save_fitters   = load_pickled_object(savefile_fits)
+else:
+    # If no pickles, redo from scratch:
+    for ii,targ in enumerate(proc_objs, 1):
+        sys.stderr.write("%s\n" % fulldiv)
+        sys.stderr.write("Initial fit of: %s\n" % targ)
+        afn = at2.AstFit()
+        _data = proc_data[targ].to_records()
+        #afn.setup(_data, ra_key='calc_ra', de_key='calc_de')
+        #afn.setup(_data, ra_key='dra', de_key='dde')
+        #afn.setup(_data, ra_key='mean_anet_ra', de_key='mean_anet_de')
+        afn.setup(_data, ra_key='jntupd_ra', de_key='jntupd_de')
+        bestpars = afn.fit_bestpars(sigcut=sig_thresh)
+        if not isinstance(bestpars, np.ndarray):
+            sys.stderr.write("Error performing fit!\n")
+            sys.exit(1)
+        iterpars = bestpars.copy()
+        for i in range(maxiters):
+            sys.stderr.write("Iteration %d ...\n" % i)
+            iterpars = afn.iter_update_bestpars(iterpars)
+            if afn.is_converged():
+                sys.stderr.write("Converged!  Iteration: %d\n" % i)
+                break
+        save_bestpars[targ] = afn.nice_units(iterpars)
+        save_fitters[targ] = afn
+        pruned_results[targ] = afn.collect_result_dataset(prune_outliers=True)
+        if (num_todo > 0) and (ii >= num_todo):
             break
-    save_bestpars[targ] = afn.nice_units(iterpars)
-    save_fitters[targ] = afn
-    pruned_results[targ] = afn.collect_result_dataset(prune_outliers=True)
-    if (num_todo > 0) and (ii >= num_todo):
-        break
-    pass
+        pass
+    
+    sys.stderr.write("\n%s\n" % fulldiv)
+    tik = time.time()
+    sys.stderr.write("Stashing pass1 results ... ")
+    stash_as_pickle(savefile_data, pruned_results)
+    stash_as_pickle(savefile_pars, save_bestpars)
+    stash_as_pickle(savefile_fits, save_fitters)
+    tok = time.time()
+    sys.stderr.write("done. Took %.2f seconds.\n" % (tok-tik))
+    sys.stderr.write("\n%s\n" % fulldiv)
+
+## Announce memory damage:
+sys.stderr.write("\n%s\n" % fulldiv)
+sys.stderr.write("\nRAM used after initial fits: %.2f MB" % check_mem_usage_MB())
+sys.stderr.write("\n%s\n" % fulldiv)
 
 ## Initial gathering of data for undetrended RMS plot (plus trend selection):
 full_data = []
@@ -569,8 +610,8 @@ for targ in trend_targlist:
 #ICD_DE = detrending.InstCooDetrend()
 save_dtr_ra = {}
 save_dtr_de = {}
-want_ra_cols = ('jdtdb', 'fit_resid_ra_mas', 'instrument')
-want_de_cols = ('jdtdb', 'fit_resid_ra_mas', 'instrument')
+#want_ra_cols = ('jdtdb', 'fit_resid_ra_mas', 'instrument')
+#want_de_cols = ('jdtdb', 'fit_resid_de_mas', 'instrument')
 for targ in proc_objs:
     sys.stderr.write("%s\n" % fulldiv)
     sys.stderr.write("Target: %s\n" % targ)
@@ -583,9 +624,8 @@ for targ in proc_objs:
     # load object data into detrender:
     #_data = save_fitters[targ].collect_result_dataset(prune_outliers=True)
     _data = pruned_results[targ]
-    #this_ICD_RA.set_data(_data['jdtdb'], _data['fit_resid_ra_mas'], _data['instrument'])
-    this_ICD_RA.set_data(*[_data[x] for x in want_ra_cols])
-    this_ICD_RA.set_data(*[_data[x] for x in want_de_cols])
+    this_ICD_RA.set_data(_data['jdtdb'], _data['fit_resid_ra_mas'], _data['instrument'])
+    this_ICD_DE.set_data(_data['jdtdb'], _data['fit_resid_de_mas'], _data['instrument'])
 
     ## load object data into detrender:
     #this_fit = save_fitters[targ]
@@ -602,12 +642,16 @@ for targ in proc_objs:
         this_ICD_RA.add_trend(trtarg, tr_jdtdb, tr_ra_errs, tr_inst)
         this_ICD_DE.add_trend(trtarg, tr_jdtdb, tr_de_errs, tr_inst)
         pass
+
     # clean it up:
-    this_ICD_RA.detrend()
-    this_ICD_DE.detrend()
-    # save for later:
-    save_dtr_ra[targ] = this_ICD_RA
-    save_dtr_de[targ] = this_ICD_DE
+    try:
+        this_ICD_RA.detrend()
+        this_ICD_DE.detrend()
+        # save for later:
+        save_dtr_ra[targ] = this_ICD_RA
+        save_dtr_de[targ] = this_ICD_DE
+    except:
+        sys.stderr.write("Problem detrending %d ...\n" % targ)
 
 ## Gather data for analysis after detrending:
 full_data = []
@@ -615,6 +659,11 @@ for ii,targ in enumerate(proc_objs, 1):
     #this_fit = save_fitters[targ]
     #tdata = pd.DataFrame.from_records(this_fit.dataset)
     #errs_ra, errs_de = this_fit.get_radec_minus_model_mas(cos_dec_mult=True)
+    
+    # skip detrending failures:
+    if targ not in save_dtr_ra.keys():
+        sys.stderr.write("Target not in detrend dict: %d\n" % targ)
+        continue
 
     this_dtr_ra = save_dtr_ra[targ]
     this_dtr_de = save_dtr_de[targ]
@@ -646,6 +695,13 @@ full_data = pd.concat(full_data, ignore_index=True)
 #tot_delta = np.hypot(ra_deltas, de_deltas)
 #inst_mags = full_data['inst_mag']
 #tot_delta = full_data
+
+sys.stderr.write("\n%s\n" % fulldiv)
+save_file = 'full_data.pickle'
+sys.stderr.write("Stashing pickle with final residuals (%s) ...\n" % save_file)
+tik = time.time()
+stash_as_pickle(save_file, full_data)
+tok = time.time()
 
 jwhich = (full_data['filter'] == 'J')
 hwhich = (full_data['filter'] == 'H2')
