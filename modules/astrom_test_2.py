@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2021-08-30
-# Last modified: 2025-01-06
+# Last modified: 2025-01-13
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 
 ## Modules:
 import os
@@ -79,8 +79,8 @@ class AstFit(object):
         * parallax (radians)
     """
 
-    _need_eph_keys = ['jdtdb', 'x', 'y', 'z']
-    _need_data_keys = ['jdtdb', 'dra', 'dde', 'obs_x', 'obs_y', 'obs_z']
+    #_need_eph_keys = ['jdtdb', 'x', 'y', 'z']
+    _need_data_keys = ['jdtdb', 'obs_x', 'obs_y', 'obs_z'] #'dra', 'dde',
     _asec_per_rad  = _ARCSEC_PER_RADIAN
     _mas_per_rad   = _MAS_PER_RADIAN
 
