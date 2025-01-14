@@ -1,0 +1,7 @@
+
+# WIRwolf stacking procedure:
+https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/wirwolf/docs/proc.html
+
+# MegaPipe paper (stacking pipeline at CADC):
+https://ui.adsabs.harvard.edu/abs/2008PASP..120..212G/abstract
+
