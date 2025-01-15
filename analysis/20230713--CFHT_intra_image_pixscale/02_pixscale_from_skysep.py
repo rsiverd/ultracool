@@ -182,6 +182,10 @@ sys.stderr.write("done. Took %.3f seconds.\n" % (tok-tik))
 #data.rename(columns={'Calc RAs':'sra'}, inplace=True)
 #data.rename(columns={'Calc Decs':'sde'}, inplace=True)
 
+
+_DEBUG = True
+_DEBUG = False
+
 ##--------------------------------------------------------------------------##
 ## Load/store ability (slow calculation):
 pkl_save = 'pixel_scales.pickle'
@@ -198,7 +202,7 @@ if os.path.isfile(pkl_save):
 else:
     tik = time.time()
     rscale_save = {}
-    ntodo = 0
+    ntodo = 1
     max_sep = 50
     for ii,(tag,isubset) in enumerate(chunks, 1):
         sys.stderr.write("\rImage %d of %d ... " % (ii, n_imgs))
@@ -207,7 +211,15 @@ else:
         ypix  = isubset['Y Pixel'].values
         gra   = isubset['Gaia RA'].values
         gde   = isubset['Gaia Dec'].values
-    
+        npts  = len(isubset)
+
+        if _DEBUG:
+            for col,vec in zip(['xpix', 'ypix', 'gra', 'gde'], 
+                                [xpix, ypix, gra, gde]):
+                nuniq = len(np.unique(vec))
+                if nuniq != npts:
+                    sys.stderr.write("non-unique %s (%d) ... " % (col, npts - nuniq))
+
         rhits = []    
         yhits = []
         for tx,ty,tra,tde in zip(xpix, ypix, gra, gde):
@@ -245,7 +257,7 @@ else:
         pickle.dump(rscale_save, ppp)
     sys.stderr.write("done.\n")
 
-#sys.exit(0)
+sys.exit(0)
 
 ##--------------------------------------------------------------------------##
 ## Plot config:
