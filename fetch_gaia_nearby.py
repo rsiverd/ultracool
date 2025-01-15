@@ -11,7 +11,7 @@
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.3.1"
+__version__ = "0.4.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -193,17 +193,24 @@ if __name__ == '__main__':
     #parser.set_defaults(cone_rad_deg=0.5)
     parser.set_defaults(overwrite=False)
     #parser.set_defaults(row_limit=0)
-    parser.set_defaults(data_release='DR2')
+    parser.set_defaults(data_release=None)
     # ------------------------------------------------------------------
     parser.add_argument('RA_deg', help='target RA in degrees', type=float)
     parser.add_argument('DE_deg', help='target RA in degrees', type=float)
     #parser.add_argument('-w', '--whatever', required=False, default=5.0,
     #        help='some option with default [def: %(default)s]', type=float)
-    parser.add_argument('--overwrite', required=False, action='store_true',
-            help='enable overwrite of existing output file')
     parser.add_argument('-o', '--output_file', required=True, default=None,
             help='output file for Gaia sources (CSV)', type=str)
+    parser.add_argument('--overwrite', required=False, action='store_true',
+            help='enable overwrite of existing output file')
     #parser.add_argument('remainder', help='other stuff', nargs='*')
+    # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    vgroup = parser.add_argument_group('Data Release')
+    vgroup.add_argument('--DR2', required=False, dest='data_release',
+            action='store_const', const='DR2', help='use Gaia Data Release 2')
+    vgroup.add_argument('--DR3', required=False, dest='data_release',
+            action='store_const', const='DR3', help='use Gaia Data Release 3')
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
     qgroup = parser.add_argument_group('Query Parameters')
@@ -229,9 +236,16 @@ if __name__ == '__main__':
     context.vlevel = 99 if context.debug else (context.verbose-context.quiet)
     context.prog_name = prog_name
 
+
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
+
+## Abort in case no data release is specified:
+if not context.data_release:
+    sys.stderr.write("\nNo data release specified!\n\n")
+    parser.print_help()
+    sys.exit(0)
 
 ## Stop early in case of existing output unless --overwrite given:
 if not context.overwrite:
@@ -249,6 +263,10 @@ if not context.overwrite:
 tgtcoo = coord.SkyCoord(ra=context.RA_deg, dec=context.DE_deg,
             unit=(uu.deg, uu.deg), frame='icrs')
 cone_radius = uu.Quantity(context.radius, uu.deg)
+
+## Choose data release:
+main_table = {'DR2':'gaiadr2.gaia_source', 'DR3':'gaiadr3.gaia_source'}
+Gaia.MAIN_GAIA_TABLE = "gaiadr3.gaia_source"    # does this work?
 
 ## Perform query:
 sys.stderr.write("Running query ... \n")
@@ -283,8 +301,9 @@ if context.output_file:
 #---------------------------------------------------------------------
 #
 #  2025-01-14:
-#     -- Increased __version__ to 0.3.1.
-#     -- Added --rowlimit option.
+#     -- Increased __version__ to 0.4.0.
+#     -- Added --rowlimit, --DR2, and --DR3 options.
+#     -- Added DR3 support. Data release
 #     -- Removed some big comment blocks with unused boilerplate.
 #
 #  2024-05-29:
