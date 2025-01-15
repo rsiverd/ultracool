@@ -215,6 +215,8 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------
     #parser.set_defaults(cone_rad_deg=0.5)
     parser.set_defaults(overwrite=False)
+    #parser.set_defaults(row_limit=0)
+    parser.set_defaults(data_release='DR2')
     # ------------------------------------------------------------------
     parser.add_argument('RA_deg', help='target RA in degrees', type=float)
     parser.add_argument('DE_deg', help='target RA in degrees', type=float)
@@ -232,6 +234,8 @@ if __name__ == '__main__':
     #        help='Output filename', type=str)
     qgroup.add_argument('-R', '--radius', default=0.5, required=False,
             help='radius of search cone in DEGREES')
+    qgroup.add_argument('--rowlimit', required=False, default=0,
+            help='row limit for query [def: %(default)s]', type=int)
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
     # Miscellany:
@@ -272,7 +276,7 @@ cone_radius = uu.Quantity(context.radius, uu.deg)
 ## Perform query:
 sys.stderr.write("Running query ... \n")
 tik  = time.time()
-Gaia.ROW_LIMIT = 0
+Gaia.ROW_LIMIT = context.rowlimit
 qobj = Gaia.cone_search_async(tgtcoo, cone_radius)
 hits = qobj.get_results()
 tok  = time.time()
