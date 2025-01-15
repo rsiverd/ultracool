@@ -43,6 +43,7 @@ icy = np.int_((ry - 0.5) / cellpix_y)
 pscales = np.zeros((n_ycells, n_xcells))
 
 ## Iterate over cells:
+med_vals = []
 for yc in range(n_ycells):
     #sys.stderr.write("yc: %d\n" % yc)
     which_ycell = (icy == yc)
@@ -54,6 +55,9 @@ for yc in range(n_ycells):
         cell_subset = y_subset[which_xcell]
         cell_rx, cell_ry, cell_rpix, cell_pscl = cell_subset.T
         pscales[yc, xc] = np.median(cell_pscl)
+        med_vals.append(np.median(cell_subset, axis=0))
+med_vals = np.vstack(med_vals)
+
 
 ##--------------------------------------------------------------------------##
 #plt.style.use('bmh')   # Bayesian Methods for Hackers style
@@ -76,4 +80,27 @@ plot_name = 'pixel_scale_%dx%d.png' % (n_xcells, n_ycells)
 fig.tight_layout()
 plt.draw()
 fig.savefig(plot_name, bbox_inches='tight')
+
+##--------------------------------------------------------------------------##
+## Another figure to play with the radial profile:
+rfig = plt.figure(2, figsize=fig_dims)
+rfig.clf()
+rax = rfig.add_subplot(111)
+
+mx, my, mdist, mpscale = med_vals.T
+
+crpix1, crpix2 = 2122.69077900, -81.6788876100
+rdist = np.hypot(mx - crpix1, my - crpix2)
+
+crpix1 += 200
+crpix2 -= 50
+rdist2 = np.hypot(mx - crpix1, my - crpix2)
+
+#rax.scatter(mx, my, c=mpscale)
+skw = {'lw':0, 's':15}
+rax.scatter(rdist, mpscale, **skw)
+rax.scatter(rdist2, mpscale, **skw)
+
+rfig.tight_layout()
+plt.draw()
 
