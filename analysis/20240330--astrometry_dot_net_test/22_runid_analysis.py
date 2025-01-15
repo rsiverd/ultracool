@@ -469,6 +469,8 @@ use_runids = sorted(runid_dirs.keys())
 dist_mod = 'dl12'
 _xdw_key = 'xdw_dl12'
 _ydw_key = 'ydw_dl12'
+_wxdw_key = 'wxdw_dl12'
+_wydw_key = 'wydw_dl12'
 _crval_keys = ['CRVAL1', 'CRVAL2']
 _param_keys = list(_cd_keys) + _crval_keys
 
@@ -480,7 +482,7 @@ jresid_stddev = {}
 jresid_maddev = {}
 jresid_points = {}
 flux_cut = 1000.  # ~15th percentile
-flux_cut = 10000.  # ~15th percentile
+#flux_cut = 10000.  # ~15th percentile
 for this_runid in use_runids:
     have_files = runid_files[this_runid]
     cats = {}
@@ -637,7 +639,7 @@ for this_runid in use_runids:
     jresid_maddev[this_runid]['all'] = jnt_resid_iqrn
     jresid_points[this_runid]['all'] = len(jnt_resids)
 
-    big_results[this_runid] = jnt_full_result
+    #big_results[this_runid] = jnt_full_result
 
     # ----------------------------------------------------------------------- 
     # Recalculate positions for input catalogs:
@@ -651,14 +653,24 @@ for this_runid in use_runids:
         save_fcat = os.path.join(save_jdir, os.path.basename(this_fcat))
         ccc.load_from_fits(this_fcat)
         stars = ccc.get_catalog()
+        
+        astpars = jnt_cdm.tolist() + jnt_crvals[idx].tolist()
+        # unwindowed positions:
         xrel = stars[_xdw_key] - crpix1
         yrel = stars[_ydw_key] - crpix2
-        astpars = jnt_cdm.tolist() + jnt_crvals[idx].tolist()
         jntupd_ra, jntupd_de = eval_cdmcrv(astpars, xrel, yrel)
         jntupd_ra = jntupd_ra % 360.0
+        # windowed positions:
+        wxrel = stars[_wxdw_key] - crpix1
+        wyrel = stars[_wydw_key] - crpix2
+        wjntupd_ra, wjntupd_de = eval_cdmcrv(astpars, wxrel, wyrel)
+        wjntupd_ra = wjntupd_ra % 360.0
+        # augment catalog and save:
         newcat = stars.copy()
-        newcat = append_fields(newcat, ('jntupd_ra', 'jntupd_de'),
-                (jntupd_ra, jntupd_de), usemask=False)
+        newcat = append_fields(newcat,
+                ('jntupd_ra', 'jntupd_de', 'wjntupd_ra', 'wjntupd_de'),
+                (jntupd_ra, jntupd_de, wjntupd_ra, wjntupd_de),
+                usemask=False)
         ccc.set_catalog(newcat)
         ccc.save_as_fits(save_fcat, overwrite=True)
         #break
@@ -763,7 +775,7 @@ for this_runid in use_runids:
 
 ## Stash my cumulative results for later:
 save_file = 'big_results.pickle'
-stash_as_pickle(save_file, big_results)
+#stash_as_pickle(save_file, big_results)
 
 # first = cats[sorted(cats.keys())[0]]
 #anet_ra_all = np.concatenate([x['mean_anet_ra'] for x in cats.values()])
