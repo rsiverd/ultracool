@@ -2,3 +2,8 @@ This is a quick investigation into how well we can estimate pixel
 scale changes across an image directly from the X,Y pixel separations
 and the matched Gaia RA, Dec positions. The data set likely has some
 contamination, but the basic idea should still work.
+
+NOTE (2025-01-15): I noticed today that the matches in Abby's giant
+CSV files are not unique. This is going to add noise but the basic
+idea is probably OK. This test should be repeated without dupes
+using newer cross-match routines.
