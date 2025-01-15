@@ -61,7 +61,7 @@ fig_dims = (12, 9)
 fig = plt.figure(1, figsize=fig_dims)
 fig.clf()
 
-ax1 = fig.add_subplot(111)
+ax1 = fig.add_subplot(111, aspect='equal')
 
 spts = ax1.imshow(pscales)
 #ax1.invert_y
