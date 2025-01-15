@@ -43,16 +43,16 @@ stores the results as CSV. Commands:
 $ source ~/anaconda3/bin/activate; conda activate astrom
 $ cd ~/ucd_project/ultracool                                                          # cd into base repo folder
 $ source ENVIRONMENT.sh                                                               # update PYTHONPATH
-$ ./fetch_gaia_nearby.py -R 0.3 294.70280000  +35.21010000 \
+$ ./fetch_gaia_nearby.py --DR2 -R 0.3 294.70280000  +35.21010000 \
    -o /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv
 
-./fetch_gaia_nearby.py -R 0.3 121.3814 +48.2094 \
+./fetch_gaia_nearby.py --DR2 -R 0.3 121.3814 +48.2094 \
    -o /home/rsiverd/ucd_project/ucd_cfh_data/SDSS_J0805_proc/gaia_sdss_0805_NE.csv
 
-./fetch_gaia_nearby.py -R 0.3 042.4850 -05.9598 \
+./fetch_gaia_nearby.py --DR2 -R 0.3 042.4850 -05.9598 \
    -o /home/rsiverd/ucd_project/ucd_cfh_data/2M0249ABc_proc/gaia_2M0249ABc_NE.csv
 
-./fetch_gaia_nearby.py -R 0.3 294.70280000  +35.21010000 \
+./fetch_gaia_nearby.py --DR2 -R 0.3 294.70280000  +35.21010000 \
    -o /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/gaia_calib1_NE.csv
 
 $ wc -l /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv            # make sure it has data
