@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2019-09-05
-# Last modified: 2024-05-29
+# Last modified: 2025-01-14
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 ## Python version-agnostic module reloading:
 try:
@@ -49,29 +49,6 @@ import numpy as np
 #import multiprocessing as mp
 #np.set_printoptions(suppress=True, linewidth=160)
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
-
-## Because obviously:
-#import warnings
-#if not sys.warnoptions:
-#    warnings.simplefilter("ignore", category=DeprecationWarning)
-#    warnings.simplefilter("ignore", category=UserWarning)
-#    warnings.simplefilter("ignore")
-#with warnings.catch_warnings():
-#    some_risky_activity()
-#with warnings.catch_warnings():
-#    warnings.filterwarnings("ignore", category=DeprecationWarning)
-#    import problem_child1, problem_child2
-
-##--------------------------------------------------------------------------##
-## Projections with cartopy:
-#try:
-#    import cartopy.crs as ccrs
-#    from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
-#    from cartopy.feature.nightshade import Nightshade
-#    #from cartopy import config as cartoconfig
-#except ImportError:
-#    sys.stderr.write("Error: cartopy module not found!\n")
-#    sys.exit(1)
 
 ##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
@@ -304,6 +281,11 @@ if context.output_file:
 ######################################################################
 # CHANGELOG (fetch_gaia_nearby.py):
 #---------------------------------------------------------------------
+#
+#  2025-01-14:
+#     -- Increased __version__ to 0.3.1.
+#     -- Added --rowlimit option.
+#     -- Removed some big comment blocks with unused boilerplate.
 #
 #  2024-05-29:
 #     -- Increased __version__ to 0.3.0.
