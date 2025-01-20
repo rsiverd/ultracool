@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2024-07-22
-# Last modified: 2024-10-28
+# Last modified: 2025-01-20
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 ## Optional matplotlib control:
 #from matplotlib import use, rc, rcParams
@@ -251,7 +251,8 @@ def argnear(vec, val):
 ##--------------------------------------------------------------------------##
 
 ## Load Gaia catalog:
-gaia_csv_path = '/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv'
+#gaia_csv_path = '/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv'
+gaia_csv_path = '//home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/gaia_calib1_NE.csv'
 gm.load_sources_csv(gaia_csv_path)
 
 ## Grab the ibase from a filename:
