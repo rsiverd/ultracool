@@ -266,7 +266,8 @@ cone_radius = uu.Quantity(context.radius, uu.deg)
 
 ## Choose data release:
 main_table = {'DR2':'gaiadr2.gaia_source', 'DR3':'gaiadr3.gaia_source'}
-Gaia.MAIN_GAIA_TABLE = "gaiadr3.gaia_source"    # does this work?
+#Gaia.MAIN_GAIA_TABLE = "gaiadr3.gaia_source"    # does this work?
+Gaia.MAIN_GAIA_TABLE = main_table[context.data_release]
 
 ## Perform query:
 sys.stderr.write("Running query ... \n")
