@@ -23,7 +23,7 @@
 #
 # Rob Siverd
 # Created:       2024-10-14
-# Last modified: 2024-10-14
+# Last modified: 2025-01-26
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 ## Python version-agnostic module reloading:
 try:
@@ -359,12 +359,35 @@ gbox_ll_x_pix = pkeys[gbox_ll_x_key]
 gbox_ll_y_pix = pkeys[gbox_ll_y_key]
 
 ## Transfer saturated pixels from raw to proc:
-is_saturated = (odata > 65534)
+#is_saturated = (odata > 65534)
+is_saturated = (odata > 60000)
 pdata[is_saturated] = context.saturval
 
 ## FIXME: add interpolation for isolated bad pixels:
 is_masked = (mdata > context.mthresh)
 pdata[is_masked] = median_value
+
+## Roll data to create 9-deep cube with 3x3 contents:
+sys.stderr.write("Rolling ... ")
+tik = time.time()
+ocube = []
+rspec = (-1, 0, 1)
+for dy in rspec:
+    yrimg = np.roll(odata, dy, axis=0)
+    ocube.extend([np.roll(yrimg, dx, axis=1) for dx in rspec])
+ocube = np.array(ocube)
+tok = time.time()
+sys.stderr.write("done. Took %.3f sec.\n" % (tok-tik))
+
+## Note whether pixel or its 3x3 neighbor is saturated in raw data:
+has_satur_nei = (np.max(ocube, axis=0) > 60000)
+
+## Pixels that are zeroed out in the processed fram:
+proc_is_zeroed = (pdata == 0)
+
+## Restore saturation value for zero-valued pixels with both a high raw value
+## and a saturated neighbor. This excludes isolated wacky pixels.
+pdata[proc_is_zeroed & has_satur_nei & (odata > 40000)] = context.saturval
 
 ## Columns and rows masked as they would be in the CFH/WIRCam pipeline:
 #gcols = range(gbox_ll_x_pix, gbox_ll_x_pix + gbox_xsize_pix)   # match gbox
