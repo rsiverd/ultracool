@@ -137,7 +137,8 @@ fi
 ## Ensure bad pixel masks exist:
 #cmde "./make-wircam-pixmasks.py -i $key_data -o $pixmask_dir"  || exit $?
 #cmde "./make-wircam-pixmasks.py -i $key_data -o $targ_dir"     || exit $?
-#cmde "./make-wircam-pixmasks.py -i $key_data -o $runid_base"   || exit $?
+cmde "./make-wircam-pixmasks.py -i $key_data -o $runid_base"   || exit $?
+#cmde "./make-wircam-pixmasks.py -i $vers_csv -o $runid_base"   || exit $?
 
 ## fitsarith options:
 #fopts="--bitpix -q -H"

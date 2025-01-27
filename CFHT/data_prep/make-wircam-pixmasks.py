@@ -263,8 +263,9 @@ sys.stderr.write("Using extension: %s\n" % use_extname)
 ##--------------------------------------------------------------------------##
 ## Load header data from file:
 pdkwargs = {'skipinitialspace':True, 'low_memory':False}
-#pdkwargs.update({'delim_whitespace':True, 'sep':'|', 'escapechar':'#'})
-hdata = pd.read_csv(context.hdrdata)
+##pdkwargs.update({'delim_whitespace':True, 'sep':'|', 'escapechar':'#'})
+pdkwargs.update({'delim_whitespace':True}) #, 'sep':'|', 'escapechar':'#'})
+hdata = pd.read_csv(context.hdrdata, **pdkwargs)
 
 ## Create output folder:
 sys.stderr.write("Output folder: %s\n" % context.outdir)
