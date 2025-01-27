@@ -1,0 +1,15 @@
+It turns out that the saturation threshold used in the CFHT pipeline
+is not the number that we see in the FITS header. This investigation
+aims to figure out where the cutoff is by comparing raw and processed
+images.
+
+Result: it looks like there isn't a simple cutoff value for zeroing out
+pixels. It may be that data *near* saturated pixels are treated as dubious
+at a lower value, something like 40-45k. Some pixels are given the 65535
+value that are not that high in the raw images.
+
+A sensible solution is probably to:
+(a) treat saturated pixels as I do now with a fixed cutoff
+(b) lower that cutoff to something more like 60k (from 65534)
+(c) additionally flat as saturated any pixels >40k that are 0 in processed
+

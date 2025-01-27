@@ -1,0 +1,18 @@
+
+mkdir -p example1
+
+cmde "fitsarith --bitpix -qHi '/data/rsiverd/ucd_cfh_data/calib1/download/2413738p.fits.fz[HAWAII-2RG-#60]' -o tmp.fits"
+cmde "fpack -D tmp.fits"
+cmde "mv -f tmp.fits.fz example1/ne_2413738p.fits.fz"
+
+cmde "fitsarith --bitpix -qHi '/data/rsiverd/ucd_cfh_data/calib1/download/2413738o.fits.fz[HAWAII-2RG-#60]' -o tmp.fits"
+cmde "fpack -D tmp.fits"
+cmde "mv -f tmp.fits.fz example1/ne_2413738o.fits.fz"
+
+
+# -----------------------------------------------------------------------
+# Make an image showing the difference 'o' - 'p' image:
+cmde "fitsarith -i example1/ne_2413738o.fits.fz -S example1/ne_2413738p.fits.fz -o tmp.fits"
+cmde "fpack -qt 16 -D -Y tmp.fits"
+cmde "mv -f tmp.fits.fz example1/ne_2413738_ominp.fits.fz"
+
