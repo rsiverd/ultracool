@@ -7,6 +7,16 @@ https://www.teledyneimaging.com/en/aerospace-and-defense/products/sensors-overvi
 
 # -----------------------------------------------------------------------
 
+# Photo of the detector mosaic:
+https://www.casca.ca/ecass/issues/2005-ws/features/cfht/cfht2.html
+https://www.casca.ca/ecass/issues/2005-ws/features/cfht/cfht2/wircam.jpg
+
+# WIRCam Performance Summary:
+https://www.cfht.hawaii.edu/Instruments/Imaging/WIRCam/quickinformation.html
+--> 45" gaps between CCDs
+
+# -----------------------------------------------------------------------
+
 # WIRCam quick info:
 https://www.cfht.hawaii.edu/Instruments/Imaging/WIRCam/quickinformation.html
 
