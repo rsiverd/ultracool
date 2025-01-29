@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2019-09-09
-# Last modified: 2023-10-30
+# Last modified: 2025-01-28
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 ## Python version-agnostic module reloading:
 try:
@@ -262,7 +262,8 @@ class GaiaMatch(object):
 
         # load sources from CSV:
         try:
-            self._rawdata = pd.read_csv(filename)
+            pdkw = {'low_memory':False}
+            self._rawdata = pd.read_csv(filename, **pdkw)
             self._clndata = self._rawdata           # init with ref epoch
             self._srcdata = self._rawdata           # init with ref epoch
         except:
