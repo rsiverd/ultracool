@@ -73,6 +73,7 @@ import numpy as np
 #import scipy.optimize as opti
 #import scipy.interpolate as stp
 #import scipy.spatial.distance as ssd
+import scipy.stats as scst
 import matplotlib.pyplot as plt
 #import matplotlib.patches as mpatches
 #import matplotlib.cm as cm
@@ -82,7 +83,7 @@ import matplotlib.pyplot as plt
 #import matplotlib.colors as mplcolors
 #import matplotlib.collections as mcoll
 #import matplotlib.gridspec as gridspec
-#from functools import partial
+from functools import partial
 #from collections import OrderedDict
 #from collections.abc import Iterable
 #import multiprocessing as mp
@@ -98,6 +99,8 @@ import pandas as pd
 #import window_filter as wf
 #import itertools as itt
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
+
+scaled_MAD = partial(scst.median_abs_deviation, scale='normal')
 
 ## Because obviously:
 #import warnings
@@ -159,11 +162,11 @@ sys.stderr = Unbuffered(sys.stderr)
 
 ##--------------------------------------------------------------------------##
 
-unlimited = (resource.RLIM_INFINITY, resource.RLIM_INFINITY)
-if (resource.getrlimit(resource.RLIMIT_DATA) == unlimited):
-    resource.setrlimit(resource.RLIMIT_DATA,  (6e9, 12e9))
-if (resource.getrlimit(resource.RLIMIT_AS) == unlimited):
-    resource.setrlimit(resource.RLIMIT_AS, (6e9, 12e9))
+#unlimited = (resource.RLIM_INFINITY, resource.RLIM_INFINITY)
+#if (resource.getrlimit(resource.RLIMIT_DATA) == unlimited):
+#    resource.setrlimit(resource.RLIMIT_DATA,  (6e9, 15e9))
+#if (resource.getrlimit(resource.RLIMIT_AS) == unlimited):
+#    resource.setrlimit(resource.RLIMIT_AS, (6e9, 15e9))
 
 ## Memory management:
 #def get_memory():
@@ -444,11 +447,12 @@ biggies = {gg:nn for gg,nn in targ_npts.items() if nn > min_pts}
 sys.stderr.write("Have %d sources with N>%d.\n" % (len(biggies), min_pts))
 proc_objs = list(biggies.keys())
 proc_data = {sid:targ_data[sid] for sid in proc_objs}
+proc_objs = proc_objs[::10]
 
 sys.stderr.write("\n%s\n" % fulldiv)
 sys.stderr.write("\nRAM used after load: %.2f MB" % check_mem_usage_MB())
 sys.stderr.write("\n%s\n" % fulldiv)
-
+gc.collect()
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
@@ -520,6 +524,7 @@ else:
 sys.stderr.write("\n%s\n" % fulldiv)
 sys.stderr.write("\nRAM used after initial fits: %.2f MB" % check_mem_usage_MB())
 sys.stderr.write("\n%s\n" % fulldiv)
+gc.collect()
 
 ## Initial gathering of data for undetrended RMS plot (plus trend selection):
 full_data = []
@@ -656,6 +661,8 @@ for targ in proc_objs:
 
 ## Gather data for analysis after detrending:
 full_data = []
+#full_jdata = []
+#full_hdata = []
 for ii,targ in enumerate(proc_objs, 1):
     #this_fit = save_fitters[targ]
     #tdata = pd.DataFrame.from_records(this_fit.dataset)
@@ -675,6 +682,9 @@ for ii,targ in enumerate(proc_objs, 1):
 
     tdata = pd.DataFrame.from_records(pruned_results[targ])
     tdata['raw_tot_delta_mas'] = np.hypot(tdata['fit_resid_ra_mas'], tdata['fit_resid_de_mas'])
+    #jwhich = (tdata['filter'] == 'J')
+    #hwhich = (tdata['filter'] == 'H2')
+
 
     #meas_flux.append(afn.dataset['flux'])
     #meas_filt.append(afn.dataset['filter'])
@@ -688,21 +698,27 @@ for ii,targ in enumerate(proc_objs, 1):
     tdata['fake_fwhm'] = 2. * np.sqrt(tdata['a'] * tdata['b'])
     tdata['instmag'] = kmag(tdata['flux'])
     full_data.append(tdata)
+    #full_jdata.append(tdata[jwhich])
+    #full_hdata.append(tdata[hwhich])
     pass
 
+#full_jdata = pd.concat(full_jdata, ignore_index=True)
+#full_hdata = pd.concat(full_hdata, ignore_index=True)
 full_data = pd.concat(full_data, ignore_index=True)
 #ra_deltas = full_data['ra_deltas_mas']
 #de_deltas = full_data['de_deltas_mas']
 #tot_delta = np.hypot(ra_deltas, de_deltas)
 #inst_mags = full_data['inst_mag']
 #tot_delta = full_data
+#sys.exit(0)
 
 sys.stderr.write("\n%s\n" % fulldiv)
 save_file = 'full_data.pickle'
-sys.stderr.write("Stashing pickle with final residuals (%s) ...\n" % save_file)
+sys.stderr.write("Stashing pickle with final residuals (%s) ... " % save_file)
 tik = time.time()
 stash_as_pickle(save_file, full_data)
 tok = time.time()
+sys.stderr.write("done. Took %.2f seconds.\n" % (tok-tik))
 
 jwhich = (full_data['filter'] == 'J')
 hwhich = (full_data['filter'] == 'H2')
@@ -714,17 +730,50 @@ bwid = 0.25
 
 jmin = 6.5
 hmin = 9.5
+
+
+#bin_idx = -5 * np.ones(len(full_data), dtype='int')
+##full_data['bin'] = np.ones(len(full_data), dtype='int')     # add bin column
+##full_data['bin'][jwhich] = np.int_((full_data['instmag'][jwhich] - jmin) / bwid)
+#bin_idx[jwhich] = np.int_((full_data['instmag'][jwhich] - jmin) / bwid)
+#bin_idx[hwhich] = np.int_((full_data['instmag'][hwhich] - hmin) / bwid)
+#full_data['bin'] = bin_idx
+
+#full_jdata['bin'] = np.int_((full_jdata['instmag'] - jmin) / bwid)
+#jb_avg = full_jdata.groupby("bin").mean()
+#jb_med = full_jdata.groupby("bin").median()
 jsubset = full_data[jwhich].copy()
 jsubset['bin'] = np.int_((jsubset['instmag'] - jmin) / bwid)
 jb_avg = jsubset.groupby("bin").mean()
 jb_med = jsubset.groupby("bin").median()
+jb_std = jsubset.groupby("bin").std()
+jb_mad_ra = jsubset.groupby("bin")['cln_ra_deltas_mas'].apply(scaled_MAD)
+jb_mad_de = jsubset.groupby("bin")['cln_de_deltas_mas'].apply(scaled_MAD)
+#jb_stats_ra = (jb_avg['instmag'], jb_med['
 del jsubset
 
+#full_hdata['bin'] = np.int_((full_hdata['instmag'] - hmin) / bwid)
+#hb_avg = full_hdata.groupby("bin").mean()
+#hb_med = full_hdata.groupby("bin").median()
 hsubset = full_data[hwhich].copy()
 hsubset['bin'] = np.int_((hsubset['instmag'] - hmin) / bwid)
 hb_avg = hsubset.groupby("bin").mean()
 hb_med = hsubset.groupby("bin").median()
+hb_std = hsubset.groupby("bin").std()
+hb_mad_ra = hsubset.groupby("bin")['cln_ra_deltas_mas'].apply(scaled_MAD)
+hb_mad_de = hsubset.groupby("bin")['cln_de_deltas_mas'].apply(scaled_MAD)
+del hsubset
 
+rade_stats = {}
+rade_stats['J'] = (jb_avg['instmag'], 
+        jb_med['cln_ra_deltas_mas'], jb_med['cln_de_deltas_mas'],
+        #jb_std['cln_ra_deltas_mas'], jb_std['cln_de_deltas_mas'],
+        jb_std['fit_resid_ra_mas'], jb_std['fit_resid_de_mas'],
+        jb_mad_ra, jb_mad_de)
+rade_stats['H2'] = (hb_avg['instmag'], 
+        hb_med['cln_ra_deltas_mas'], hb_med['cln_de_deltas_mas'],
+        hb_std['cln_ra_deltas_mas'], hb_std['cln_de_deltas_mas'],
+        hb_mad_ra, hb_mad_de)
 #sys.exit(0)
 ##--------------------------------------------------------------------------##
 #plt.style.use('bmh')   # Bayesian Methods for Hackers style
@@ -740,7 +789,6 @@ plot_name = 'raw_xyposns.png'
 fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
 plt.draw()
 fig.savefig(plot_name, bbox_inches='tight')
-
 
 
 # ----------------------------------------------------------------------- 
@@ -776,15 +824,63 @@ ax2.set_xlabel('instrumental mag')
 #ax1.set_ylabel('total residual [mas]')
 fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
 [ax.legend(loc='best') for ax in (ax1,ax2)]
-fig.savefig(full_plot, bbox_inches='tight')
 for ax in (ax1, ax2):
     ax.set_ylim(-10, 250)
     ax.set_ylabel('total residual [mas]')
+fig.savefig(full_plot, bbox_inches='tight')
 #ax1.set_ylim(-10, 250)
 ax1.set_xlim(6.5, 11.5)
 plt.draw()
 fig.savefig(crop_plot, bbox_inches='tight')
 
+# ----------------------------------------------------------------------- 
+## Same deal, RA stddev:
+
+#ra_fig = plt.figure(2, figsize=fig_dims)
+#ra_fig.clf()
+cc_fig, cc_axs = plt.subplots(2, 2, sharex=True, figsize=fig_dims, num=4, clear=True)
+for ax in cc_axs.flat:
+    ax.grid(True)
+    ax.set_xlabel('Instrumental mag')
+#[x.grid(True) for x in cc_axs.flat]
+#de_fig = plt.figure(3, figsize=fig_dims)
+#de_fig.clf()
+
+#ax1 = ra_fig.add_subplot(211)
+#ax2 = ra_fig.add_subplot(212)
+fflist = ['J', 'H2']
+fwhich = {'J':jwhich, 'H2':hwhich}
+#awhich = {'J':jb_avg, 'H2':hb_avg}
+#bwhich = {'J':jb_std, 'H2':hb_std}
+
+skw = {'lw':0, 's':3}
+sigkw = {'c':'r', 'lw':0, 's':10}
+for fname,(rax, dax) in zip(fflist, cc_axs):
+    fgrab = fwhich.get(fname)
+    imag, ra_med, de_med, ra_std, de_std, ra_mad, de_mad = rade_stats[fname]
+    rax.scatter(full_data['instmag'][fgrab],
+                full_data['cln_ra_deltas_mas'][fgrab], label=fname, **skw)
+    #rax.scatter(imag, ra_med)
+    [rax.scatter(imag, mm*ra_std, **sigkw) for mm in (-1, 1)]
+    #[rax.scatter(imag, mm*ra_mad, **sigkw) for mm in (-1, 1)]
+    rax.set_ylabel('RA resid [mas]')
+    dax.scatter(full_data['instmag'][fgrab],
+                full_data['cln_de_deltas_mas'][fgrab], label=fname, **skw)
+    #dax.scatter(imag, de_med)
+    [dax.scatter(imag, mm*de_std, **sigkw) for mm in (-1, 1)]
+    #[dax.scatter(imag, mm*de_mad, **sigkw) for mm in (-1, 1)]
+    dax.set_ylabel('Dec resid [mas]')
+
+for ax in cc_axs.flat:
+    ax.set_ylim(-250, 250)
+    ax.legend(loc='best')
+
+tfa_coo_plot = 'radec_resids_tfa.png'
+cc_fig.tight_layout()
+cc_fig.savefig(tfa_coo_plot, bbox_inches='tight')
+
+# ----------------------------------------------------------------------- 
+# ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
 # TFA RMS PLOT:
 fig.clf()
@@ -804,25 +900,32 @@ for ax in (ax1, ax2):
 full_plot = 'tfa_scatter_full.png'
 crop_plot = 'tfa_scatter_crop.png'
 
-skw = {'lw':0, 's':5}
+skw = {'lw':0, 's':3}
+pcol = 'cln_tot_delta_mas'
+pcol = 'cln_ra_deltas_mas'
 ax1.scatter(full_data['instmag'][jwhich], 
-            full_data['cln_tot_delta_mas'][jwhich], label='J', **skw)
-ax1.plot(jb_avg['instmag'], jb_avg['cln_tot_delta_mas'], c='r', label='J per-bin avg')
-ax1.plot(jb_med['instmag'], jb_med['cln_tot_delta_mas'], c='g', label='J per-bin med')
+            full_data[pcol][jwhich], label='J', **skw)
+ax1.plot(jb_avg['instmag'], jb_avg[pcol], c='r', label='J per-bin avg')
+ax1.plot(jb_med['instmag'], jb_med[pcol], c='g', label='J per-bin med')
+#ax1.plot(jb_avg['instmag'], jb_std[pcol
 ax2.scatter(full_data['instmag'][hwhich],
-            full_data['cln_tot_delta_mas'][hwhich], label='H2', **skw)
-ax2.plot(hb_avg['instmag'], hb_avg['cln_tot_delta_mas'], c='r', label='H per-bin avg')
-ax2.plot(hb_med['instmag'], hb_med['cln_tot_delta_mas'], c='g', label='H per-bin med')
+            full_data[pcol][hwhich], label='H2', **skw)
+ax2.plot(hb_avg['instmag'], hb_avg[pcol], c='r', label='H per-bin avg')
+ax2.plot(hb_med['instmag'], hb_med[pcol], c='g', label='H per-bin med')
 ax2.set_xlabel('instrumental mag')
 #ax1.set_ylabel('total residual [mas]')
+for ax in (ax1, ax2):
+    ax.legend(loc='best')
+    ax.set_ylabel('total residual [mas]')
+    ax.set_xlim(6.5, 20.5)
 fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
-[ax.legend(loc='best') for ax in (ax1,ax2)]
+#[ax.legend(loc='best') for ax in (ax1,ax2)]
 fig.savefig(full_plot, bbox_inches='tight')
 for ax in (ax1, ax2):
     ax.set_ylim(-10, 250)
-    ax.set_ylabel('total residual [mas]')
+    #ax.set_ylabel('total residual [mas]')
 #ax1.set_ylim(-10, 250)
-ax1.set_xlim(6.5, 11.5)
+#ax1.set_xlim(6.5, 11.5)
 plt.draw()
 fig.savefig(crop_plot, bbox_inches='tight')
 

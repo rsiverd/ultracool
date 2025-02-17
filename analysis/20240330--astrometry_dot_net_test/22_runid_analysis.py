@@ -474,6 +474,17 @@ _wydw_key = 'wydw_dl12'
 _crval_keys = ['CRVAL1', 'CRVAL2']
 _param_keys = list(_cd_keys) + _crval_keys
 
+model_dir = 'models'
+if not os.path.isdir(model_dir):
+    os.mkdir(model_dir)
+
+def dump_wcspars(filename, pars, delim=','):
+    cols = ['cd11', 'cd12', 'cd21', 'cd22', 'crval1', 'crval2']
+    with open(filename, 'w') as fff:
+        fff.write(delim.join(cols) + '\n')
+        fff.write(','.join([str(x) for x in pars]) + '\n')
+
+
 fit_results = {}
 ra_residuals = {}
 de_residuals = {}
@@ -539,12 +550,12 @@ for this_runid in use_runids:
         # shortcut notations:
         gaia_ra, xrel = matches['gaia_ra'], matches[_xdw_key] - crpix1
         gaia_de, yrel = matches['gaia_de'], matches[_ydw_key] - crpix2
-        by_img_gra.append(gaia_ra)
-        by_img_gde.append(gaia_de)
-        by_img_xrel.append(xrel)
-        by_img_yrel.append(yrel)
-        by_img_xraw.append(matches['x'])
-        by_img_yraw.append(matches['y'])
+        #by_img_gra.append(gaia_ra)
+        #by_img_gde.append(gaia_de)
+        #by_img_xrel.append(xrel)
+        #by_img_yrel.append(yrel)
+        ##by_img_xraw.append(matches['x'])
+        ##by_img_yraw.append(matches['y'])
         by_img_filt.append(matches['filter'])
         by_res_filt.append(matches['filter'])   # once for RA
         by_res_filt.append(matches['filter'])   # again for DE
@@ -588,6 +599,34 @@ for this_runid in use_runids:
         ls_ra_resid = (ls_best_ra - gaia_ra) * 3600.0 * np.cos(np.radians(gaia_de))
         ls_de_resid = (ls_best_de - gaia_de) * 3600.0
         ls_tot_resid = np.hypot(ls_ra_resid, ls_de_resid)
+
+        # select inliers and refit:
+        #sys.stderr.write("pass1 len(gaia_ra): %d\n" % len(gaia_ra))
+        useful = rs.pick_inliers(ls_tot_resid, 4)
+        gaia_ra, gaia_de = gaia_ra[useful], gaia_de[useful]
+        #sys.stderr.write("pass2 len(gaia_ra): %d\n" % len(gaia_ra))
+        xrel, yrel = xrel[useful], yrel[useful]
+        minimize_this = partial(ls_evaluator_cdmcrv, 
+                true_ra=gaia_ra, true_de=gaia_de, xrel=xrel, yrel=yrel)
+        tik = time.time()
+        ls_full_result = opti.least_squares(minimize_this, ls_answer)
+        ls_answer = ls_full_result['x']
+        ls_best_pars.append(ls_answer)
+        tok = time.time()
+        tsolve = tok - tik
+        sys.stderr.write("least_squares solved in %.4f seconds (pass 2)\n" % tsolve)
+        ls_best_ra, ls_best_de = eval_cdmcrv(ls_answer, xrel, yrel)
+        ls_best_ra = ls_best_ra % 360.0
+        ls_ra_resid = (ls_best_ra - gaia_ra) * 3600.0 * np.cos(np.radians(gaia_de))
+        ls_de_resid = (ls_best_de - gaia_de) * 3600.0
+        ls_tot_resid = np.hypot(ls_ra_resid, ls_de_resid)
+
+        # Stick with the higher-quality data points:
+        by_img_gra.append(gaia_ra)
+        by_img_gde.append(gaia_de)
+        by_img_xrel.append(xrel)
+        by_img_yrel.append(yrel)
+        #sys.exit(0)
         #if (ii > 444):
         #    break
 
@@ -646,15 +685,27 @@ for this_runid in use_runids:
     jnt_cdm = jnt_answer[:4]
     jnt_crvals = jnt_answer[4:].reshape(-1, 2)
 
+    # Ensure output models dir for this runid:
+    runid_model_dir = os.path.join(model_dir, this_runid)
+    if not os.path.isdir(runid_model_dir):
+        os.mkdir(runid_model_dir)
+
     for idx,this_fcat in enumerate(have_files, 0):
         sys.stderr.write("Loading %s ... " % this_fcat)
         #fbase = os.path.basename(this_fcat)
         #save_fcat = os.path.join(save_root, this_runid, fbase)
-        save_fcat = os.path.join(save_jdir, os.path.basename(this_fcat))
+        fbase = os.path.basename(this_fcat)
+        save_fcat = os.path.join(save_jdir, fbase)
         ccc.load_from_fits(this_fcat)
         stars = ccc.get_catalog()
-        
+
+        save_mod = os.path.join(runid_model_dir, fbase + '.txt')
+        sys.stderr.write("%s ... " % save_mod)
+
+
         astpars = jnt_cdm.tolist() + jnt_crvals[idx].tolist()
+        dump_wcspars(save_mod, astpars)
+        #sys.stderr.write("\n")
         # unwindowed positions:
         xrel = stars[_xdw_key] - crpix1
         yrel = stars[_ydw_key] - crpix2
@@ -676,40 +727,42 @@ for this_runid in use_runids:
         #break
         pass
 
-
-    # ----------------------------------------------------------------------- 
-    # Breakout by filter:
-    jresid_rade = np.concatenate(by_res_rade)
-    jresid_indx = np.concatenate(by_res_indx)
-    jresid_isrc = np.concatenate(by_res_isrc)
-    jresid_filt = np.concatenate(by_res_filt)
-    is_Hband    = jresid_filt == 'H2'
-    is_Jband    = jresid_filt == 'J'
-    jnt_resids_H = jnt_resids[is_Hband]
-    jnt_resids_J = jnt_resids[is_Jband]
-
-    # lookie catalog:
-    is_outlier  = (jnt_resids * 3600.0) > 0.3
-    which_Jbad  = is_outlier & is_Jband
-    Jbad_ibase  = jresid_isrc[which_Jbad]
-    Jbad_index  = jresid_indx[which_Jbad]
-    #examine_me  = []
-    #for ibase,idx in zip(Jbad_ibase, Jbad_index):
-    #    examine_me.append(np.atleast_1d(cats[ibase][idx]))
-    #examine_me  = np.concatenate(examine_me)
-
-    jresid_stddev[this_runid]['H2'] = np.std(jnt_resids_H)
-    jnt_resid_med_H, jnt_resid_iqrn_H = rs.calc_ls_med_MAD(jnt_resids_H)
-    jresid_maddev[this_runid]['H2'] = jnt_resid_iqrn_H
-    jresid_points[this_runid]['H2'] = len(jnt_resids_H)
-
-    jresid_stddev[this_runid]['J'] = np.std(jnt_resids_J)
-    jnt_resid_med_J, jnt_resid_iqrn_J = rs.calc_ls_med_MAD(jnt_resids_J)
-    jresid_maddev[this_runid]['J'] = jnt_resid_iqrn_J
-    jresid_points[this_runid]['J'] = len(jnt_resids_J)
-
-    #sys.exit(0)
     continue
+
+    ### ----------------------------------------------------------------------- 
+    ### Breakout by filter:
+    ##jresid_rade = np.concatenate(by_res_rade)
+    ##jresid_indx = np.concatenate(by_res_indx)
+    ##jresid_isrc = np.concatenate(by_res_isrc)
+    ##jresid_filt = np.concatenate(by_res_filt)
+    ##is_Hband    = jresid_filt == 'H2'
+    ##is_Jband    = jresid_filt == 'J'
+    ##jnt_resids_H = jnt_resids[is_Hband]
+    ##jnt_resids_J = jnt_resids[is_Jband]
+
+    ### lookie catalog:
+    ##is_outlier  = (jnt_resids * 3600.0) > 0.3
+    ##which_Jbad  = is_outlier & is_Jband
+    ##Jbad_ibase  = jresid_isrc[which_Jbad]
+    ##Jbad_index  = jresid_indx[which_Jbad]
+    ###examine_me  = []
+    ###for ibase,idx in zip(Jbad_ibase, Jbad_index):
+    ###    examine_me.append(np.atleast_1d(cats[ibase][idx]))
+    ###examine_me  = np.concatenate(examine_me)
+
+    ##jresid_stddev[this_runid]['H2'] = np.std(jnt_resids_H)
+    ##jnt_resid_med_H, jnt_resid_iqrn_H = rs.calc_ls_med_MAD(jnt_resids_H)
+    ##jresid_maddev[this_runid]['H2'] = jnt_resid_iqrn_H
+    ##jresid_points[this_runid]['H2'] = len(jnt_resids_H)
+
+    ##jresid_stddev[this_runid]['J'] = np.std(jnt_resids_J)
+    ##jnt_resid_med_J, jnt_resid_iqrn_J = rs.calc_ls_med_MAD(jnt_resids_J)
+    ##jresid_maddev[this_runid]['J'] = jnt_resid_iqrn_J
+    ##jresid_points[this_runid]['J'] = len(jnt_resids_J)
+
+    ###sys.exit(0)
+    ##continue
+
     #break
     ###break
     ### nudge the xrel/yrel (adjust CRPIX) and see if solution improves:

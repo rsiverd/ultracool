@@ -252,7 +252,7 @@ def argnear(vec, val):
 
 ## Load Gaia catalog:
 #gaia_csv_path = '/home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.csv'
-gaia_csv_path = '//home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/gaia_calib1_NE.csv'
+gaia_csv_path = '/home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/gaia_calib1_NE.csv'
 gm.load_sources_csv(gaia_csv_path)
 
 ## Grab the ibase from a filename:
