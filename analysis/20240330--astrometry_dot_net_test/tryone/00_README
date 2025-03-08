@@ -1,0 +1,29 @@
+Manually handle a single frame with astrometry.net to get a polynomial
+distortion correction that works across the entire image.
+
+
+# Image choice and symlinks:
+#ln -s ../jointupd/19AQ11/wircam_J_2413738p_eph.fits.fz.fcat
+cp /data/rsiverd/ucd_cfh_data/calib1_proc/calib1_p_NE/by_runid/19AQ11/wircam_J_2413738p.fits.fz .
+cp ../jointupd/19AQ11/wircam_J_2413738p_eph.fits.fz.fcat .
+cp ../models/19AQ11/wircam_J_2413738p_eph.fits.fz.fcat.txt .
+ln -s /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.m18.reg
+ln -s /home/rsiverd/ucd_project/ucd_cfh_data/for_abby/gaia_calib1_NE.m19.reg
+
+mkdir -p data; cd data
+ln -s /data/rsiverd/ucd_cfh_data/calib1/download/2413738p.fits.fz
+ln -s /data/rsiverd/ucd_cfh_data/calib1/download/2413738o.fits.fz
+
+# Viewing:
+ztf -r gaia_calib1_NE.m19.reg wircam_J_2413738p.fits.fz
+
+# Commands to get started live in 01_HOWTO.txt.
+
+# Environment setup and Python script:
+source ~/anaconda3/bin/activate; conda activate astrom
+cd ~/ucd_project/ultracool
+source ENVIRONMENT.sh
+cd ~/ucd_project/ultracool/analysis/20240330--astrometry_dot_net_test/tryone
+ipy
+%run ./02_radial_distortion.py
+
