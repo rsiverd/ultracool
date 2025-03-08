@@ -1,0 +1,40 @@
+cmde "funpack -S wircam_J_2413738p.fits.fz > ~/dropbox/upload.fits"
+
+# upload with P=2, wait for solve, fetch new-image.fits
+npoly=2
+npoly=3
+npoly=4
+npoly=5
+imsave="solved_p${npoly}.fits.fz"
+
+# nova results pages:
+https://nova.astrometry.net/user_images/11897683#annotated     # poly=3
+https://nova.astrometry.net/user_images/11897697#annotated     # poly=4
+https://nova.astrometry.net/user_images/11897731#annotated     # poly=5
+
+cmde "mkdir -p imgs data"
+cmde "mv ~/Downloads/new-image.fits . && fpack -D new-image.fits"
+cmde "mv new-image.fits.fz imgs/${imsave}"
+
+cmde "rm ~/dropbox/upload.fits"
+
+# -----------------------------------------------------------------------
+
+
+
+# Make RA/DE using measured positions:
+#fcat="../jointupd/19AQ11/wircam_J_2413738p_eph.fits.fz.fcat"
+fcat="wircam_J_2413738p_eph.fits.fz.fcat"
+
+#for cc in x y wx wy; do
+#   cmde "tablist '${fcat}[col $cc]' | awk 'NF==2' > dets_${cc}.txt"
+#done
+cmde "tablist '${fcat}[col  x;y]'  | awk 'NF==3' > data/srcs_xy_sap.txt"
+cmde "tablist '${fcat}[col wx;wy]' | awk 'NF==3' > data/srcs_xy_win.txt"
+
+cmde "awk '{print \$2,\$3}' data/srcs_xy_sap.txt > txy"
+cmde "skypix --xy2sky imgs/${imsave} -l txy -o data/srcs_ast_sap.p${npoly}.txt"
+cmde "awk '{print \$2,\$3}' data/srcs_xy_win.txt > txy"
+cmde "skypix --xy2sky imgs/${imsave} -l txy -o data/srcs_ast_win.p${npoly}.txt"
+cmde "rm txy"
+

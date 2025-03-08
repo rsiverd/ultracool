@@ -1,0 +1,39 @@
+cmde "mkdir -p quadrants"
+
+source ~/anaconda3/bin/activate; conda activate astrom
+cd /home/rsiverd/ucd_project/ultracool
+source ENVIRONMENT.sh
+cd -
+
+
+fitsarith -b data/2413738p.fits.fz -o badpix.fits
+fpack -q0 -1 badpix.fits
+mv -f badpix.fits.fz data/.
+
+imnum="2413738"
+args="--proc data/${imnum}p.fits.fz"
+args+=" --raw data/${imnum}o.fits.fz"
+args+=" --mask data/badpix.fits.fz"
+for qq in NE NW SE SW ; do
+   out="quadrants/${qq}_${imnum}.fits"
+   cmde "./preprocess-wircam.py $args --$qq -o $out"
+done
+
+-----------------------------------------------------------------------
+
+# solved image URLs:
+https://nova.astrometry.net/user_images/11928948#annotated  # SW, p2
+https://nova.astrometry.net/user_images/11928961#annotated  # SW, p3
+https://nova.astrometry.net/user_images/11928969#annotated  # SW, p4
+https://nova.astrometry.net/user_images/11928975#annotated  # SW, p5
+
+https://nova.astrometry.net/user_images/11928993#annotated  # SE, p2
+https://nova.astrometry.net/user_images/11928998#annotated  # SE, p3
+https://nova.astrometry.net/user_images/11929004#annotated  # SE, p4
+https://nova.astrometry.net/user_images/11929009#annotated  # SE, p5
+
+https://nova.astrometry.net/user_images/11929028#annotated  # NW, p2
+https://nova.astrometry.net/user_images/11929034#annotated  # NW, p3
+https://nova.astrometry.net/user_images/11929041#annotated  # NW, p4
+https://nova.astrometry.net/user_images/11929045#annotated  # NW, p5
+
