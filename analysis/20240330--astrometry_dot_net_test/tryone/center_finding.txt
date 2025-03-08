@@ -1,0 +1,27 @@
+
+Fit relative rotations of the four sensors? Once I have a good global fit,
+evaluate whether or not the four sensors are rotated w.r.t. one another.
+
+
+Allow the CRPIX center to be somewhere in the 'gutters' of the mosaic, or at
+least adopt that as a starting point. Use gutters of 45 arcsec (150 pix).
+
+Nominal center from WIRCam header is:
+2122.69077900 -81.6788876100
+
+Useful numbers:
+2048 + 74 = 2122
+
+Initial center guess should be:
+(NE) 2122,  -74
+(NW)  -74,  -74
+(SE) 2122, 2122
+(SW)  -74, 2122
+
+Select stars within 1000 pix of the trial center initially. If distortion
+is radial, we don't care about relative rotations.
+
+Iterate to solution by:
+a) Evaluate angular separation of Gaia matches from assumed CRVAL,
+b) Evaluate radial separation of sources from the assumed CRPIX
+
