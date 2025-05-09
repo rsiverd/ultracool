@@ -5,3 +5,13 @@ we want to fit for the center of the distortion field (CRPIX1/2) assuming
 the distortion is purely radial. Repeat this for multiple QRUNIDs to prove
 that CRPIX moves around and set aside the known values for future use.
 
+Steps needed to make this work:
+1) Select high-quality image for analysis.
+2) Get astrometry.net solution for each sensor, ensure it is decent
+3) Perform Gaia match using ast.net solution as a guide
+4) Measure radial displacement of sources from test centers.
+5) Move the test center around to see if we can localize it.
+
+Development tasks:
+1) Need a four-sensor ast.net solution fetcher
+
