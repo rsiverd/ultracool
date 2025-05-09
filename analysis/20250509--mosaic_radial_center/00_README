@@ -1,0 +1,7 @@
+Using:
+* the linear transformations now known to connect sensor coordinates
+* the measured gutter size between sensors
+we want to fit for the center of the distortion field (CRPIX1/2) assuming
+the distortion is purely radial. Repeat this for multiple QRUNIDs to prove
+that CRPIX moves around and set aside the known values for future use.
+
