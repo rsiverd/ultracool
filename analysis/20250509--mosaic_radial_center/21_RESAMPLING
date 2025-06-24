@@ -1,0 +1,12 @@
+# Make a blank WCS canvas:
+make-wcs-blank -p 0.306 -N 4500 -C 294.590942 35.118500 --float32 -o canvas.fits
+
+# Resample images onto the canvas:
+mapmap -t canvas.fits -s slvd_11BQ02/solved_J_1325826p.NE.fits -o overlay_NE.fits
+mapmap -t canvas.fits -s slvd_11BQ02/solved_J_1325826p.NW.fits -o overlay_NW.fits
+mapmap -t canvas.fits -s slvd_11BQ02/solved_J_1325826p.SE.fits -o overlay_SE.fits
+mapmap -t canvas.fits -s slvd_11BQ02/solved_J_1325826p.SW.fits -o overlay_SW.fits
+
+# Combine:
+medianize overlay*fits
+

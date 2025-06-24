@@ -15,3 +15,8 @@ Steps needed to make this work:
 Development tasks:
 1) Need a four-sensor ast.net solution fetcher
 
+# -----------------------------------------------------------------------
+# HOWTO guide:
+
+./01_unpack_and_find_stars.sh runid_imgs.txt --START
+
