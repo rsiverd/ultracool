@@ -60,7 +60,7 @@ import numpy as np
 #import scipy.linalg as sla
 #import scipy.signal as ssig
 #import scipy.ndimage as ndi
-#import scipy.optimize as opti
+import scipy.optimize as opti
 #import scipy.interpolate as stp
 #import scipy.spatial.distance as ssd
 #import scipy.stats as scst
@@ -492,13 +492,26 @@ for qq,gg in gstars.items():
     sys.stderr.write("save_gcsv: %s\n" % save_gcsv)
     gg.to_csv(save_gcsv, index=False)
 
-sys.exit(0)
+#sys.exit(0)
 
 ## Eval test:
+yaypars = np.array([-0.11849369, 1981.53392088, 156.12566409,
+                        294.60495726, 35.13831321])
+#yaypars = np.array([-0.12091838, -0.00000258, 2069.90785791, -308.87100033,
+#                        294.59603615, 35.09902007])
+yaypars = np.array([  -0.11493478, 2133.52441875, -140.01453587, 
+                        294.58941299, 35.11319793])
+
+yaypars = np.array([  -0.11493478, 2133.52441875, -140.01453587, 
+                        294.58941299, 35.11319793])
+
 fig_dims = (10, 10)
-fig, axs = plt.subplots(2, 2, figsize=fig_dims, num=1, clear=True)
-[ax.set_aspect('equal', adjustable='box') for ax in axs.flatten()]
-axmap = {'NE':axs[0, 0], 'NW':axs[0, 1], 'SE':axs[1, 0], 'SW':axs[1,1]}
+fig, axs1 = plt.subplots(2, 2, figsize=fig_dims, num=1, clear=True)
+[ax.set_aspect('equal', adjustable='box') for ax in axs1.flatten()]
+ax1map  = {'NE':axs1[0, 0], 'NW':axs1[0, 1], 'SE':axs1[1, 0], 'SW':axs1[1,1]}
+
+fig2, axs2 = plt.subplots(2, 2, figsize=fig_dims, num=2, clear=True)
+ax2map = {'NE':axs2[0, 0], 'NW':axs2[0, 1], 'SE':axs2[1, 0], 'SW':axs2[1,1]}
 test_crval1, test_crval2 = savg_cv1, savg_cv2
 #test_crval1 -= 22.37 / 3600.0
 #test_crval2 -= 22.37 / 3600.0
@@ -509,21 +522,45 @@ test_crpix1, test_crpix2 = every_crpix1[0], every_crpix2[0]
 #test_crpix1 = 2048 + 145.0
 #test_crpix2 = 1.0  - 145.0
 test_crpix1, test_crpix2 = 2122.691, -81.679
-test_crval1, test_crval2 = 294.590165, 35.118152
-#test_crval1 -= 0.0001
+#test_crpix1 -= 1.0
+#test_crpix2 -= 1.0
+#test_crval1, test_crval2 = 294.590165, 35.118152
+#test_crval1, test_crval2 = 294.5902476229806, 35.11840452525253
+#test_crval1, test_crval2 = 294.59013858,  35.11828773
+#test_crval1, test_crval2 = 294.59024157,  35.11837179
+test_crval1, test_crval2 = 294.59047819,  35.11822976
+
+test_crpix1, test_crpix2 = yaypars[1], yaypars[2]
+#test_crval1, test_crval2 = 294.55798386,   35.12740249
+test_crval1, test_crval2 = yaypars[3], yaypars[4]
+
+#test_crpix1 += 2.0
+#test_crpix2 -= 2.0
+#test_crval1 += 0.0001
 #test_crval2 -= 0.0001
+#test_crval1 -= 0.0002
+#test_crval2 += 0.0001
 sensor_crpix = sg.get_4sensor_crpix(test_crpix1, test_crpix2)
-tt = list(sensor_crpix['SW'])
-#tt[0] += 5.0
-#tt[1] -= 2.0
-sensor_crpix['SW'] = tuple(tt)
+#tt = list(sensor_crpix['SW'])
+##tt[0] += 5.0
+##tt[1] -= 2.0
+#sensor_crpix['SW'] = tuple(tt)
 pctcheck = [5, 95]
 #cdm_vals['SW'][3] = 0.0000855
 #cdm_calc = helpers.make_four_cdmats(-0.15)
-cdm_calc = helpers.make_four_cdmats(-0.05)
+#cdm_calc = helpers.make_four_cdmats(-0.05)
+#cdm_calc = helpers.make_four_cdmats(-0.032)
+#cdm_calc = helpers.make_four_cdmats(-0.0613)
+cdm_calc = helpers.make_four_cdmats(yaypars[0])
+#cdm_calc = helpers.make_four_cdmats(+0.032)
 use_cdm_vals = cdm_calc
 #use_cdm_vals = cdm_vals
 qxkw = {'angles':'xy', 'scale_units':'xy', 'scale':0.1}
+qrrel, qrerr = {}, {}
+rrel, rerr = [], []
+approx_r2_coeff = 0.00000254
+approx_r2_coeff = yaypars[1]
+approx_r2_coeff = 0.00000254
 for qq,gst in gstars.items():
     tcpx1, tcpx2 = sensor_crpix.get(qq)
     gxx, gyy = gst['XWIN_IMAGE'], gst['YWIN_IMAGE']
@@ -534,27 +571,114 @@ for qq,gst in gstars.items():
     test_yccd = test_yrel + tcpx2
     x_error = test_xccd - gxx.values
     y_error = test_yccd - gyy.values
-    axmap.get(qq).quiver(gxx, gyy, x_error, y_error, **qxkw)
-    # error percentiles:
-    xerrpct = np.percentile(x_error, pctcheck)
-    yerrpct = np.percentile(y_error, pctcheck)
-    sys.stderr.write("%s X 5th/95th: %7.3f, %7.3f\n" % (qq, *xerrpct))
-    sys.stderr.write("%s Y 5th/95th: %7.3f, %7.3f\n" % (qq, *yerrpct))
+    #ax1map.get(qq).quiver(gxx, gyy, x_error, y_error, **qxkw)
+    ## error percentiles:
+    #xerrpct = np.percentile(x_error, pctcheck)
+    #yerrpct = np.percentile(y_error, pctcheck)
+    #sys.stderr.write("%s X 5th/95th: %7.3f, %7.3f\n" % (qq, *xerrpct))
+    #sys.stderr.write("%s Y 5th/95th: %7.3f, %7.3f\n" % (qq, *yerrpct))
 
     # unit vector towards CRPIX:
     test_xy_rel = np.array((test_xrel, test_yrel))
     _vec_length = np.sqrt(np.sum(test_xy_rel**2, axis=0))
     _src_v_unit = test_xy_rel / _vec_length
     _src_v_errs = np.array((x_error, y_error))
+    # radial distance (towards CRPIX):
+    _src_R_dist = np.hypot(test_xrel, test_yrel)
+    # radial distortion correction:
+    _src_R_corr = approx_r2_coeff * _src_R_dist**2
+    _src_v_corr = _src_R_corr * _src_v_unit
+    xcorrection, ycorrection = _src_v_corr
+    # total errors after radial adjustment:
+    _tot_v_errs = _src_v_errs + _src_v_corr
+    corr_x_error, corr_y_error = _tot_v_errs
+    # show me!
+    ax1map.get(qq).quiver(gxx, gyy,  xcorrection,  ycorrection, color='k', **qxkw)
+    ax2map.get(qq).quiver(gxx, gyy, corr_x_error, corr_y_error, color='r', **qxkw)
+
+    # magnitude of error radial component:
+    radial_emag = x_error*_src_v_unit[0] + y_error*_src_v_unit[1]
+    # error radial component as vector:
+    radial_evec = _src_v_unit * radial_emag
+    nonrad_evec = _src_v_errs - radial_evec
+
+    nonrad_emag = np.sqrt(np.sum(nonrad_evec**2, axis=0))  # size of nonrad err
+    implied_rot = np.degrees(nonrad_emag / _src_R_dist)
+
+    # SPEW UNIT VECTORS:
+    radial_unit_avg = np.median(_src_v_unit, axis=1)
+    radial_dist_avg = np.median(test_xy_rel, axis=1)
+    radial_errs_avg = np.median(_src_v_errs, axis=1)
+    radial_corr_avg = np.median(_src_v_corr, axis=1)
+    radial_evec_avg = np.median(radial_evec, axis=1)
+    nonrad_evec_avg = np.median(nonrad_evec, axis=1)
+    
+    sys.stderr.write("----------------------\n")
+    sys.stderr.write("%s quad\n" % qq)
+    sys.stderr.write("avg radial unit: %s\n" % str(radial_unit_avg))
+    sys.stderr.write("avg radial dist: %s\n" % str(radial_dist_avg))
+    sys.stderr.write("avg radial errs: %s\n" % str(radial_errs_avg))
+    sys.stderr.write("avg radial corr: %s\n" % str(radial_corr_avg))
+    sys.stderr.write("avg radial evec: %s\n" % str(radial_evec_avg))
+    sys.stderr.write("avg nonrad evec: %s\n" % str(nonrad_evec_avg))
+    #pass
+    #break
+
     #errdot = x_error*_src_v_unit[0] + y_error*_src_v_unit[1]
     # magnitude of error radial component:
     radial_emag = x_error*_src_v_unit[0] + y_error*_src_v_unit[1]
     # error radial component as vector:
     radial_evec = _src_v_unit * radial_emag
     nonrad_evec = _src_v_errs - radial_evec
-    break
+    # stash:
+    qrrel[qq] = _src_R_dist #np.hypot(test_xrel, test_yrel)
+    qrerr[qq] = np.sqrt(np.sum(radial_evec**2, axis=0))
+    rrel.extend(_src_R_dist) #np.hypot(test_xrel, test_yrel).tolist())
+    rerr.extend(np.sqrt(np.sum(radial_evec**2, axis=0)).tolist())
 
+    #break
 
+fig.tight_layout()
+fig2.tight_layout()
+#sys.exit(0)
+
+## MUST halt here if qrrel was not populated ...
+if len(qrrel) < 4:
+    sys.stderr.write("\nAborting: radial distance/distortion arrays empty!\n")
+    sys.exit(1)
+
+# parabola to fit:
+#def parabola(x, a, b, c):
+#    return a + b*x + c*x*x
+def parabola(x, a, c):
+    return a + c*x*x
+
+fig3 = plt.figure(3)
+fig3.clf()
+ax3 = fig3.add_subplot(111)
+skw = {'lw':0, 's':10}
+qpopt, qpcov = {}, {}
+xtemp = np.linspace(250, 2750)
+for qq in quads:
+    xdata = qrrel.get(qq)
+    ydata = qrerr.get(qq)
+    qpopt[qq], qpcov[qq] = opti.curve_fit(parabola, xdata, ydata)
+    ax3.scatter(xdata, ydata, label=qq, **skw)
+    ytemp = parabola(xtemp, *qpopt[qq])
+    ax3.plot(xtemp, ytemp, c='k')
+#ax3.scatter(rrel, rerr, **skw)
+avg_popt = np.average(list(qpopt.values()), axis=0)
+avg_popt[0] = 0.0
+ytemp = parabola(xtemp, *avg_popt)
+ax3.plot(xtemp, ytemp, c='k', lw=5)
+ax3.legend(loc='upper left')
+
+# Trial distortion correction:
+#use_popt = avg_popt * np.array([0.0, 1.0, 1.0])
+
+#scatter(np.hypot(test_xrel, test_yrel), np.sqrt(np.sum(radial_evec**2, axis=0)))
+
+sys.exit(0)
 
     #if qq == 'SE':
     #    break
@@ -592,126 +716,6 @@ for qq,gst in gstars.items():
 #            (sw_crpix1, sw_crpix2))
 
 
-
-##--------------------------------------------------------------------------##
-## Quick ASCII I/O:
-#data_file = 'data.txt'
-#gftkw = {'encoding':None} if (_have_np_vers >= 1.14) else {}
-#gftkw.update({'names':True, 'autostrip':True})
-#gftkw.update({'delimiter':'|', 'comments':'%0%0%0%0'})
-#gftkw.update({'loose':True, 'invalid_raise':False})
-#all_data = np.genfromtxt(data_file, dtype=None, **gftkw)
-#all_data = np.atleast_1d(np.genfromtxt(data_file, dtype=None, **gftkw))
-#all_data = np.genfromtxt(fix_hashes(data_file), dtype=None, **gftkw)
-#all_data = aia.read(data_file)
-
-#all_data = append_fields(all_data, ('ra', 'de'), 
-#         np.vstack((ra, de)), usemask=False)
-#all_data = append_fields(all_data, cname, cdata, usemask=False)
-
-#pdkwargs = {'skipinitialspace':True, 'low_memory':False}
-#pdkwargs.update({'delim_whitespace':True, 'sep':'|', 'escapechar':'#'})
-#all_data = pd.read_csv(data_file)
-#all_data = pd.read_csv(data_file, **pdkwargs)
-#all_data = pd.read_table(data_file)
-#all_data = pd.read_table(data_file, **pdkwargs)
-#nskip, cnames = analyze_header(data_file)
-#all_data = pd.read_csv(data_file, names=cnames, skiprows=nskip, **pdkwargs)
-#all_data = pd.DataFrame.from_records(npy_data)
-#all_data = pd.DataFrame(all_data.byteswap().newbyteorder()) # for FITS tables
-
-### Strip leading '#' from column names:
-#def colfix(df):
-#    df.rename(columns={kk:kk.lstrip('#') for kk in df.keys()}, inplace=True)
-#colfix(all_data)
-
-#all_data.rename(columns={'old_name':'new_name'}, inplace=True)
-#all_data.reset_index()
-#firstrow = all_data.iloc[0]
-#for ii,row in all_data.iterrows():
-#    pass
-
-##--------------------------------------------------------------------------##
-## Solve prep:
-#ny, nx = img_vals.shape
-#x_list = (0.5 + np.arange(nx)) / nx - 0.5            # relative (centered)
-#y_list = (0.5 + np.arange(ny)) / ny - 0.5            # relative (centered)
-#xx, yy = np.meshgrid(x_list, y_list)                 # relative (centered)
-#xx, yy = np.meshgrid(nx*x_list, ny*y_list)           # absolute (centered)
-#xx, yy = np.meshgrid(np.arange(nx), np.arange(ny))   # absolute
-#yy, xx = np.meshgrid(np.arange(ny), np.arange(nx), indexing='ij') # absolute
-#yy, xx = np.nonzero(np.ones_like(img_vals))          # absolute
-#yy, xx = np.mgrid[0:ny,   0:nx].astype('uint16')     # absolute (array)
-#yy, xx = np.mgrid[1:ny+1, 1:nx+1].astype('uint16')   # absolute (pixel)
-
-## 1-D vectors:
-#x_pix, y_pix, ivals = xx.flatten(), yy.flatten(), img_vals.flatten()
-#w_vec = np.ones_like(ivals)            # start with uniform weights
-#design_matrix = np.column_stack((np.ones(x_pix.size), x_pix, y_pix))
-
-## Image fitting (statsmodels etc.):
-#data = sm.datasets.stackloss.load()
-#ols_res = sm.OLS(ivals, design_matrix).fit()
-#rlm_res = sm.RLM(ivals, design_matrix).fit()
-#rlm_model = sm.RLM(ivals, design_matrix, M=sm.robust.norms.HuberT())
-#rlm_res = rlm_model.fit()
-#data = pd.DataFrame({'xpix':x_pix, 'ypix':y_pix})
-#rlm_model = sm.RLM.from_formula("ivals ~ xpix + ypix", data)
-
-##--------------------------------------------------------------------------##
-## Theil-Sen line-fitting (linear):
-#model = ts.linefit(xvals, yvals)
-#icept, slope = ts.linefit(xvals, yvals)
-
-## Theil-Sen line-fitting (loglog):
-#xvals, yvals = np.log10(original_xvals), np.log10(original_yvals)
-#xvals, yvals = np.log10(df['x'].values), np.log10(df['y'].values)
-#llmodel = ts.linefit(np.log10(xvals), np.log10(yvals))
-#icept, slope = ts.linefit(xvals, yvals)
-#fit_exponent = slope
-#fit_multiplier = 10**icept
-#bestfit_x = np.arange(5000)
-#bestfit_y = fit_multiplier * bestfit_x**fit_exponent
-
-## Theil-Sen line-fitting variants:
-#linear_model = ts.linefit(xvals, yvals)
-#loglog_model = ts.linefit(np.log10(xvals), np.log10(yvals))
-#linlog_model = ts.linefit(xvals, np.log10(yvals))
-
-
-## Evaluators:
-#def loglog_eval(xvals, model):
-#    icept, slope = model
-#    return 10**icept * np.log10(xvals)**slope
-#def loglog_eval(xvals, icept, slope):
-#    return 10**icept * xvals**slope
-
-## Better evaluators (FIXME: this should go in a modele):
-#def linear_eval(xvals, icept, slope):
-#    return icept + slope*xvals                  # for y vs x fit
-#def loglog_eval(xvals, icept, slope):
-#    return 10**(icept + slope*xvals)            # for log(y) vs x fit
-#def loglog_eval(xvals, icept, slope):
-#    return 10**(icept + slope*np.log10(xvals))  # for log(y) vs log(x) fit
-
-##--------------------------------------------------------------------------##
-## KDE:
-#kde_pnts, kde_vals = mk.go(data_vec)
-
-##--------------------------------------------------------------------------##
-## Plot config:
-
-# gridspec examples:
-# https://matplotlib.org/users/gridspec.html
-
-#gs1 = gridspec.GridSpec(4, 4)
-#gs1.update(wspace=0.025, hspace=0.05)  # set axis spacing
-
-#ax1 = plt.subplot2grid((3, 3), (0, 0), colspan=3) # top-left + center + right
-#ax2 = plt.subplot2grid((3, 3), (1, 0), colspan=2) # mid-left + mid-center
-#ax3 = plt.subplot2grid((3, 3), (1, 2), rowspan=2) # mid-right + bot-right
-#ax4 = plt.subplot2grid((3, 3), (2, 0))            # bot-left
-#ax5 = plt.subplot2grid((3, 3), (2, 1))            # bot-center
 
 
 ##--------------------------------------------------------------------------##
