@@ -421,7 +421,8 @@ def get_aks_terms(filename):
 
 ##--------------------------------------------------------------------------##
 ## FIXME: CD matrix loading:
-cbcd_list_dir = '/home/siverdrj/ucd_project/ucd_targets/cbcd_lists'
+#cbcd_list_dir = '/home/siverdrj/ucd_project/ucd_targets/cbcd_lists'
+cbcd_list_dir = '/home/rsiverd/ucd_project/ucd_targets/cbcd_lists'
 cbcd_listing  = '%s/cbcd_files_%s.txt' % (cbcd_list_dir, tgt_name)
 if not os.path.isfile(cbcd_listing):
     sys.stderr.write("\nProblem: cbcd_listing not found:\n")
@@ -588,8 +589,8 @@ if not 'akpara' in colslist:
                 ydp.append(y_dephase)
                 xdw.append(x_dewarp)
                 ydw.append(y_dewarp)
-                akpara.append(aks_ra)
-                akpade.append(aks_de)
+                akra.append(aks_ra)
+                akde.append(aks_de)
                 continue
             new_fields += [( 'xdp', np.concatenate( xdp))]
             new_fields += [( 'ydp', np.concatenate( ydp))]
@@ -645,24 +646,24 @@ sys.stderr.write("Ensuring presence of subpixel vectors ... \n")
 #                    ('subpix_ra', sp_ra), ('subpix_de', sp_de)]
 #        sdata['ch2'][sid] = add_recarray_columns(ss, new_fields)
 
-for inst in instrument_list:
-    for sid,ss in sdata[inst].items():
-        if not ('subpix_ra' in ss.dtype.names):
-            #sp_x = make_subpix_vector(ss['x'], zeropt=spzero)
-            #sp_y = make_subpix_vector(ss['y'], zeropt=spzero)
-            #sp_x = make_subpix_vector(ss['x'], zeropt=spzero_x)
-            #sp_y = make_subpix_vector(ss['y'], zeropt=spzero_y)
-            sp_x = make_subpix_vector(ss[_xx_key], zeropt=spzero_x)
-            sp_y = make_subpix_vector(ss[_yy_key], zeropt=spzero_y)
-            cd_m = [cdmat_lookup[x] for x in ss['iname']]
-            sp_sky = [make_subpix_radec(sx, sy, cc) for (sx, sy, cc) in zip(sp_x, sp_y, cd_m)]
-            sp_ra, sp_de = zip(*sp_sky)
-            #sys.stderr.write("Adding IRAC2 to %s ...\n" % sid)
-            new_fields = [('subpix_x', sp_x), ('subpix_y', sp_y),
-                        ('subpix_ra', sp_ra), ('subpix_de', sp_de)]
-            sdata[inst][sid] = add_recarray_columns(ss, new_fields)
-
-sys.stderr.write("Sub-pixel positions added/updated.\n")
+#for inst in instrument_list:
+#    for sid,ss in sdata[inst].items():
+#        if not ('subpix_ra' in ss.dtype.names):
+#            #sp_x = make_subpix_vector(ss['x'], zeropt=spzero)
+#            #sp_y = make_subpix_vector(ss['y'], zeropt=spzero)
+#            #sp_x = make_subpix_vector(ss['x'], zeropt=spzero_x)
+#            #sp_y = make_subpix_vector(ss['y'], zeropt=spzero_y)
+#            sp_x = make_subpix_vector(ss[_xx_key], zeropt=spzero_x)
+#            sp_y = make_subpix_vector(ss[_yy_key], zeropt=spzero_y)
+#            cd_m = [cdmat_lookup[x] for x in ss['iname']]
+#            sp_sky = [make_subpix_radec(sx, sy, cc) for (sx, sy, cc) in zip(sp_x, sp_y, cd_m)]
+#            sp_ra, sp_de = zip(*sp_sky)
+#            #sys.stderr.write("Adding IRAC2 to %s ...\n" % sid)
+#            new_fields = [('subpix_x', sp_x), ('subpix_y', sp_y),
+#                        ('subpix_ra', sp_ra), ('subpix_de', sp_de)]
+#            sdata[inst][sid] = add_recarray_columns(ss, new_fields)
+#
+#sys.stderr.write("Sub-pixel positions added/updated.\n")
 
 ##--------------------------------------------------------------------------##
 ## Count data points per set:
