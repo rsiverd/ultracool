@@ -480,6 +480,17 @@ gstars = {}
 for qq,ss in stars.items():
     gstars[qq] = ss[ss.gid > 0]
 
+## Region file maker:
+def regify_gstars(filename, data, r1=3, r2=10):
+    with open(filename, 'w') as fff:
+        xcoo, ycoo = data['XWIN_IMAGE'], data['YWIN_IMAGE']
+        for coo in zip(xcoo, ycoo):
+            text = 'image; annulus(%9.3f, %9.3f, %.1f, %.1f)' % (*coo, r1, r2)
+            fff.write(text + '\n')
+            pass
+        pass
+    return
+
 ## Save these catalogs to file for separate analysis:
 save_gdir = 'gmatches'
 if not os.path.isdir(save_gdir):
@@ -491,6 +502,8 @@ for qq,gg in gstars.items():
     save_greg = '%s/%s.gaia.reg' % (save_gdir, cbase)
     sys.stderr.write("save_gcsv: %s\n" % save_gcsv)
     gg.to_csv(save_gcsv, index=False)
+    sys.stderr.write("save_greg: %s\n" % save_greg)
+    regify_gstars(save_greg, gg)
 
 #sys.exit(0)
 
@@ -505,7 +518,33 @@ yaypars = np.array([  -0.11493478, 2133.52441875, -140.01453587,
 yaypars = np.array([  -0.11493478, 2133.52441875, -140.01453587, 
                         294.58941299, 35.11319793])
 
+# First attempt from solver:
+yaypars = np.array([  -0.11493478, 2159.19182843, -238.56586468, 
+                        294.58679834, 35.10499829])
+
+# second attempt from solver:
+yaypars = np.array([  -0.11493478, 2185.36416169, -268.85706722, 
+                        294.58410422, 35.10244381])
+
+# third attempt from solver:
+yaypars = np.array([  -0.11579962, 2210.56641722, -286.40207281, 
+                        294.58150973, 35.10096784])
+
+# third attempt from solver:
+yaypars = np.array([  -0.11702289, 2114.69715339, -181.08663971, 
+                        294.59137184, 35.10984073])
+
+# attempts with fmin:
+yaypars = np.array([-0.11556858, 2042.39898725,  -72.60960425,
+                        294.59880079, 35.11900887])
+yaypars = np.array([-0.11677674, 2078.78185865,  -69.30868514,
+                        294.59504417, 35.11929469])
+yaypars = np.array([-0.11722164, 2073.36368714,  -67.21853003,
+                        294.59560743, 35.11945769])
+
+
 fig_dims = (10, 10)
+fig_dims = (8, 8)
 fig, axs1 = plt.subplots(2, 2, figsize=fig_dims, num=1, clear=True)
 [ax.set_aspect('equal', adjustable='box') for ax in axs1.flatten()]
 ax1map  = {'NE':axs1[0, 0], 'NW':axs1[0, 1], 'SE':axs1[1, 0], 'SW':axs1[1,1]}
@@ -663,6 +702,8 @@ for qq in quads:
     xdata = qrrel.get(qq)
     ydata = qrerr.get(qq)
     qpopt[qq], qpcov[qq] = opti.curve_fit(parabola, xdata, ydata)
+    ypred = parabola(xdata, *qpopt[qq])
+    outly = ydata - ypred
     ax3.scatter(xdata, ydata, label=qq, **skw)
     ytemp = parabola(xtemp, *qpopt[qq])
     ax3.plot(xtemp, ytemp, c='k')
@@ -676,7 +717,351 @@ ax3.legend(loc='upper left')
 # Trial distortion correction:
 #use_popt = avg_popt * np.array([0.0, 1.0, 1.0])
 
+## FROM EXECUTION, this should be approximately correct:
+guess_distmod = np.array([0.0, 0.0, 0.00000255])
+#guess_distmod = np.array([0.0, 0.0, 0.00000267])
+guess_distmod = np.array([0.0, 0.00138713, 0.00000205])
+guess_distmod = np.array([0.0, 0.00138713, 0.00000205, 0.0])
+guess_distmod = np.array([0.0, 0.00138713, 0.000013, 0.0])
+guess_distmod = np.array([0.0, 0.00005971, 0.00000258, 0.0])
+#guess_distmod = np.array([0.0, 0.00077147, 0.00000238, 0.0])
+guess_distmod = np.array([-0.00001875, 0.00012424, 0.00000268, 0.0])
+
 #scatter(np.hypot(test_xrel, test_yrel), np.sqrt(np.sum(radial_evec**2, axis=0)))
+
+## Polynomial model. Hopefully this is a strictly positive value.
+def poly_eval(r, model):
+    #return model[0] + model[1]*r + model[2]*r*r
+    #return model[0] + model[1]*r + model[2]*r*r + model[3]*r*r*r
+    return model[0] + model[1]*r + model[2]*r*r + model[3]*r*r*r + model[4]*r*r*r*r
+
+## Radial distortion model X- and Y- corrections. With a strictly positive
+## distortion magnitude, you need to *SUBTRACT* these from RA/DE-derived
+## positions in order to compare with measured X,Y positions.
+def calc_rdist_corrections(xrel, yrel, model):
+    rdist = np.hypot(xrel, yrel)     # distance from CRPIX
+    rcorr = poly_eval(rdist, model)  # total correction magnitude
+    theta = np.arctan2(yrel, xrel)
+    xcorr = rcorr * np.cos(theta)
+    ycorr = rcorr * np.sin(theta)
+    return xcorr, ycorr
+
+### ----------------------------------------------------------------------- ##
+### As noted above, this convention SUBTRACTS calculated x- and y-corrections
+### from RA/DE-derived xrel/yrel coordinates before comparing to measured X,Y.
+### Contents of 'params' array:
+### --> NE_pos_ang_deg, NE_CRPIX1, NE_CRPIX2, CRVAL1, CRVAL2
+### * CRVAL1
+#def eval_badness_foc2ccd(params):
+#    # parse parameters
+#    ne_pa_deg, ne_crpix1, ne_crpix2, test_crval1, test_crval2 = params
+#    # initialize CRPIX and CDM for all 4 sensors 
+#    sensor_crpix = sg.get_4sensor_crpix(ne_crpix1, ne_crpix2)
+#    test_cdm_calc = helpers.make_four_cdmats(ne_pa_deg)
+#    test_cdm_vals = test_cdm_calc
+#    # note average star count for normalization
+#    avg_nstars = np.average([len(x) for x in gstars.values()])
+#    qxres, qyres = {}, {}
+#    xres, yres = [], []
+#    for qq,gst in gstars.items():
+#        nstar_scale_factor = np.sqrt(avg_nstars / float(len(gst)))
+#        tcpx1, tcpx2 = sensor_crpix.get(qq)
+#        gxx, gyy = gst['XWIN_IMAGE'], gst['YWIN_IMAGE']
+#        cdmcrv = np.array(test_cdm_vals.get(qq).tolist() + [test_crval1, test_crval2])
+#        test_xrel, test_yrel = helpers.inverse_tan_cdmcrv(cdmcrv,
+#                                    gstars[qq]['gra'], gstars[qq]['gde'])
+#        #import pdb; pdb.set_trace()
+#        #breakpoint()
+#        xnudge, ynudge = calc_rdist_corrections(test_xrel, test_yrel, guess_distmod)
+#        test_xccd = test_xrel + xnudge + tcpx1
+#        test_yccd = test_yrel + ynudge + tcpx2
+#        x_error = test_xccd - gxx.values
+#        y_error = test_yccd - gyy.values
+#        scaled_xerr = x_error * nstar_scale_factor
+#        scaled_yerr = y_error * nstar_scale_factor
+#        #qxres[qq] = scaled_xerr
+#        #qyres[qq] = scaled_yerr
+#        xres.extend(scaled_xerr)
+#        yres.extend(scaled_yerr)
+#        #xres.extend(xres)
+#        pass
+#    #return qxres, qyres
+#    return xres, yres
+#
+### Square and concatenate for minimization:
+#def squared_residuals_foc2ccd(params):
+#    return np.concatenate(eval_badness_foc2ccd(params))**2
+#
+#sys.stderr.write("Test evaluate badness ...\n")
+#use_params = np.copy(yaypars)
+#tt_xres, tt_yres = eval_badness_foc2ccd(use_params)
+##residuals = eval_badness_foc2ccd(use_params)
+#
+### Optimize those parameters:
+#sys.stderr.write("Optimizing parameters ...\n")
+#answer = opti.least_squares(squared_residuals_foc2ccd, use_params)
+#sys.stderr.write("Ended up with: %s\n" % str(answer))
+#sys.stderr.write("Ended up with: %s\n" % str(answer['x']))
+
+## ----------------------------------------------------------------------- ##
+
+## ----------------------------------------------------------------------- ##
+## As noted above, this convention SUBTRACTS calculated x- and y-corrections
+## from RA/DE-derived xrel/yrel coordinates before comparing to measured X,Y.
+## THIS VERSION ALSO FITS RADIAL DISTORTION PARAMETERS
+## Contents of 'params' array:
+## --> NE_pos_ang_deg, NE_CRPIX1, NE_CRPIX2, CRVAL1, CRVAL2, rcoef2
+## * CRVAL1
+def squared_residuals_foc2ccd_rdist(params, diags=False):
+    # parse parameters
+    #ne_pa_deg, ne_crpix1, ne_crpix2, test_crval1, test_crval2,  = params
+    ne_pa_deg, ne_crpix1, ne_crpix2 = params[0:3]
+    test_crval1, test_crval2 = params[3:5]
+    rdist_pars = params[5:]
+    #rcoef1, rcoef2, rcoef3, rcoef4 = params[5:]
+    #rcoef3 = 0.0
+    #rcoef4 = 0.0
+    #coeffs = params[5:]
+    #test_distmod = np.array([0.0] + coeffs.tolist())
+    nextra = 5 - len(rdist_pars)
+    #test_distmod = np.array([0.0, rcoef1, rcoef2, rcoef3, rcoef4]) 
+    test_distmod = rdist_pars.tolist() + [0.0]*nextra
+    #test_distmod[1] = 0.0
+    # initialize CRPIX and CDM for all 4 sensors 
+    test_sensor_crpix = sg.get_4sensor_crpix(ne_crpix1, ne_crpix2)
+    test_cdm_calc = helpers.make_four_cdmats(ne_pa_deg)
+    test_cdm_vals = test_cdm_calc
+    # note average star count for normalization
+    avg_nstars = np.average([len(x) for x in gstars.values()])
+    typical_rdist = 1448.0     # 0.5 * np.hypot(2048, 2048)
+    qxres, qyres = {}, {}
+    xres, yres = [], []
+    diag_data = {}
+    for qq,gst in gstars.items():
+        nstar_scale_factor = np.sqrt(avg_nstars / float(len(gst)))
+        tcpx1, tcpx2 = test_sensor_crpix.get(qq)
+        gxx, gyy = gst['XWIN_IMAGE'], gst['YWIN_IMAGE']
+        cdmcrv = np.array(test_cdm_vals.get(qq).tolist() + [test_crval1, test_crval2])
+        test_xrel, test_yrel = helpers.inverse_tan_cdmcrv(cdmcrv,
+                                    gstars[qq]['gra'], gstars[qq]['gde'])
+        #import pdb; pdb.set_trace()
+        #breakpoint()
+        test_rrel = np.hypot(test_xrel, test_yrel)
+        xnudge, ynudge = calc_rdist_corrections(test_xrel, test_yrel, test_distmod)
+        test_xccd = test_xrel + xnudge + tcpx1
+        test_yccd = test_yrel + ynudge + tcpx2
+        x_error = test_xccd - gxx.values
+        y_error = test_yccd - gyy.values
+        scaled_xerr = x_error * nstar_scale_factor
+        scaled_yerr = y_error * nstar_scale_factor 
+
+        #scaled_xerr *= test_rrel / typical_rdist    # more weight far away
+        #scaled_yerr *= test_rrel / typical_rdist    # more weight far away
+        scaled_xerr *= np.sqrt(test_rrel / typical_rdist)    # more weight far away
+        scaled_yerr *= np.sqrt(test_rrel / typical_rdist)    # more weight far away
+        #qxres[qq] = scaled_xerr
+        #qyres[qq] = scaled_yerr
+        xres.extend(scaled_xerr)
+        yres.extend(scaled_yerr)
+        #xres.extend(xres)
+        if diags:
+            diag_data[qq] = {'rdist':test_rrel,
+                             'xerror':x_error,
+                             'yerror':y_error,
+                             'rerror':np.hypot(x_error, y_error),
+                             'scaled_xerror':scaled_xerr,
+                             'scaled_yerror':scaled_yerr,
+                             'scaled_rerror':np.hypot(scaled_xerr, scaled_yerr),
+                            }
+
+        pass
+    #return qxres, qyres
+    #return xres, yres
+    if diags:
+        return diag_data
+    return np.concatenate((xres, yres))**2
+
+def fmin_squared_residuals_foc2ccd_rdist(params):
+    return np.sum(squared_residuals_foc2ccd_rdist(params))
+
+sys.stderr.write("Test evaluate badness (rdist version) ...\n")
+#use_params = np.copy(yaypars)
+#use_params = np.array(yaypars.tolist() + [0.0, 0.00000255, 0.0, 0.0])
+#use_params = np.array(yaypars.tolist() + [0.0, 0.00000255]) #, 0.0, 0.0])
+#use_params = np.array(yaypars.tolist() + [0.00055223, 0.00000255]) #, 0.0, 0.0])
+#use_params = np.array(yaypars.tolist() + [0.000, 0.00000255]) #, 0.0, 0.0])
+use_params = np.array(yaypars.tolist() + [0.0, 0.000, 0.00000255]) #, 0.0, 0.0])
+use_params = np.array(yaypars.tolist() + [0.0, 0.000, 0.00000255, 0.0]) #, 0.0, 0.0])
+#use_params[0] += 0.01
+#tt_xres, tt_yres = eval_badness_foc2ccd(use_params)
+#residuals = eval_badness_foc2ccd(use_params)
+
+## Start in the middle of the gutters:
+use_params[1] = 2048.0 + 70.
+use_params[2] =    1.0 - 70.
+
+## Optimize those parameters:
+sys.stderr.write("Optimizing parameters ...\n")
+#slvkw = {'loss':'soft_l1'}
+typical_scale = np.array([0.01, 1.0, 1.0, 0.01, 0.01, 1e-5])
+#slvkw = {'loss':'linear'}
+#slvkw = {'loss':'linear', 'x_scale':typical_scale}
+slvkw = {}
+answer = opti.least_squares(squared_residuals_foc2ccd_rdist, use_params, **slvkw)
+sys.stderr.write("Ended up with: %s\n" % str(answer))
+sys.stderr.write("Ended up with: %s\n" % str(answer['x']))
+
+sys.stderr.write("\n\n\nTry again with fmin ....\n")
+fmkw = {'full_output':True, 'xtol':1e-5}
+fanswer = opti.fmin(fmin_squared_residuals_foc2ccd_rdist, use_params, **fmkw)
+print(fanswer[0])
+
+## ----------------------------------------------------------------------- ##
+## Diagnostics time ...
+
+diag_data = squared_residuals_foc2ccd_rdist(fanswer[0], diags=True)
+
+swdiags = diag_data['SW']
+#ststars = 
+rerrs = np.hypot(swdiags['xerror'], swdiags['yerror'])
+worst10idx = np.argsort(rerrs)[-10:]
+gstars['SW'].iloc[worst10idx]
+#xworst = 
+
+
+
+
+fig4, axs4 = plt.subplots(2, 2, sharex=True, figsize=fig_dims, num=4, clear=True)
+qaxs4 = {'NE':axs4[0,0], 'NW':axs4[0,1], 'SE':axs4[1,0], 'SW':axs4[1,1]}
+
+fig5, axs5 = plt.subplots(2, 2, sharex=True, figsize=fig_dims, num=5, clear=True)
+qaxs5 = {'NE':axs5[0,0], 'NW':axs5[0,1], 'SE':axs5[1,0], 'SW':axs5[1,1]}
+
+fig6, axs6 = plt.subplots(2, 2, sharex=True, figsize=fig_dims, num=6, clear=True)
+qaxs6 = {'NE':axs6[0,0], 'NW':axs6[0,1], 'SE':axs6[1,0], 'SW':axs6[1,1]}
+
+#fig4 = plt.figure(4)
+#fig4.clf()
+#ax4 = fig4.add_subplot(111)
+skw = {'lw':0, 's':10}
+qpopt, qpcov = {}, {}
+xtemp = np.linspace(250, 2750)
+for qq,ddata in diag_data.items():
+    # R error:
+    rax = qaxs4[qq]
+    rax.set_title(qq)
+    rax.scatter(ddata['rdist'], ddata['rerror'], label='raw', **skw)
+    rax.scatter(ddata['rdist'], ddata['scaled_rerror'], label='scl', **skw)
+    rax.set_ylabel('R error [pix]')
+    # X error:
+    xax = qaxs5[qq]
+    xax.scatter(ddata['rdist'], ddata['xerror'], label='raw', **skw)
+    xax.scatter(ddata['rdist'], ddata['scaled_xerror'], label='scl', **skw)
+    xax.set_title(qq)
+    xax.set_ylabel('X error [pix]')
+    # Y error:
+    yax = qaxs6[qq]
+    yax.set_title(qq)
+    yax.scatter(ddata['rdist'], ddata['yerror'], label='raw', **skw)
+    yax.scatter(ddata['rdist'], ddata['scaled_yerror'], label='scl', **skw)
+    yax.set_ylabel('Y error [pix]')
+    pass
+
+
+for rax in qaxs4.values():
+    rax.legend(loc='upper left')
+for xax in qaxs5.values():
+    xax.legend(loc='upper left')
+for yax in qaxs6.values():
+    yax.legend(loc='upper left')
+
+
+#    xdata = qrrel.get(qq)
+#    ydata = qrerr.get(qq)
+#    qpopt[qq], qpcov[qq] = opti.curve_fit(parabola, xdata, ydata)
+#    ypred = parabola(xdata, *qpopt[qq])
+#    outly = ydata - ypred
+#    ax3.scatter(xdata, ydata, label=qq, **skw)
+#    ytemp = parabola(xtemp, *qpopt[qq])
+#    ax3.plot(xtemp, ytemp, c='k')
+#ax3.scatter(rrel, rerr, **skw)
+fig4.tight_layout()
+fig5.tight_layout()
+fig6.tight_layout()
+
+
+
+
+
+
+
+
+
+sys.exit(0)
+
+## ----------------------------------------------------------------------- ##
+## As noted above, this convention SUBTRACTS calculated x- and y-corrections
+## from RA/DE-derived xrel/yrel coordinates before comparing to measured X,Y.
+## V3 will look directly at the radialness of errors ...
+## Contents of 'params' array:
+## --> NE_pos_ang_deg, NE_CRPIX1, NE_CRPIX2, CRVAL1, CRVAL2
+## * CRVAL1
+def squared_residuals_foc2ccd_rbinerr(params):
+    # parse parameters
+    ne_pa_deg, ne_crpix1, ne_crpix2, test_crval1, test_crval2 = params
+    # initialize CRPIX and CDM for all 4 sensors 
+    sensor_crpix = sg.get_4sensor_crpix(ne_crpix1, ne_crpix2)
+    test_cdm_calc = helpers.make_four_cdmats(ne_pa_deg)
+    test_cdm_vals = test_cdm_calc
+    # note average star count for normalization
+    avg_nstars = np.average([len(x) for x in gstars.values()])
+    qxres, qyres = {}, {}
+    xres, yres = [], []
+    every_rrel = []
+    every_rerr = []
+    for qq,gst in gstars.items():
+        nstar_scale_factor = np.sqrt(avg_nstars / float(len(gst)))
+        tcpx1, tcpx2 = sensor_crpix.get(qq)
+        gxx, gyy = gst['XWIN_IMAGE'], gst['YWIN_IMAGE']
+        cdmcrv = np.array(test_cdm_vals.get(qq).tolist() + [test_crval1, test_crval2])
+        test_xrel, test_yrel = helpers.inverse_tan_cdmcrv(cdmcrv,
+                                    gstars[qq]['gra'], gstars[qq]['gde'])
+        #import pdb; pdb.set_trace()
+        #breakpoint()
+        xnudge, ynudge = calc_rdist_corrections(test_xrel, test_yrel, guess_distmod)
+        test_xccd = test_xrel + xnudge + tcpx1
+        test_yccd = test_yrel + ynudge + tcpx2
+        x_error = test_xccd - gxx.values
+        y_error = test_yccd - gyy.values
+        scaled_xerr = x_error * nstar_scale_factor
+        scaled_yerr = y_error * nstar_scale_factor
+        #qxres[qq] = scaled_xerr
+        #qyres[qq] = scaled_yerr
+        xres.extend(scaled_xerr)
+        yres.extend(scaled_yerr)
+        test_rrel = np.hypot(test_xrel, test_yrel)
+        test_rerr = np.hypot(scaled_xerr, scaled_yerr)
+        every_rrel.extend(test_rrel)
+        every_rerr.extend(test_rerr)
+        #xres.extend(xres)
+        pass
+    #return qxres, qyres
+
+    return np.concatenate((xres, yres))**2
+
+sys.stderr.write("Test evaluate badness ...\n")
+use_params = np.copy(yaypars)
+tt_xres, tt_yres = eval_badness_foc2ccd(use_params)
+#residuals = eval_badness_foc2ccd(use_params)
+
+## Optimize those parameters:
+sys.stderr.write("Optimizing parameters ...\n")
+answer = opti.least_squares(squared_residuals_foc2ccd, use_params)
+sys.stderr.write("Ended up with: %s\n" % str(answer))
+sys.stderr.write("Ended up with: %s\n" % str(answer['x']))
+
+
+## ----------------------------------------------------------------------- ##
 
 sys.exit(0)
 
@@ -720,7 +1105,7 @@ sys.exit(0)
 
 ##--------------------------------------------------------------------------##
 #plt.style.use('bmh')   # Bayesian Methods for Hackers style
-fig_dims = (11, 9)
+fig_dims = (9, 8)
 fig = plt.figure(1, figsize=fig_dims)
 plt.gcf().clf()
 #fig, axs = plt.subplots(2, 2, sharex=True, figsize=fig_dims, num=1, clear=True)
