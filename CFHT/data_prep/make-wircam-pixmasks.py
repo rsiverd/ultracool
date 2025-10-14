@@ -141,17 +141,19 @@ fulldiv = '-' * 80
 
 ##--------------------------------------------------------------------------##
 ## Save FITS image with clobber (astropy / pyfits):
-def qsave(iname, idata, header=None, padkeys=1000, **kwargs):
+def qsave(iname, idata, header=None, padkeys=1000, vlevel=1, **kwargs):
     this_func = sys._getframe().f_code.co_name
     parent_func = sys._getframe(1).f_code.co_name
-    sys.stderr.write("Writing to '%s' ... " % iname)
+    if vlevel >= 1:
+        sys.stderr.write("Writing to '%s' ... " % iname)
     if header:
         while (len(header) < padkeys):
             header.append() # pad header
     if os.path.isfile(iname):
         os.remove(iname)
     pf.writeto(iname, idata, header=header, **kwargs)
-    sys.stderr.write("done.\n")
+    if vlevel >= 1:
+        sys.stderr.write("done.\n")
 
 ##--------------------------------------------------------------------------##
 ## Save FITS image with clobber (fitsio):
@@ -204,7 +206,8 @@ if __name__ == '__main__':
                           formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
     #parser.set_defaults(thing1='value1', thing2='value2')
-    parser.set_defaults(quadrant='NE')
+    #parser.set_defaults(quadrant='NE')
+    parser.set_defaults(quadrant=None)
     parser.set_defaults(saturval=65535)
     # ------------------------------------------------------------------
     #parser.add_argument('firstpos', help='first positional argument')
@@ -253,6 +256,11 @@ if __name__ == '__main__':
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
+
+## Abort if no quadrant specified:
+if not context.quadrant:
+    sys.stderr.write("Error: no quadrant specified!\n")
+    sys.exit(1)
 
 ## Choose extension name based on quadrant:
 sys.stderr.write("Chosen quadrant: %s\n" % context.quadrant)
@@ -316,7 +324,7 @@ for qrunid,subset in chunks:
     sys.stderr.write("Taking average ... ")
     mask = np.mean(mask_stack, axis=0)
     sys.stderr.write("saving ... ")
-    qsave(save_file, mask, overwrite=True)
+    qsave(save_file, mask, vlevel=0, overwrite=True)
     sys.stderr.write("done.\n")
     #break
     pass

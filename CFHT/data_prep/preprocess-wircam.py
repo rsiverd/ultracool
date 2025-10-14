@@ -264,7 +264,8 @@ if __name__ == '__main__':
                           formatter_class=argparse.RawTextHelpFormatter)
     # ------------------------------------------------------------------
     #parser.set_defaults(thing1='value1', thing2='value2')
-    parser.set_defaults(quadrant='NE')
+    #parser.set_defaults(quadrant='NE')
+    parser.set_defaults(quadrant=None)
     parser.set_defaults(saturval=65535)
     parser.set_defaults(mthresh=0.9)
     # ------------------------------------------------------------------
@@ -327,6 +328,11 @@ if __name__ == '__main__':
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
+
+## Abort if no quadrant specified:
+if not context.quadrant:
+    sys.stderr.write("Error: no quadrant specified!\n")
+    sys.exit(1)
 
 ## Choose extension name based on quadrant:
 sys.stderr.write("Chosen quadrant: %s\n" % context.quadrant)

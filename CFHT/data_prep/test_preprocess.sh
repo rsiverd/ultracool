@@ -137,7 +137,7 @@ fi
 ## Ensure bad pixel masks exist:
 #cmde "./make-wircam-pixmasks.py -i $key_data -o $pixmask_dir"  || exit $?
 #cmde "./make-wircam-pixmasks.py -i $key_data -o $targ_dir"     || exit $?
-cmde "./make-wircam-pixmasks.py -i $key_data -o $runid_base"   || exit $?
+cmde "./make-wircam-pixmasks.py --$use_quad -i $key_data -o $runid_base" || exit $?
 #cmde "./make-wircam-pixmasks.py -i $vers_csv -o $runid_base"   || exit $?
 
 ## fitsarith options:
@@ -201,7 +201,7 @@ while read ipath <&10; do
    # snip quadrant:
    #cmde "fitsarith $fopts -i '${ipath}[${use_qext}]' -o '!$baz'"   || exit $?
    echo "ipath: $ipath"
-   args="--raw $rpath --proc $ipath --mask $pix_mask"
+   args="--$use_quad --raw $rpath --proc $ipath --mask $pix_mask"
    cmde "./preprocess-wircam.py $args -o $baz" || exit $?
 
    # re-compress:
