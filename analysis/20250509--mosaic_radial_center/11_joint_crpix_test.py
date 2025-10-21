@@ -865,7 +865,13 @@ def squared_residuals_foc2ccd_rdist(params, diags=False):
         yres.extend(scaled_yerr)
         #xres.extend(xres)
         if diags:
-            diag_data[qq] = {'rdist':test_rrel,
+            diag_data[qq] = { "xmeas":gxx,
+                              "ymeas":gyy,
+                              "xcalc":test_xccd,
+                              "ycalc":test_yccd,
+                              'rdist':test_rrel,
+                             'xnudge':xnudge,
+                             'ynudge':ynudge,
                              'xerror':x_error,
                              'yerror':y_error,
                              'rerror':np.hypot(x_error, y_error),
@@ -873,6 +879,14 @@ def squared_residuals_foc2ccd_rdist(params, diags=False):
                              'scaled_yerror':scaled_yerr,
                              'scaled_rerror':np.hypot(scaled_xerr, scaled_yerr),
                             }
+#            diag_data[qq] = {'rdist':test_rrel,
+#                             'xerror':x_error,
+#                             'yerror':y_error,
+#                             'rerror':np.hypot(x_error, y_error),
+#                             'scaled_xerror':scaled_xerr,
+#                             'scaled_yerror':scaled_yerr,
+#                             'scaled_rerror':np.hypot(scaled_xerr, scaled_yerr),
+#                            }
 
         pass
     #return qxres, qyres
