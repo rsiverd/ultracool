@@ -13,3 +13,9 @@ mapmap -t canvas.fits.fz -s slvd_11BQ02/solved_J_1325826p.SW.fits -o overlay_SW.
 # Combine:
 medianize overlay*fits
 
+# Remove individual images after combination to save space:
+rm overlay_??.fits
+
+# Compress output median to save more space:
+fpack -D -Y -qt 4 median.fits
+
