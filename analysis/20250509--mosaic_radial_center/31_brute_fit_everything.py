@@ -737,85 +737,9 @@ rrel, rerr = [], []
 approx_r2_coeff = 0.00000254
 approx_r2_coeff = yaypars[1]
 approx_r2_coeff = 0.00000254
-#for qq,gst in gstars.items():
-#    tcpx1, tcpx2 = sensor_crpix.get(qq)
-#    gxx, gyy = gst['XWIN_IMAGE'], gst['YWIN_IMAGE']
-#    cdmcrv = np.array(use_cdm_vals.get(qq).tolist() + [test_crval1, test_crval2])
-#    test_xrel, test_yrel = helpers.inverse_tan_cdmcrv(cdmcrv,
-#                                gstars[qq]['gra'], gstars[qq]['gde'])
-#    test_xccd = test_xrel + tcpx1
-#    test_yccd = test_yrel + tcpx2
-#    x_error = test_xccd - gxx.values
-#    y_error = test_yccd - gyy.values
-#    #ax1map.get(qq).quiver(gxx, gyy, x_error, y_error, **qxkw)
-#    ## error percentiles:
-#    #xerrpct = np.percentile(x_error, pctcheck)
-#    #yerrpct = np.percentile(y_error, pctcheck)
-#    #sys.stderr.write("%s X 5th/95th: %7.3f, %7.3f\n" % (qq, *xerrpct))
-#    #sys.stderr.write("%s Y 5th/95th: %7.3f, %7.3f\n" % (qq, *yerrpct))
-#
-#    # unit vector towards CRPIX:
-#    test_xy_rel = np.array((test_xrel, test_yrel))
-#    _vec_length = np.sqrt(np.sum(test_xy_rel**2, axis=0))
-#    _src_v_unit = test_xy_rel / _vec_length
-#    _src_v_errs = np.array((x_error, y_error))
-#    # radial distance (towards CRPIX):
-#    _src_R_dist = np.hypot(test_xrel, test_yrel)
-#    # radial distortion correction:
-#    _src_R_corr = approx_r2_coeff * _src_R_dist**2
-#    _src_v_corr = _src_R_corr * _src_v_unit
-#    xcorrection, ycorrection = _src_v_corr
-#    # total errors after radial adjustment:
-#    _tot_v_errs = _src_v_errs + _src_v_corr
-#    corr_x_error, corr_y_error = _tot_v_errs
-#    # show me!
-#    ax1map.get(qq).quiver(gxx, gyy,  xcorrection,  ycorrection, color='k', **qxkw)
-#    ax2map.get(qq).quiver(gxx, gyy, corr_x_error, corr_y_error, color='r', **qxkw)
-#
-#    # magnitude of error radial component:
-#    radial_emag = x_error*_src_v_unit[0] + y_error*_src_v_unit[1]
-#    # error radial component as vector:
-#    radial_evec = _src_v_unit * radial_emag
-#    nonrad_evec = _src_v_errs - radial_evec
-#
-#    nonrad_emag = np.sqrt(np.sum(nonrad_evec**2, axis=0))  # size of nonrad err
-#    implied_rot = np.degrees(nonrad_emag / _src_R_dist)
-#
-#    # SPEW UNIT VECTORS:
-#    radial_unit_avg = np.median(_src_v_unit, axis=1)
-#    radial_dist_avg = np.median(test_xy_rel, axis=1)
-#    radial_errs_avg = np.median(_src_v_errs, axis=1)
-#    radial_corr_avg = np.median(_src_v_corr, axis=1)
-#    radial_evec_avg = np.median(radial_evec, axis=1)
-#    nonrad_evec_avg = np.median(nonrad_evec, axis=1)
-#
-#    sys.stderr.write("----------------------\n")
-#    sys.stderr.write("%s quad\n" % qq)
-#    sys.stderr.write("avg radial unit: %s\n" % str(radial_unit_avg))
-#    sys.stderr.write("avg radial dist: %s\n" % str(radial_dist_avg))
-#    sys.stderr.write("avg radial errs: %s\n" % str(radial_errs_avg))
-#    sys.stderr.write("avg radial corr: %s\n" % str(radial_corr_avg))
-#    sys.stderr.write("avg radial evec: %s\n" % str(radial_evec_avg))
-#    sys.stderr.write("avg nonrad evec: %s\n" % str(nonrad_evec_avg))
-#    #pass
-#    #break
-#
-#    #errdot = x_error*_src_v_unit[0] + y_error*_src_v_unit[1]
-#    # magnitude of error radial component:
-#    radial_emag = x_error*_src_v_unit[0] + y_error*_src_v_unit[1]
-#    # error radial component as vector:
-#    radial_evec = _src_v_unit * radial_emag
-#    nonrad_evec = _src_v_errs - radial_evec
-#    # stash:
-#    qrrel[qq] = _src_R_dist #np.hypot(test_xrel, test_yrel)
-#    qrerr[qq] = np.sqrt(np.sum(radial_evec**2, axis=0))
-#    rrel.extend(_src_R_dist) #np.hypot(test_xrel, test_yrel).tolist())
-#    rerr.extend(np.sqrt(np.sum(radial_evec**2, axis=0)).tolist())
-#
-#    #break
 
-fig.tight_layout()
-fig2.tight_layout()
+#fig.tight_layout()
+#fig2.tight_layout()
 #sys.exit(0)
 
 ### MUST halt here if qrrel was not populated ...
