@@ -1,0 +1,10 @@
+Compare measured radial distortion to various functions to see if a better
+functional form might capture this distortion with fewer model parameters.
+
+Data file from fitting:
+./best_fit_diags.csv
+
+Parabolic mirror profile data:
+./profile.csv
+# columns are ang_deg, focx, focy, planex, planey
+
