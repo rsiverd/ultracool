@@ -489,9 +489,10 @@ sys.stderr.write("done.\n")
 #[asdf[x].dtype.byteorder for x in asdf.keys()]
 
 ## Split off subsets of source catalogs with just the Gaia matches:
-gstars, orig_gstars = {}
+all_gstars, use_gstars = {}, {}
 for qq,ss in stars.items():
-    gstars[qq] = ss[ss.gid > 0]
+    all_gstars[qq] = ss[ss.gid > 0].copy()
+    use_gstars[qq] = ss[ss.gid > 0].copy()
 
 #sys.exit(0)
 
@@ -510,7 +511,7 @@ def regify_gstars(filename, data, r1=3, r2=10):
 save_gdir = 'gmatches_31'
 if not os.path.isdir(save_gdir):
     os.mkdir(save_gdir)
-for qq,gg in gstars.items():
+for qq,gg in all_gstars.items():
     sys.stderr.write("qq: %s\n" % qq)
     cbase = os.path.basename(cpath.get(qq))
     save_gcsv = '%s/%s.gaia.csv' % (save_gdir, cbase)
@@ -522,18 +523,19 @@ for qq,gg in gstars.items():
 
 #sys.exit(0)
 
-## Purge masked entries from gstars:
+## Purge masked entries from use_gstars (in place overwrite):
+bad_gids = None
 if isinstance(gmask_data, pd.DataFrame):
     bad_gids = gmask_data.gid[gmask_data.masked]
-    for qq in gstars.keys():
-        _tmpdf = gstars.get(qq).copy()
+    for qq in use_gstars.keys():
+        _tmpdf = use_gstars.get(qq).copy()
         #_tmpdf['keeper'] = np.ones(len(_tmpdf), dtype='bool')
     #if isinstance(gmask_data, pd.DataFrame):
     #    keeper = ~_tmpdf.gid.isin(gmask_data.masked)
     #else:
     #    keeper = np.ones(len(_tmpdf), dtype='bool')
         _tmpdf['keeper'] = ~_tmpdf.gid.isin(bad_gids)
-        gstars[qq] = _tmpdf[_tmpdf['keeper']]
+        use_gstars[qq] = _tmpdf[_tmpdf['keeper']]
 
 ## Eval test:
 yaypars = np.array([-0.11849369, 1981.53392088, 156.12566409,
@@ -652,6 +654,17 @@ brute_param_guess = np.array([
 ##         0.00000337,    0.        , 0.])
 ##brute_param_guess[24] += 0.001
 brute_param_guess = brute_param_guess[:-5]   # trim the polynomial
+
+brute_param_guess = np.array([
+         -0.00008508,   -0.00000009,   -0.00000005,    0.00008507,
+       2071.42878248,  -77.58024797,   -0.00008510,    0.00000013,
+          0.00000013,    0.00008509, -112.88925890,  -68.55046592,
+         -0.00008508,    0.00000007,    0.00000005,    0.00008508,
+       2075.25551562, 2115.01759186,   -0.00008506,    0.00000015,
+          0.00000013,    0.00008504, -115.47841845, 2127.56859459,
+          294.59565158, 35.11860268])
+
+
 
 
 def calc_gutter_pixels(params):
@@ -794,6 +807,8 @@ guess_distmod = np.array([0.009138186689690436, 0.0024918987630597146,
 guess_distmod = np.array([-7.481374e-02, 2.720092e-03, -1.770719e-06,
                            2.267144e-09, -3.437447e-13])
 
+guess_distmod = np.array([-8.904428e-02, 2.715352e-03, -1.758365e-06,
+                           2.264144e-09, -3.435743e-13])
 
 #scatter(np.hypot(test_xrel, test_yrel), np.sqrt(np.sum(radial_evec**2, axis=0)))
 
@@ -931,7 +946,7 @@ def describe_answer(sifted):
 ## THIS VERSION ALSO FITS RADIAL DISTORTION PARAMETERS
 ## This version expects per-sensor CD11, CD12, CD21, CD22, CRPIX1, CRPIX2 at
 ## the front of the parameters array.
-def squared_residuals_foc2ccd_rdist(params, diags=False, dataset=gstars):
+def squared_residuals_foc2ccd_rdist(params, diags=False, dataset=use_gstars):
     # parse parameters
     sifted = sift_params(params)
     brute_cdmat = sifted['cdmat']
@@ -1057,7 +1072,14 @@ if _CHOICE == 'lstq':
 sifted_pars = sift_params(fitted_pars)
 
 ## ----------------------------------------------------------------------- ##
-## Diagnostics time ...
+## Diagnostics time. There are TWO sets of diagnostic data, each corresponding
+## to a different input star dataset. 
+## 1) The usual set includes residuals etc based on only the 'use_gstars'
+## subset that were in use this round. Outliers identified in previous passes
+## are removed. Use this for plotting and to save for external analysis.
+## 2) Another set of residuals is evaluated using the 'all_gstars' dataset.
+## This contains all of the stars with their errors etc according to the 
+## latest fitting parameters. We need this in order to update the blacklist.
 
 #diag_lstq = squared_residuals_foc2ccd_rdist(answer['x'], diags=True)
 #diag_fmin = squared_residuals_foc2ccd_rdist(fanswer[0], diags=True)
@@ -1070,60 +1092,58 @@ diag_data = orig_diag_data
 rot_error = show_misrotations(diag_data)
 
 ## Modify parameters:
-_adjust_pa_crpix = False
-_adjust_pa_crpix = True
-if _adjust_pa_crpix:
-    derot_sifted = copy.deepcopy(sifted_pars)
-    for qq,resid in rot_error.items():
-        rmat = helpers.rotation_matrix(-1.0 * np.radians(resid))
-        _new_cdm = np.dot(rmat, derot_sifted['cdmat'][qq].reshape(2, 2))
-        derot_sifted['cdmat'][qq] = _new_cdm.flatten()
-        pass
-    derot_params = unsift_params(derot_sifted)
-    
-    # The following has the rotation fixed but wonky CRPIX:
-    derot_diags = squared_residuals_foc2ccd_rdist(derot_params, diags=True)
-    diag_data = derot_diags
+#_adjust_pa_crpix = False
+#_adjust_pa_crpix = True
 
-    # Modify CRPIX:
-    fixed_sifted = copy.deepcopy(derot_sifted)
-    for qq,ddata in derot_diags.items():
-        fixed_sifted['crpix'][qq][0] -= np.median(ddata['xerror'])
-        fixed_sifted['crpix'][qq][1] -= np.median(ddata['yerror'])
-    fixed_params = unsift_params(fixed_sifted)
+derot_sifted = copy.deepcopy(sifted_pars)
+for qq,resid in rot_error.items():
+    rmat = helpers.rotation_matrix(-1.0 * np.radians(resid))
+    _new_cdm = np.dot(rmat, derot_sifted['cdmat'][qq].reshape(2, 2))
+    derot_sifted['cdmat'][qq] = _new_cdm.flatten()
+    pass
+derot_params = unsift_params(derot_sifted)
 
-    # De-rotated and shifted results:
-    fixed_diags = squared_residuals_foc2ccd_rdist(fixed_params, diags=True)
-    diag_data = fixed_diags
+## The following has the rotation fixed but wonky CRPIX:
+derot_diags = squared_residuals_foc2ccd_rdist(derot_params, diags=True)
+diag_data = derot_diags
+
+## Modify CRPIX:
+fixed_sifted = copy.deepcopy(derot_sifted)
+for qq,ddata in derot_diags.items():
+    fixed_sifted['crpix'][qq][0] -= np.median(ddata['xerror'])
+    fixed_sifted['crpix'][qq][1] -= np.median(ddata['yerror'])
+fixed_params = unsift_params(fixed_sifted)
+
+## De-rotated and shifted results:
+fixed_diags = squared_residuals_foc2ccd_rdist(fixed_params, diags=True)
+diag_data = fixed_diags
+
+## For now, adopt the fixed (derot+shift) parameters to evaluate 
+## the all_gstars dataset. This second set of diags is the basis for 
+## updating the blacklist.
+full_diag_data = squared_residuals_foc2ccd_rdist(fixed_params, 
+                                                 diags=True, dataset=all_gstars)
 
 #diag_data = diag_lstq
 #diag_data = orig_diag_data
 #diag_data = derot_diags
 
-#swdiags = diag_data['SW']
-##ststars = 
-#rerrs = np.hypot(swdiags['xerror'], swdiags['yerror'])
-#worst10idx = np.argsort(rerrs)[-10:]
-#gstars['SW'].iloc[worst10idx]
-#xworst = 
 
 ## ----------------------------------------------------------------------- ##
-## Save copy of diag_data for external analysis in a few steps:
-## 1) Promote individual quadrant data to DataFrame
-## 2) Insert quadrant as new column
-## 3) Concatenate data from quadrants (now with matched columns)
-## 4) Save as CSV
-diags_csv = 'best_fit_diags.csv'
+## Create a large, flat DataFrame for further analysis. This panel contains
+## data from all stars (from full_diag_data) and is suitable for updating
+## the Gaia blacklist. A subset is selected later for plotting.
+
+## Full set 'bigdf' with data for blacklist:
 dflist = []
-for qq,ddata in diag_data.items():
+for qq,ddata in full_diag_data.items():
     _tdf = pd.DataFrame.from_dict(ddata)
     _tdf['qq'] = [qq for x in range(len(_tdf))]
     dflist.append(_tdf)
-    pass
 bigdf = pd.concat(dflist)
-bigdf.to_csv(diags_csv, index=False)
 del _tdf, dflist
-sys.stderr.write("To keep: mv -f best_fit_diags.csv projection_func/.\n")
+#bigdf.to_csv(diags_csv, index=False)
+#sys.stderr.write("To keep: mv -f best_fit_diags.csv projection_func/.\n")
 
 ## Fraction of total residuals in outliers:
 total_rerror = np.sum(bigdf['rerror']**2)
@@ -1146,44 +1166,59 @@ xx_lo_thresh = -0.3
 xx_hi_thresh = +0.3
 xx_lo_masked = bigdf.xerror < xx_lo_thresh
 xx_hi_masked = bigdf.xerror > xx_hi_thresh
+xx_masked    = xx_lo_masked | xx_hi_masked
 yy_lo_thresh = -0.3
 yy_hi_thresh = +0.3
 yy_lo_masked = bigdf.yerror < yy_lo_thresh
 yy_hi_masked = bigdf.yerror > yy_hi_thresh
+yy_masked    = yy_lo_masked | yy_hi_masked
+xy_masked    = xx_masked | yy_masked
 
-combo_masked = inner_masked | rr_hi_masked
+combo_masked = inner_masked | rr_hi_masked | xy_masked
 bigdf['masked'] = combo_masked
 combo_rerror = np.sum(bigdf[combo_masked]['rerror']**2)
 combo_fraction = combo_rerror / total_rerror
 sys.stderr.write("Combo rerror: %10.4f (%.1f%%)\n" % (combo_rerror, 100.*combo_fraction))
 
+## Save latest bigdf for projection use:
+diags_csv = 'best_fit_diags.csv'
+bigdf.to_csv(diags_csv, index=False)
+sys.stderr.write("To keep: mv -f best_fit_diags.csv projection_func/.\n")
+
 ## Augment the list of masked objects. IMPORTANT: GIDs in the current
 ## blacklist are NOT in bigdf (they are already pruned). Objects masked
 ## in the current iteration of bigdf must be ADDED to the blacklist.
 current_mskcols = bigdf[['gid', 'rdist', 'rerror', 'masked']]
-blacklist_additions = np.sum(current_mskcols['masked'])
-if blacklist_additions == 0:
-    sys.stderr.write("Nothing to add!!\n")
-if isinstance(gmask_data, pd.DataFrame):
-    # augment existing mask
-    sys.stderr.write("gmask_data exists: update existing blacklist\n")
-    updated_blacklist = gmask_data.copy()
-    pass
-else:
-    sys.stderr.write("gmask_data missing: create from scratch\n")
-    updated_blacklist = current_mskcols
 
-## Sanity check (started with 6862 objects):
-if len(updated_blacklist) != 6862:
-    sys.stderr.write("WARNING ... blacklist size changed ...\n")
+#blacklist_additions = np.sum(current_mskcols['masked'])
+#if blacklist_additions == 0:
+#    sys.stderr.write("Nothing to add!!\n")
+#if isinstance(gmask_data, pd.DataFrame):
+#    # augment existing mask
+#    sys.stderr.write("gmask_data exists: update existing blacklist\n")
+#    updated_blacklist = gmask_data.copy()
+#    pass
+#else:
+#    sys.stderr.write("gmask_data missing: create from scratch\n")
+#    updated_blacklist = current_mskcols
+#
+### Sanity check (started with 6862 objects):
+#if len(updated_blacklist) != 6862:
+#    sys.stderr.write("WARNING ... blacklist size changed ...\n")
 
 ## INTERACTIVE: also save/update a blacklist of discrepant matches:
+# current_mskcols.to_csv(gmask_file, index=False)
 # updated_blacklist.to_csv(gmask_file, index=False)
 
 ## INTERACTIVE: also save/update a blacklist of discrepant matches:
 # mskdf = bigdf[['gid', 'rdist', 'rerror', 'masked']]
 # mskdf.to_csv(gmask_file, index=False)
 # outly_verybad = mskdf.rerror > rr_hi_thresh
+
+## Downselect bigdf to match 'use_gstars' for plotting:
+keeper_gids = pd.concat([x['gid'] for x in use_gstars.values()])
+pltdf = bigdf[bigdf['gid'].isin(keeper_gids)]
+
 
 ## ----------------------------------------------------------------------- ##
 
@@ -1232,7 +1267,7 @@ mskkw = {'c':'m', 's':50}
 for qq,ddata in diag_data.items():
     #snsdf = bigdf[bigdf['qq'] == qq]    # this sensor
     #mskdf = snsdf[snsdf['masked']]      # this sensor + masked
-    baddf = bigdf[(bigdf['qq'] == qq) & bigdf['masked']]
+    baddf = pltdf[(pltdf['qq'] == qq) & pltdf['masked']]
 
     # Illustrate the distortion correction:
     ax1map.get(qq).quiver(ddata['xmeas'], ddata['ymeas'], 
