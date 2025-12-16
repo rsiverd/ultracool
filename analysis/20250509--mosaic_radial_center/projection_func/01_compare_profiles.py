@@ -314,7 +314,8 @@ pdata['pixsep'] = pdata['offax_deg'] * offax_mult
 ##--------------------------------------------------------------------------##
 ## Load CFHT diags:
 cfht_diag_file = 'best_fit_diags.csv'
-ddata = pd.read_csv(cfht_diag_file, low_memory=False)
+all_ddata = pd.read_csv(cfht_diag_file, low_memory=False)
+ddata = all_ddata[~all_ddata.masked]
 
 ## R-sep and R-shift:
 every_rsep = ddata['rdist']
@@ -336,9 +337,35 @@ def poly_eval(r, model):
 #    return c0 + r * (c1 + r * (c2 + r * (c3 + r * (c4 + r * c5))))
 #badguess = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]) 
 
+## 4th order in R, c0 floating:
 def dumb_poly_eval(r, c0, c1, c2, c3, c4):
-    return c0 + r * (c1 + r * (c2 + r * (c3 + c4*r)))
+    return c0 + r * (c1 + r * (c2 + r * (c3 + r*c4)))
 badguess = np.array([0.0, 0.0, 0.0, 0.0, 0.0]) 
+
+### 4th order in R, c0 fixed to 0.0:
+#def dumb_poly_eval(r, c1, c2, c3, c4):
+#    return 0.0 + r * (c1 + r * (c2 + r * (c3 + r*c4)))
+#badguess = np.array([0.0, 0.0, 0.0, 0.0]) 
+
+## 5th order in R, c0 floating:
+def dumb_poly_eval(r, c0, c1, c2, c3, c4, c5):
+    return c0 + r * (c1 + r * (c2 + r * (c3 + r * (c4 + r*c5))))
+badguess = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]) 
+
+### 5th order in R, c0 fixed to 0.0:
+#def dumb_poly_eval(r, c1, c2, c3, c4, c5):
+#    return 0.0 + r * (c1 + r * (c2 + r * (c3 + r * (c4 + r*c5))))
+#badguess = np.array([0.0, 0.0, 0.0, 0.0, 0.0]) 
+
+### 6th order in R, c0 floating:
+#def dumb_poly_eval(r, c0, c1, c2, c3, c4, c5, c6):
+#    return c0 + r * (c1 + r * (c2 + r * (c3 + r * (c4 + r * (c5 + r*c6)))))
+#badguess = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]) 
+
+#def dumb_poly_eval(r, c0, c1, c2, c3, c4, c5, c6):
+#    return c0 + r * (c1 + r * (c2 + r * (c3 + r * (c4 + r * (c5 + r * (c6 + r))))))
+#badguess = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]) 
+
 
 #def dumb_poly_eval(r, c0, c1, c2, c3):
 #    return c0 + r * (c1 + r * (c2 + r * c3))
