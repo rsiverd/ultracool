@@ -8,5 +8,5 @@ cmde "find $cfh_dir -name 'wircam*.fz' | sort > $imlist"
 hdrsave="image_headers.txt"
 want_keys="DATE-OBS UTC-OBS QRUNID"
 want_keys+=" TEMPERAT RELHUMID PRESSURE"  # weather items
-cmde "imhget -l $imlist $want_keys --progress -o $hdrsave"
+cmde "imhget -N -l $imlist $want_keys --progress -o $hdrsave"
 
