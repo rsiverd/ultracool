@@ -75,7 +75,7 @@ import matplotlib.pyplot as plt
 #import matplotlib.colors as mplcolors
 #import matplotlib.collections as mcoll
 #import matplotlib.gridspec as gridspec
-#from functools import partial
+from functools import partial
 #from collections import OrderedDict
 #from collections.abc import Iterable
 #import multiprocessing as mp
@@ -425,6 +425,26 @@ for ss in stars.values():
 #            sys.stderr.write("NON-native!\n")
 #            ss[kk] = ss[kk].values.byteswap().newbyteorder()
 #        pass
+
+## Embed approximate SNR/uncertainty. Assume:
+## * sky + rdnoise^2 =~ 1000.0     (RDNOISE ~ 30)
+## * sigma =~ FWHM / SNR
+## NOTE: to calibrate, I used known-decent parameters and evaluated the
+## following: median(sqrt((resid / asterr)**2))  ==>  2.64
+## That factor of 2.64 is the factor by which the errors are underestimated
+## This value is consistent with the ~0.05 pixel RMS seen previously.
+_rescale = 2.64
+_wirgain = 3.8                  # electrons per ADU
+_fluxcol = 'FLUX_ISO'
+for ss in stars.values():
+    src_ele = _wirgain * ss[_fluxcol]
+    src_snr = src_ele / np.sqrt(src_ele + 1000.0)
+    ast_err = ss['FWHM_IMAGE'] / src_snr            # a
+    ss['dumbsnr'] = src_snr
+    ss['dumberr'] = ast_err
+    ss['realerr'] = ast_err * _rescale
+
+
 
 ## Sensor centers, according to WCS:
 xctr, yctr = 1024.5, 1024.5
@@ -990,7 +1010,8 @@ def describe_answer(sifted):
 ## THIS VERSION ALSO FITS RADIAL DISTORTION PARAMETERS
 ## This version expects per-sensor CD11, CD12, CD21, CD22, CRPIX1, CRPIX2 at
 ## the front of the parameters array.
-def squared_residuals_foc2ccd_rdist(params, diags=False, dataset=use_gstars):
+def squared_residuals_foc2ccd_rdist(params, diags=False, 
+                    dataset=use_gstars, unsquared=False, snrweight=False):
     # parse parameters
     sifted = sift_params(params)
     brute_cdmat = sifted['cdmat']
@@ -1026,7 +1047,10 @@ def squared_residuals_foc2ccd_rdist(params, diags=False, dataset=use_gstars):
         x_error = test_xccd - gxx.values
         y_error = test_yccd - gyy.values
         scaled_xerr = x_error * nstar_scale_factor
-        scaled_yerr = y_error * nstar_scale_factor 
+        scaled_yerr = y_error * nstar_scale_factor
+        if snrweight:
+            scaled_xerr /= gst['realerr']
+            scaled_yerr /= gst['realerr']
 
         #scaled_xerr *= test_rrel / typical_rdist    # more weight far away
         #scaled_yerr *= test_rrel / typical_rdist    # more weight far away
@@ -1059,10 +1083,12 @@ def squared_residuals_foc2ccd_rdist(params, diags=False, dataset=use_gstars):
     #return xres, yres
     if diags:
         return diag_data
+    if unsquared:
+        return np.concatenate((xres, yres))
     return np.concatenate((xres, yres))**2
 
-def fmin_squared_residuals_foc2ccd_rdist(params):
-    return np.sum(squared_residuals_foc2ccd_rdist(params))
+def fmin_squared_residuals_foc2ccd_rdist(params, **kwargs):
+    return np.sum(squared_residuals_foc2ccd_rdist(params, **kwargs))
 
 sys.stderr.write("Test evaluate badness (rdist version) ...\n")
 ##use_params = np.copy(yaypars)
@@ -1087,26 +1113,31 @@ sys.stderr.write("Optimizing parameters ...\n")
 typical_scale = np.array([0.01, 1.0, 1.0, 0.01, 0.01, 1e-5])
 #slvkw = {'loss':'linear'}
 #slvkw = {'loss':'linear', 'x_scale':typical_scale}
-slvkw = {}
-answer = opti.least_squares(squared_residuals_foc2ccd_rdist, use_params, **slvkw)
+slvkw = {'method':'lm', 'xtol':1e-14, 'ftol':1e-14}
+reskw = {'unsquared':True}
+reskw = {'unsquared':True, 'snrweight':True}
+answer = opti.least_squares(squared_residuals_foc2ccd_rdist, use_params, kwargs=reskw, **slvkw)
 sys.stderr.write("Ended up with: %s\n" % str(answer))
 sys.stderr.write("Ended up with: %s\n" % str(answer['x']))
 
 sys.stderr.write("\n\n\nTry again with fmin ....\n")
-fmkw = {'full_output':True, 'xtol':1e-5}
-fanswer = opti.fmin(fmin_squared_residuals_foc2ccd_rdist, use_params, **fmkw)
+fmkw = {'full_output':True, 'xtol':1e-14, 'ftol':1e-14}
+#shrink_this = partial(fmin_squared_residuals_foc2ccd_rdist, unsquared=False, snrweight=True)
+shrink_this = partial(fmin_squared_residuals_foc2ccd_rdist, unsquared=False, snrweight=False)
+fanswer = opti.fmin(shrink_this, use_params, **fmkw)
 print(fanswer[0])
 
 sys.stderr.write("\n")
 sys.stderr.write("levmar results in `answer['x']`\n")
 sys.stderr.write("fmin results in `fanswer[0]`\n")
 sys.stderr.write("\n")
+#sys.exit(0)
 
 #legible_lstq_pars = sift_params(answer['x'])
 #legible_fmin_pars = sift_params(fanswer[0])
 
-_CHOICE = 'fmin'
-#_CHOICE = 'lstq'
+#_CHOICE = 'fmin'
+_CHOICE = 'lstq'
 
 if _CHOICE == 'fmin':
     fitted_pars = fanswer[0]
@@ -1191,9 +1222,15 @@ _xy_rms2 = _xy_rmsd**2
 def lnprior(params):
     return 0
 
+### DUMB version with fixed RMS:
+#def lnlike(params):
+#    residuals = squared_residuals_foc2ccd_rdist(params, snrweight=False)
+#    return -0.5*np.sum(residuals / _xy_rms2)
+
+## Slightly-less-dumb version with SNR-scaled errors ...
 def lnlike(params):
-    residuals = squared_residuals_foc2ccd_rdist(params)
-    return -0.5*np.sum(residuals / _xy_rms2)
+    residuals = squared_residuals_foc2ccd_rdist(params, snrweight=True)
+    return -0.5*np.sum(residuals)
 
 def lnprob(params):
     lp = lnprior(params)
@@ -1212,12 +1249,15 @@ if _do_MCMC:
     nthreads = 8
     #nthreads = 4
     sprexp = 6
+    sprexp = 5
     spread = 10.**(-1. * sprexp)
     p0 = [np.array(initial) + spread*initial*np.random.randn(ndim) \
             for i in range(nwalkers)]
     niter, thinned = 4000, 15
     niter, thinned = 4000, 5
-    niter, thinned = 12000, 5
+    #niter, thinned = 2000, 5
+    #niter, thinned = 8000, 5
+    #niter, thinned = 12000, 5
     #niter, thinned = 2000, 5 
     #niter, thinned = 200, 5 
     #niter, thinned = 20000, 5 
@@ -1242,8 +1282,8 @@ if _do_MCMC:
     mcmcpars = np.array([np.median(x) for x in sampler.flatchain.T])
 
     # some plots:
-    corner_png = 'brutal_26par_w%03d_s%d_n%05d_t%02d.png' \
-            % (nwalkers, sprexp, niter, thinned)
+    corner_png = 'brutal_26par_w%03d_s%d_n%05d_t%02d.%s.png' \
+            % (nwalkers, sprexp, niter, thinned, _CHOICE)
     slabtxt = ['CD11', 'CD12', 'CD21', 'CD22', 'CRPIX1', 'CRPIX2']
     #plabels = ['p%d'%(x+1) for x in range(ndim)]
     plabels = list(itt.chain.from_iterable([[y+'_'+x for x in slabtxt] \
