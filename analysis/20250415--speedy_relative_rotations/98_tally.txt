@@ -1,0 +1,27 @@
+
+pretty () { printf "%s:  %4d\n" $1 $2 ; }
+
+unpcount=$(find unpacked -type f -name "wircam_J*fits" | wc -l)
+#echo "unpcount: $unpcount"
+pretty unpcount $unpcount
+
+p1_count=$(find aligned_p1 -type f -name "int*fits" | wc -l)
+#echo "p1_count: $p1_count"
+pretty p1_count $p1_count
+
+p2_count=$(find aligned_p2 -type f -name "int*fits" | wc -l)
+#echo "p2_count: $p2_count"
+pretty p2_count $p2_count
+
+ims_todo=$(( 2 * unpcount ))
+#echo "ims_todo: $ims_todo"
+pretty ims_todo $ims_todo
+
+ims_done=$(( p1_count + p2_count ))
+#echo "ims_done: $ims_done"
+pretty ims_done $ims_done
+
+ims_left=$(( ims_todo - ims_done ))
+#echo "ims_left: `printf '%4d' $ims_left`"
+pretty ims_left $ims_left
+

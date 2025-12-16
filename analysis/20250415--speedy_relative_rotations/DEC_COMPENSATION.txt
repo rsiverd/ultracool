@@ -1,0 +1,61 @@
+
+gh MCTR_RA MCTR_DEC unpacked/*/*fits --progress -o MCTR.txt
+grep -v ___ MCTR.txt > jj ; mv -f jj MCTR.txt
+
+# ----------------------------------------------------------------------- 
+# RA:
+$ outliers --stats -c2 MCTR.txt
+Input file: MCTR.txt
+Columns have 8196 elements.
+Using data column: 2
+Location estimate: median
+Outlier sigma cut: 4.000000
+
+Estimators of scale (column 2):
+  Standard deviation:   0.016461
+  Median abs dev (MAD): 0.018231
+
+              Min         Max        Mean      Median        Mode       Sigma
+Col 2:  294.560518  294.622965  294.591452  294.591259  294.611500    0.018231 
+Sigma:   -1.686198    1.739136    0.010573    0.000000    1.110266    1.000000
+
+# ----------------------------------------------------------------------- 
+# DE:
+$ outliers --stats -c3 MCTR.txt                                                  
+
+Input file: MCTR.txt
+Columns have 8196 elements.
+Using data column: 3
+Location estimate: median
+Outlier sigma cut: 4.000000
+
+Estimators of scale (column 3):
+  Standard deviation:   0.015107
+  Median abs dev (MAD): 0.017772
+
+              Min         Max        Mean      Median        Mode       Sigma
+Col 3:   35.092356   35.144130   35.118445   35.118443   35.098423    0.017772 
+Sigma:   -1.467874    1.445374    0.000125    0.000000   -1.126478    1.000000
+
+# ----------------------------------------------------------------------- 
+
+median RA: 294.591259
+median DE:  35.118443
+* FOV edge is ~10.445 arcmin
+* assert upper sensor centers are 0.5*10.5 = 5.25 arcmin above boresight
+* assert lower sensor centers are 0.5*10.5 = 5.25 arcmin below boresight
+
+# Pixel ratios:
+mctr_ra = 294.591259
+mctr_de =  35.118443
+nudge_arcmin = 5.25 
+nudge_degree = nudge_arcmin / 60.0
+upper_ctr_de = mctr_de + nudge_degree
+lower_ctr_de = mctr_de - nudge_degree
+tbore_cosdec = np.cos(np.radians(mctr_de))         # 0.8179645859842891
+upper_cosdec = np.cos(np.radians(upper_ctr_de))    # 0.8170851035450546
+lower_cosdec = np.cos(np.radians(lower_ctr_de))    # 0.8188421607447035
+
+upper_cosrat = upper_cosdec / tbore_cosdec         # 0.9989247915443965
+lower_cosrat = lower_cosdec / tbore_cosdec         # 1.0010728762289365
+

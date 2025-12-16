@@ -1,0 +1,17 @@
+Redo relative rotations using sexterp.sh, using all QRUNIDs, and using
+pretty-preprocessed data. Data are being produced here:
+/home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE
+/home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NW
+/home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_SE
+/home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_SW
+
+# Check progress of preprocessing:
+for ff in /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_??; do echo -n "$ff ... " ; find $ff -type f -name "*.fits.fz" | wc -l ; done
+
+Basic steps:
+1. Iterate over QRUNIDs
+2. Within QRUNID, iterate over quadrants.
+3. Ensure each quadrant has the same number of images, otherwise bail.
+4. Do we care about filter?
+5. For a specific QRUNID+quadrant, unpack everything and align to first.
+
