@@ -1,0 +1,2 @@
+flztfs unpacked/*/wircam_H2_1333384p.fits
+

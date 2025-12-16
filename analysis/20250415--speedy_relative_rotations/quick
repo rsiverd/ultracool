@@ -1,0 +1,25 @@
+
+#cd /home/rsiverd/ucd_project/ultracool/analysis/20250415--speedy_relative_rotations/unpacked
+
+imfirsts="/tmp/firsts"
+imcoords="/tmp/fcoords"
+
+rm -f $imfirsts
+for dd in ??????_??; do
+   echo $dd
+   #first=$(ls $dd/wircam_J*fits | head -1)
+   first=$(imhget QSOGRADE $dd/wircam_J*fits | awk '$2 <3 {print $1}' | head -1)
+   echo "first: $first"
+   echo $first >> $imfirsts
+   imhget $first MCTR_RA MCTR_DEC
+done
+
+#cat $imfirsts
+cmde "imhget -l $imfirsts MCTR_RA MCTR_DEC --progress -o $imcoords"
+
+outliers --stats -c2 $imcoords
+outliers --stats -c3 $imcoords
+
+medra=294.591229
+medde=35.118382
+
