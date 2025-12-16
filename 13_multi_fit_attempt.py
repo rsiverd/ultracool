@@ -2010,7 +2010,7 @@ if _PERFORM_MCMC:
     #initial = iterpars.copy()
     ndim = len(initial)
     nwalkers = 32
-    p0 = [np.array(initial) + 1e-6*initial*np.random.randn(5) \
+    p0 = [np.array(initial) + 1e-6*initial*np.random.randn(ndim) \
             for i in range(nwalkers)]
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=arglist)
 
