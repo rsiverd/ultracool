@@ -1,0 +1,5 @@
+
+Calculate RMS of by-qrunid sensor transformations. Are they consistent with a
+single value? Make sure there is no evidence for variation.
+
+Also check observation alt/az just in case. 
