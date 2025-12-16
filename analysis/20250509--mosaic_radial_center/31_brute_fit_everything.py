@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2025-10-16
-# Last modified: 2025-10-16
+# Last modified: 2025-11-11
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -51,6 +51,7 @@ import sys
 import time
 import copy
 import pickle
+import pprint
 #import vaex
 #import calendar
 #import ephem
@@ -572,6 +573,7 @@ yaypars = np.array([-0.11677674, 2078.78185865,  -69.30868514,
 yaypars = np.array([-0.11722164, 2073.36368714,  -67.21853003,
                         294.59560743, 35.11945769])
 
+
 # ----------------------------------------------------------------------- 
 # ----------------------------------------------------------------------- 
 
@@ -664,8 +666,41 @@ brute_param_guess = np.array([
           0.00000013,    0.00008504, -115.47841845, 2127.56859459,
           294.59565158, 35.11860268])
 
+brute_param_guess = np.array([
+         -0.00008508,   -0.00000007,   -0.00000005,    0.00008507,
+       2071.38069932,  -77.55544294,   -0.00008510,    0.00000012,
+          0.00000012,    0.00008509, -112.73189620,  -68.65409208,
+         -0.00008508,    0.00000007,    0.00000006,    0.00008508,
+       2075.35273261, 2114.93167374,   -0.00008506,    0.00000014,
+          0.00000014,    0.00008505, -115.36526041, 2127.63577728,
+          294.59563838, 35.11860024])
+
+# from MCMC:
+brute_param_guess = np.array([
+         -0.00008508,   -0.00000007,   -0.00000005,    0.00008507,
+       2071.39243883,  -77.72577076,   -0.0000851 ,    0.00000012,
+          0.00000012,    0.00008509, -112.73831575,  -68.825143  ,
+         -0.00008508,    0.00000007,    0.00000006,    0.00008508,
+       2075.34775651, 2114.75533714,   -0.00008506,    0.00000014,
+          0.00000014,    0.00008504, -115.36232304, 2127.45977327,
+        294.59563805,   35.11858534])
 
 
+##-----------------------------------------------------------------------##
+##-----------------------------------------------------------------------##
+
+## Easy-to-read parameter printout with
+## * CDxx in [mas]
+## * CRPIXn in [pix]
+## * CRVALn in [deg]
+def parprint(params, stream=sys.stderr):
+    sfpar = sift_params(params)
+    sfpar['cdmat'] = {qq:vv*3.6e6 for qq,vv in sfpar['cdmat'].items()}
+    pprint.pprint(sfpar)
+
+
+##-----------------------------------------------------------------------##
+##-----------------------------------------------------------------------##
 
 def calc_gutter_pixels(params):
     _npix = 2048
@@ -804,11 +839,17 @@ guess_distmod = np.array([0.009138186689690436, 0.0024918987630597146,
                          -1.5464598039350375e-06, 2.1778020126153285e-09,
                          -3.3187074714126664e-13])
 
-guess_distmod = np.array([-7.481374e-02, 2.720092e-03, -1.770719e-06,
+guess_distmod = np.array([-7.481374e-02,  2.720092e-03, -1.770719e-06,
                            2.267144e-09, -3.437447e-13])
 
-guess_distmod = np.array([-8.904428e-02, 2.715352e-03, -1.758365e-06,
+guess_distmod = np.array([-8.904428e-02,  2.715352e-03, -1.758365e-06,
                            2.264144e-09, -3.435743e-13])
+
+guess_distmod = np.array([ 0.0000000000,  2.383655e-03, -1.398144e-06,
+                           2.111627e-09, -3.211944e-13])
+
+guess_distmod = np.array([ 1.757279e-01,  1.175609e-03,  1.047979e-06,
+                           5.059445e-11,  4.450758e-13, -1.039322e-16])
 
 #scatter(np.hypot(test_xrel, test_yrel), np.sqrt(np.sum(radial_evec**2, axis=0)))
 
@@ -827,10 +868,13 @@ def poly_eval3(r, c0, c1, c2, c3):
     return c0 + r * (c1 + r * (c2 + r * c3))
 
 def poly_eval4(r, c0, c1, c2, c3, c4):
-    return c0 + r * (c1 + r * (c2 + r * (c3 + c4*r)))
+    return c0 + r * (c1 + r * (c2 + r * (c3 + r*c4)))
+
+def poly_eval5(r, c0, c1, c2, c3, c4, c5):
+    return c0 + r * (c1 + r * (c2 + r * (c3 + r * (c4 + r*c5))))
 
 def poly_eval(r, model):
-    return poly_eval4(r, *model)
+    return poly_eval5(r, *model)
 
 ## Radial distortion model X- and Y- corrections. With a strictly positive
 ## distortion magnitude, you need to *SUBTRACT* these from RA/DE-derived
@@ -1130,6 +1174,96 @@ full_diag_data = squared_residuals_foc2ccd_rdist(fixed_params,
 
 
 ## ----------------------------------------------------------------------- ##
+## -----------------         MCMC Parameter Search          -------------- ##
+## ----------------------------------------------------------------------- ##
+
+## MCMC sampler:
+import emcee
+import corner
+from multiprocessing import Pool
+
+## Settings:
+_do_MCMC = True
+#_do_MCMC = False
+_xy_rmsd = 0.057
+_xy_rms2 = _xy_rmsd**2
+
+def lnprior(params):
+    return 0
+
+def lnlike(params):
+    residuals = squared_residuals_foc2ccd_rdist(params)
+    return -0.5*np.sum(residuals / _xy_rms2)
+
+def lnprob(params):
+    lp = lnprior(params)
+    if not np.isfinite(lp):
+        return -np.inf
+    return lp + lnlike(params)
+
+if _do_MCMC:
+    tik = time.time()
+    initial = fixed_params.copy()
+    ndim = len(initial)
+    #nwalkers = 32
+    nwalkers = 64
+    nwalkers = 128
+    #nthreads = 10
+    nthreads = 8
+    #nthreads = 4
+    sprexp = 6
+    spread = 10.**(-1. * sprexp)
+    p0 = [np.array(initial) + spread*initial*np.random.randn(ndim) \
+            for i in range(nwalkers)]
+    niter, thinned = 4000, 15
+    niter, thinned = 4000, 5
+    niter, thinned = 12000, 5
+    #niter, thinned = 2000, 5 
+    #niter, thinned = 200, 5 
+    #niter, thinned = 20000, 5 
+    with Pool(nthreads) as pool:
+        #sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob) #, args=arglist)
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, pool=pool)
+
+        sys.stderr.write("Running burn-in ... ")
+        p0, _, _ = sampler.run_mcmc(p0, 200) #, progress=True)
+        sys.stderr.write("done.\n")
+        sampler.reset()
+
+        sys.stderr.write("Running full MCMC ... \n")
+        pos, prob, state = sampler.run_mcmc(p0, niter, progress=True)
+        #sys.stderr.write("done.\n")
+
+    flat_samples = sampler.get_chain(discard=100, thin=thinned, flat=True)
+    tok = time.time()
+    sys.stderr.write("Running MCMC took %.2f seconds.\n" % (tok-tik))
+
+    # best parameters from mcmc:
+    mcmcpars = np.array([np.median(x) for x in sampler.flatchain.T])
+
+    # some plots:
+    corner_png = 'brutal_26par_w%03d_s%d_n%05d_t%02d.png' \
+            % (nwalkers, sprexp, niter, thinned)
+    slabtxt = ['CD11', 'CD12', 'CD21', 'CD22', 'CRPIX1', 'CRPIX2']
+    #plabels = ['p%d'%(x+1) for x in range(ndim)]
+    plabels = list(itt.chain.from_iterable([[y+'_'+x for x in slabtxt] \
+                                for y in quads])) + ['CRVAL1', 'CRVAL2']
+
+    #cornerfig = plt.figure(22, figsize=(12,9))
+    #cornerfig = plt.figure(22, figsize=(24,18))
+    cornerfig = plt.figure(22, figsize=(36, 27))
+    cornerfig.clf()
+    #corner.corner(flat_samples, labels=plabels, 
+    #              truths=mcmcpars, fig=cornerfig)
+    ckw = {'smooth':None, 'labelpad':0.5, 'truths':None, 'max_n_ticks':3,
+           'show_titles':True}
+    corner.corner(flat_samples, labels=plabels, fig=cornerfig, **ckw)
+    cornerfig.savefig(corner_png, bbox_inches='tight')
+    plt.draw()
+    print(mcmcpars)
+
+
+## ----------------------------------------------------------------------- ##
 ## Create a large, flat DataFrame for further analysis. This panel contains
 ## data from all stars (from full_diag_data) and is suitable for updating
 ## the Gaia blacklist. A subset is selected later for plotting.
@@ -1162,13 +1296,13 @@ inner_masked = bigdf.rdist.between(*inner_bounds) & (bigdf.rerror > inner_thresh
 bigdf['inner_mask'] = inner_masked
 
 # With ~stable solution, flag outliers in X/Y:
-xx_lo_thresh = -0.3
-xx_hi_thresh = +0.3
+#xx_lo_thresh, xx_hi_thresh = -0.3, 0.3
+xx_lo_thresh, xx_hi_thresh = -0.25, 0.25
 xx_lo_masked = bigdf.xerror < xx_lo_thresh
 xx_hi_masked = bigdf.xerror > xx_hi_thresh
 xx_masked    = xx_lo_masked | xx_hi_masked
-yy_lo_thresh = -0.3
-yy_hi_thresh = +0.3
+#yy_lo_thresh, yy_hi_thresh = -0.3, 0.3
+yy_lo_thresh, yy_hi_thresh = -0.25, 0.25
 yy_lo_masked = bigdf.yerror < yy_lo_thresh
 yy_hi_masked = bigdf.yerror > yy_hi_thresh
 yy_masked    = yy_lo_masked | yy_hi_masked
@@ -1190,21 +1324,9 @@ sys.stderr.write("To keep: mv -f best_fit_diags.csv projection_func/.\n")
 ## in the current iteration of bigdf must be ADDED to the blacklist.
 current_mskcols = bigdf[['gid', 'rdist', 'rerror', 'masked']]
 
-#blacklist_additions = np.sum(current_mskcols['masked'])
-#if blacklist_additions == 0:
-#    sys.stderr.write("Nothing to add!!\n")
-#if isinstance(gmask_data, pd.DataFrame):
-#    # augment existing mask
-#    sys.stderr.write("gmask_data exists: update existing blacklist\n")
-#    updated_blacklist = gmask_data.copy()
-#    pass
-#else:
-#    sys.stderr.write("gmask_data missing: create from scratch\n")
-#    updated_blacklist = current_mskcols
-#
-### Sanity check (started with 6862 objects):
-#if len(updated_blacklist) != 6862:
-#    sys.stderr.write("WARNING ... blacklist size changed ...\n")
+## Sanity check (started with 6862 objects):
+if len(current_mskcols) != 6862:
+    sys.stderr.write("WARNING ... dataset size changed ...\n")
 
 ## INTERACTIVE: also save/update a blacklist of discrepant matches:
 # current_mskcols.to_csv(gmask_file, index=False)
@@ -1219,6 +1341,14 @@ current_mskcols = bigdf[['gid', 'rdist', 'rerror', 'masked']]
 keeper_gids = pd.concat([x['gid'] for x in use_gstars.values()])
 pltdf = bigdf[bigdf['gid'].isin(keeper_gids)]
 
+## All the non-masked points for an RMS update:
+clndf = bigdf[~bigdf['masked']]
+xstd_pix = np.std(clndf.xerror)
+ystd_pix = np.std(clndf.yerror)
+xstd_mas = 306. * xstd_pix
+ystd_mas = 306. * ystd_pix
+sys.stderr.write("X-error stddev (pix, mas): %.4f, %6.2f\n" % (xstd_pix, xstd_mas))
+sys.stderr.write("Y-error stddev (pix, mas): %.4f, %6.2f\n" % (ystd_pix, ystd_mas))
 
 ## ----------------------------------------------------------------------- ##
 
@@ -1264,6 +1394,8 @@ qxkw = {'angles':'xy', 'scale_units':'xy', 'scale':0.1}
 qpopt, qpcov = {}, {}
 xtemp = np.linspace(250, 2750)
 mskkw = {'c':'m', 's':50}
+ascale = 5
+ascale = 25
 for qq,ddata in diag_data.items():
     #snsdf = bigdf[bigdf['qq'] == qq]    # this sensor
     #mskdf = snsdf[snsdf['masked']]      # this sensor + masked
@@ -1275,7 +1407,8 @@ for qq,ddata in diag_data.items():
 
     # X,Y error vs pixel position:
     ax2map.get(qq).quiver(ddata['xmeas'], ddata['ymeas'],
-                          5*ddata['xerror'], 5*ddata['yerror'], color='r', **qxkw)
+                          ascale*ddata['xerror'], ascale*ddata['yerror'], 
+                          color='r', **qxkw)
 
     # R error vs R distance:
     axs3[0, 0].scatter(ddata['rdist'], ddata['rerror'], label=qq, **skw)
@@ -1352,9 +1485,6 @@ fig3.tight_layout()
 fig4.tight_layout()
 fig5.tight_layout()
 fig6.tight_layout()
-
-
-
 
 
 
