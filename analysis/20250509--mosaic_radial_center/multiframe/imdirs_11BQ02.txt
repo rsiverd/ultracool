@@ -1,4 +1,3 @@
-# The following folders have catalogs that I should be able to use:
 /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/by_runid/11BQ02
 /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NW/by_runid/11BQ02
 /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_SE/by_runid/11BQ02

@@ -14,3 +14,12 @@ This side-investigation aims to get an acceptable fit from the rapidly-produced
 SEP values are good enough to use and that a good guess for the distortion
 is good enough to jump start the star matching.
 
+NOTE: this work is primarily for proof-of-concept. Four-sensor processing
+probably warrants a significant rethink of the pipeline.
+
+-----------------------------------------------------------------------
+
+Steps so far:
+# 1) Build a list of available images. Associate full paths to catalogs from
+# all four sensors with each base name.
+./02_list_fcat_files.sh imdirs_11BQ02.txt
