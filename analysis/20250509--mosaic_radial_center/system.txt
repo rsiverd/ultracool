@@ -1,0 +1,25 @@
+
+for NE_CRPIX1,NE_CRPIX2
+
+# Distance off the NE inner corner in NE pixel coordinates is:
+DX = NE_CRPIX1 - 2048
+DY = NE_CRPIX2 -    1
+
+# For NW sensor, start with pixel coordinate of NE inner corner and offset:
+NW_CRPIX1 = -134.580 + NENW_cd11 * DX + NENW_cd12 * DY
+NW_CRPIX2 =    9.697 + NENW_cd21 * DX + NENW_cd22 * DY
+NW_CRPIX1 = -134.580 + 0.9999522 * DX + 0.0042017 * DY
+NW_CRPIX2 =    9.697 + 0.0063453 * DX + 0.9998133 * DY
+
+# For SE sensor, start with pixel coordinate of NE inner corner and offset:
+SE_CRPIX1 = 2052.228 + NESE_cd11 * DX + NESE_cd12 * DY
+SE_CRPIX2 = 2192.539 + NESE_cd21 * DX + NESE_cd22 * DY
+SE_CRPIX1 = 2052.228 + 1.0022410 * DX + 0.0027602 * DY
+SE_CRPIX2 = 2192.539 + 0.0055770 * DX + 0.9998227 * DY
+
+# For SW sensor, start with pixel coordinate of NE inner corner and offset:
+SW_CRPIX1 = -137.002 + NESW_cd11 * DX +  NESW_cd12 * DY
+SW_CRPIX2 = 2195.456 + NESW_cd21 * DX +  NESW_cd22 * DY
+SW_CRPIX1 = -137.002 + 1.0026923 * DX + -0.0001494 * DY
+SW_CRPIX2 = 2195.456 + 0.0024810 * DX +  1.0004179 * DY
+

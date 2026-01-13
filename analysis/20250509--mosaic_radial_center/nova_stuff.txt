@@ -1,0 +1,13 @@
+# NE sensor:
+#https://nova.astrometry.net/user_images/12593263#original  # CRPIX in center
+https://nova.astrometry.net/user_images/12769698#annotated
+
+# NW sensor:
+https://nova.astrometry.net/user_images/12593270#annotated
+
+# SE sensor:
+https://nova.astrometry.net/user_images/12593274#annotated
+
+# SW sensor:
+https://nova.astrometry.net/user_images/12593276#annotated
+
