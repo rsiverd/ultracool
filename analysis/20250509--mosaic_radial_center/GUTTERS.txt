@@ -1,0 +1,24 @@
+Measured edge-to-edge distances in DS9 (accurate to < 0.5"):
+* NE-NW ... 41"
+* NE-SE ... 44"
+* SE-SW ... 43"
+
+# Actually (on single frame):
+* NE-NW ... 42.5" west, 2.6" south
+* NE-SE ... 1.26" east, 45.0" south
+* SE-SW ... 44.4" west, 4.0" south
+* NW-SW ...  0.7" west, 46.27" south
+
+--> NE-SW is 43.14" west, 49" south
+
+#-----------------------------------------------------------------------
+# ACTUALLY actually (using pixel centers):
+* NE-NW ... 42.85" west, 2.5" south
+* NW-SW ... 0.605" west, 46.54" south
+* NE-SE ... 1.224" east, 45.29" south
+* SE-SW ... 44.6"  west, 3.7" south
+* NW-SW ...  0.7"  west, 46.27" south
+
+--> NE-SW (via NW) is 43.45" west, 49.04" south
+--> NE-SW (via SE) is 43.37" west, 48.99" south
+
