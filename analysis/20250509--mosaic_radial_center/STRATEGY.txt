@@ -1,0 +1,32 @@
+
+# Overview of CRPIX fit/evaluation strategy
+
+# Data in hand:
+1) A subset of stars are matched to Gaia sources with Gmag<19 using 300 mas 
+tolerance. For these stars, we have:
+* Gaia ID and RA/DE corrected to epoch of observation
+* Detection X,Y from SExtractor
+
+2) A routine get_nwsesw_crpix() that returns CRPIX1/2 coords for NW, SE, and
+SW sensors given the NE sensor CRPIX coords. This routine bakes in the
+relative rotations measured between sensors from the dither analysis. These
+are well known. It also bakes in the space between sensors, which is not as
+well known but should be approximately correct.
+
+
+# How the focal plane center (FPC) is determined:
+1) Compute inverse tangent of gra/gde --> xrel, yrel for each of the sensors.
+      --> Each sensor needs cd11,cd12,cd21,cd22,crv1,crv2
+      --> The crv1,crv2 values are identical for all sensors (matched CRPIX)
+      --> The pixel scale is the same for all sensors, but rotations vary.
+      --> The relative sensor rotations are constant and known externally
+            --> The dither fitting rotations are probably inaccurate due to
+                  not taking cos(dec) difference into account.
+      --> CAN BE EVALUATED ONCE PER CD-MATRIX / CRVAL
+      --> However, since CRVAL/CRPIX are paired, iterate over them jointly
+2) For various trial CRPIX1/2, convert xrel,yrel -> X,Y and compare to measured
+gxx,gyy. The error should be radial.
+
+
+Something easy to measure well in advance:
+* center-of-image coordinates for each solved frame

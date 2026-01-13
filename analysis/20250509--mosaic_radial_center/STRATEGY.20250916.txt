@@ -1,0 +1,26 @@
+
+# The distortion correction can be computed in two "directions" depending
+# on implementation. We want something that can be applied to detections
+# in practice before computing RA/DE coordinates. However, the distortion
+# is not necessarily guaranteed to be radial in that reference frame if it
+# comes from the telescope mirror (it would be symmetric in focal plane
+# coordinates presumably).
+
+
+# Error evaluator (TRY TWO WAYS):
+Loop over quadrants. Within each quadrant,
+   * collect CD matrix and CRVAL items
+   * calculate test_focal_xrel, test_focal_yrel from inverse_tan_cdmcrv using
+         gstars. This is where stars would be in a fair, flat focal plane.
+   # CCD2FOC method:
+      * compute CCD xrel,yrel coordinates from Gaia gxx, gyy
+      * apply ccd2foc distortion correction (pushes stars 'away' from CRPIX)
+      * compare adj_gxx, adj_gyy to test_focal_xrel, test_focal_yrel
+   # FOC2CCD method:
+      * apply foc2ccd distortion correction to test_focal_xrel, test_focal_yrel
+            (pushes stars 'towards' CRPIX)
+      * compare adj_focal_xrel,adj_focal_yrel to gxx,gyy
+   #### Normalize residuals such that sum(res**2) == 1.0
+   # Normalize squared residuals by number of stars in quadrant
+      #(return 
+
