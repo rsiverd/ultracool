@@ -1,0 +1,13 @@
+This side investigation aims to empirically evaluate the astrometric 
+uncertainty as a function of object brightness (i.e., make RMS plots).
+Among other things, I hope to assess whether the four sensors need
+individualized noise models or if I can get away with a single model
+for all WIRCam images and sensors.
+
+# Snag data at outset of investigation:
+cp ../best_fit_diags.csv .
+
+Data in the above CSV file include Gaia IDs and sky coordinates,
+pixel positions, fluxes, and FWHMs from SExtractor, plus other
+derived quantities.
+
