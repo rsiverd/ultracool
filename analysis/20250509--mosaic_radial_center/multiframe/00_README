@@ -1,0 +1,16 @@
+This analysis needs to be expanded from this single fiducial image to include
+multiple images. I want to start with several from the same RUNID (11BQ02).
+If we are correct that hardware is steady throughout the RUNID, most of the
+WCS parameters should be common to all the images in the folder.
+
+Once that is shown to work, data from a separate RUNID can also be included.
+The goal is to verify that some of the instrumental parameters truly are
+constant, that the model I use separates the constant params from the variable
+params sufficiently well, and that I can use the well-known parameters to get
+a decent coordinate solution without astrometry.net (IMPORTANT!). 
+
+This side-investigation aims to get an acceptable fit from the rapidly-produced
+'fcat' catalogs I have been making previously. This will demonstrate that the
+SEP values are good enough to use and that a good guess for the distortion
+is good enough to jump start the star matching.
+

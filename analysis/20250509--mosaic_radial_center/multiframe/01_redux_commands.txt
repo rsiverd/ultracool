@@ -1,0 +1,48 @@
+# Pre-reduction environment setup:
+source ~/anaconda3/bin/activate; conda activate astrom
+cd /home/rsiverd/ucd_project/ultracool
+source ENVIRONMENT.sh
+
+# Move to execution directory:
+cd /home/rsiverd/ucd_project/ultracool/CFHT
+
+-----------------------------------------------------------------------
+
+./02_get_CFHT_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/by_runid -o /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/cfht_eph_calib1_p_NE.csv
+./02_get_CFHT_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NW/by_runid -o /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NW/cfht_eph_calib1_p_NW.csv
+./02_get_CFHT_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_SE/by_runid -o /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_SE/cfht_eph_calib1_p_SE.csv
+./02_get_CFHT_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_SW/by_runid -o /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_SW/cfht_eph_calib1_p_SW.csv
+
+----------------------------------------------------------------------- 
+
+RUNID="11AQ15"
+RUNID="11BQ02"
+./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/by_runid/$RUNID
+./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NW/by_runid/$RUNID
+./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_SE/by_runid/$RUNID
+./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_SW/by_runid/$RUNID
+
+./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/by_runid/
+./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NW/by_runid/
+./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_SE/by_runid/
+./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_SW/by_runid/
+
+./15_add_catalog_ephems.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/by_runid/$RUNID \
+   -E /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/cfht_eph_calib1_p_NE.csv
+./15_add_catalog_ephems.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NW/by_runid/$RUNID \
+   -E /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/cfht_eph_calib1_p_NE.csv
+./15_add_catalog_ephems.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_SE/by_runid/$RUNID \
+   -E /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/cfht_eph_calib1_p_NE.csv
+./15_add_catalog_ephems.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_SW/by_runid/$RUNID \
+   -E /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/cfht_eph_calib1_p_NE.csv
+
+./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/by_runid -G /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/gaia_calib1_NE.csv
+./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NW/by_runid -G /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/gaia_calib1_NE.csv
+./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_SE/by_runid -G /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/gaia_calib1_NE.csv
+./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_SW/by_runid -G /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/gaia_calib1_NE.csv
+
+./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/by_runid/$RUNID -G /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/gaia_calib1_NE.csv
+./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NW/by_runid/$RUNID -G /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/gaia_calib1_NE.csv
+./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_SE/by_runid/$RUNID -G /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/gaia_calib1_NE.csv
+./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_SW/by_runid/$RUNID -G /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/gaia_calib1_NE.csv
+
