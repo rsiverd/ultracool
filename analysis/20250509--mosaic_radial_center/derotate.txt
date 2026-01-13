@@ -1,0 +1,29 @@
+
+# Approximate misrotation:
+pos_cols = [ 'xmeas',  'ymeas']
+err_cols = ['xerror', 'yerror']
+_ne = diag_data['NE']
+xctr, yctr = 1024.5, 1024.5
+#xccd, yccd = _ne['xmeas'], _ne['ymeas']
+r_dist = np.hypot(_ne['xmeas'] - xctr, _ne['ymeas'] - yctr)
+errtot = np.hypot(_ne['xerror'], _ne['yerror'])
+
+have_ang = np.arctan2(_ne['ymeas'] - yctr, 
+                      _ne['xmeas'] - xctr)
+want_ang = np.arctan2(_ne['ymeas'] - yctr + _ne['yerror'],
+                      _ne['xmeas'] - xctr + _ne['xerror'])
+
+better_rot_err_deg = np.median(np.degrees(want_ang - have_ang))
+
+# Rotation angle:
+rot_err_deg = np.degrees(np.median(errtot / r_dist))
+sys.stderr.write("Misrotation: %.3f degrees\n" % rot_err_deg)
+sys.stderr.write("Misrotation: %.3f degrees\n" % better_rot_err_deg)
+
+
+
+# If the error is indeed rotational, the total (hypotenuse) error
+# should be a linear function of the radial distance from the center.
+
+
+nedata = ne
