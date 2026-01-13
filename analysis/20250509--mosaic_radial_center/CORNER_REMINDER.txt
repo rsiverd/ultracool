@@ -1,0 +1,7 @@
+
+Corner plot columns include all parameters (1...N), in order, left to right.
+Corner plot rows skip the first param, show (2...N), in order, top to bottom.
+Given N parameters, we have:
+* N   rows (N-1 2-D plots, 1 histogram)
+* N+1 cols (N   2-D plots, 1 histogram)
+
