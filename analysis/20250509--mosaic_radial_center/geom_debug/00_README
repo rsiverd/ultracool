@@ -1,0 +1,24 @@
+My initial fitting instinct was to model CRPIXn_QQ(CRPIXn_NE). The CRPIX 
+values refer to a specific point that is the origin of the focal plane
+coordinate system. Fitting a separate CRPIX1,2 for each sensor is
+unphysical because it is possible to pick points that do not coincide.
+
+Code in this folder aims to debug why my model wasn't working before.
+
+Setup:
+ln -s ../sensor_geom.py
+
+From the MCMC-driven fit (see recent_mcmc_fit.txt), we have CRPIX values:
+2089.0361744 ,  -79.2044974
+ -95.08646925,  -70.37480337,
+2092.99640046, 2113.22323721,
+ -97.71397795, 2125.95149377,
+
+However, the old model produced this:
+# sg.get_4sensor_crpix(2089.0361744 ,  -79.2044974)
+{'NE': (2089.0361744,         -79.2044974),
+ 'NW': ( -98.36438710823941,  -71.51982342561),
+ 'SE': (2092.710956258901,   2114.98219794338),
+ 'SW': (-100.12073418872605, 2127.887912854317)}
+
+Build up a list of high-precision MCMC parameters:

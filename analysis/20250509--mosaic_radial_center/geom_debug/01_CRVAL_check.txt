@@ -1,0 +1,21 @@
+
+As a basic sanity check, we can ask how consistent CRVAL1,2 are among images
+at the MCMC-fitted CRPIX1,2 positions.
+
+ls ../slvd_11BQ02/*fits
+../slvd_11BQ02/solved_J_1325826p.NE.fits
+../slvd_11BQ02/solved_J_1325826p.NW.fits
+../slvd_11BQ02/solved_J_1325826p.SE.fits
+../slvd_11BQ02/solved_J_1325826p.SW.fits
+
+skypix --xy2sky -- ../slvd_11BQ02/solved_J_1325826p.NE.fits 2089.0361744    -79.2044974
+skypix --xy2sky -- ../slvd_11BQ02/solved_J_1325826p.NW.fits  -95.08646925   -70.37480337
+skypix --xy2sky -- ../slvd_11BQ02/solved_J_1325826p.SE.fits 2092.99640046  2113.22323721
+skypix --xy2sky -- ../slvd_11BQ02/solved_J_1325826p.SW.fits  -97.71397795  2125.95149377
+	2089.036   -79.204 --> 294.593669   35.118369 
+	 -95.086   -70.375 --> 294.593843   35.118404 
+	2092.996  2113.223 --> 294.593720   35.118464 
+	 -97.714  2125.951 --> 294.593846   35.118570 
+
+# Looks pretty good according to the astrometry.net solutions.
+
