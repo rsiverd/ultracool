@@ -19,16 +19,23 @@ probably warrants a significant rethink of the pipeline.
 
 -----------------------------------------------------------------------
 
-# Set up environment:
+Steps to execute:
+# 1) Set up environment:
 source ~/anaconda3/bin/activate; conda activate astrom
+cd /home/rsiverd/ucd_project/ultracool
 source ENVIRONMENT.sh
+cd -
 
-Steps so far:
-# 1) Build a list of available images. Associate full paths to catalogs from
+# 2) Make lists of folders that can be scanned to make fcat listings.
+./02_list_fcat_dirs.sh imdirs_c1 --START
+
+# 3) Build a list of available images. Associate full paths to catalogs from
 # all four sensors with each base name.
-./02_list_fcat_files.sh imdirs_11BQ02.txt
+./03_list_fcat_files.sh imdirs_11BQ02.txt
+./03_list_fcat_files.sh imdirs_11.txt
 
-# 2) Run the script:
+# 4) Run the script:
 #./11_test_fit_4pack.py -L fcat_paths.csv -I wircam_H2_1325861p
 ./11_test_fit_4pack.py -L fcat_paths.csv -I wircam_J_1325839p
+./11_test_fit_4pack.py -L fcat_paths.csv -I wircam_J_1325850p
 
