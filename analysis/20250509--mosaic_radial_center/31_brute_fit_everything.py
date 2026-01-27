@@ -1076,6 +1076,13 @@ def squared_residuals_foc2ccd_rdist(params, diags=False,
                              'scaled_xerror':scaled_xerr,
                              'scaled_yerror':scaled_yerr,
                              'scaled_rerror':np.hypot(scaled_xerr, scaled_yerr),
+                                'mag':gst['MAG_ISO'],
+                               'flux':gst['FLUX_ISO'],
+                               'fwhm':gst['FWHM_IMAGE'],
+                              'flags':gst['FLAGS'],
+                              'wflag':gst['FLAGS_WIN'],
+                            'dumbsnr':gst['dumbsnr'],
+                            'realerr':gst['realerr'],
                             }
 
         pass
@@ -1215,7 +1222,7 @@ from multiprocessing import Pool
 
 ## Settings:
 _do_MCMC = True
-#_do_MCMC = False
+_do_MCMC = False
 _xy_rmsd = 0.057
 _xy_rms2 = _xy_rmsd**2
 
@@ -1358,6 +1365,9 @@ sys.stderr.write("Combo rerror: %10.4f (%.1f%%)\n" % (combo_rerror, 100.*combo_f
 diags_csv = 'best_fit_diags.csv'
 bigdf.to_csv(diags_csv, index=False)
 sys.stderr.write("To keep: mv -f best_fit_diags.csv projection_func/.\n")
+
+sys.stderr.write("HALT after writing out CSV file ...\n")
+sys.exit(0)
 
 ## Augment the list of masked objects. IMPORTANT: GIDs in the current
 ## blacklist are NOT in bigdf (they are already pruned). Objects masked
