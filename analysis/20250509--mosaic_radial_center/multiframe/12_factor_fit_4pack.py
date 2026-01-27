@@ -420,40 +420,6 @@ sys.stderr.write("brute_param_guess (new): %s\n" % str(brute_param_guess))
 guess_distmod = np.array([ 1.757279e-01,  1.175609e-03,  1.047979e-06,
                            5.059445e-11,  4.450758e-13, -1.039322e-16])
 
-#### Polynomial model. Hopefully this is a strictly positive value.
-###def poly_eval(r, model):
-###    #return model[0] + model[1]*r + model[2]*r*r
-###    #return model[0] + model[1]*r + model[2]*r*r + model[3]*r*r*r
-###    return model[0] + model[1]*r + model[2]*r*r + model[3]*r*r*r + model[4]*r*r*r*r
-###    #return model[0] + model[1]*r + model[2]*r*r + model[3]*r*r*r \
-###    #        + model[4]*r*r*r*r + model[5]*r*r*r*r*r
-##
-##def poly_eval2(r, c0, c1, c2):
-##    return c0 + r * (c1 + r * c2)
-##
-##def poly_eval3(r, c0, c1, c2, c3):
-##    return c0 + r * (c1 + r * (c2 + r * c3))
-##
-##def poly_eval4(r, c0, c1, c2, c3, c4):
-##    return c0 + r * (c1 + r * (c2 + r * (c3 + r*c4)))
-##
-##def poly_eval5(r, c0, c1, c2, c3, c4, c5):
-##    return c0 + r * (c1 + r * (c2 + r * (c3 + r * (c4 + r*c5))))
-##
-##def poly_eval(r, model):
-##    return poly_eval5(r, *model)
-##
-#### Radial distortion model X- and Y- corrections. With a strictly positive
-#### distortion magnitude, you need to *SUBTRACT* these from RA/DE-derived
-#### positions in order to compare with measured X,Y positions.
-##def calc_rdist_corrections(xrel, yrel, model):
-##    rdist = np.hypot(xrel, yrel)     # distance from CRPIX
-##    rcorr = poly_eval(rdist, model)  # total correction magnitude
-##    theta = np.arctan2(yrel, xrel)
-##    xcorr = rcorr * np.cos(theta)
-##    ycorr = rcorr * np.sin(theta)
-##    return xcorr, ycorr
-
 use_params = brute_param_guess.copy()
 
 ## Optimize those parameters:
