@@ -17,6 +17,7 @@ cd /home/rsiverd/ucd_project/ultracool/CFHT
 
 RUNID="11AQ15"
 RUNID="11BQ02"
+RUNID="18AQ05"
 ./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NE/by_runid/$RUNID
 ./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_NW/by_runid/$RUNID
 ./11_test_extract_WIRCam.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/calib1_p_SE/by_runid/$RUNID
