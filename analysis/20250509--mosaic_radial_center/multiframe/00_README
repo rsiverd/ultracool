@@ -38,4 +38,5 @@ cd -
 #./11_test_fit_4pack.py -L fcat_paths.csv -I wircam_H2_1325861p
 ./11_test_fit_4pack.py -L fcat_paths.csv -I wircam_J_1325839p
 ./11_test_fit_4pack.py -L fcat_paths.csv -I wircam_J_1325850p
+./11_test_fit_4pack.py -L fcat_paths.csv -I wircam_J_1333371p
 
