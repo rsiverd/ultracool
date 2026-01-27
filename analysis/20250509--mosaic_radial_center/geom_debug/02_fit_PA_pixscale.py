@@ -375,6 +375,9 @@ jnt_pscale = joint_answer['x'][0] * 3.6e6   # arcsec
 jnt_posang = joint_answer['x'][1:] * _radeg
 avg_posang = np.average(jnt_posang)
 
+## Rotations from NE:
+ne_relrot_deg = jnt_posang - jnt_posang[0]
+
 ##--------------------------------------------------------------------------##
 
 ## Sanity:

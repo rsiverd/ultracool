@@ -21,4 +21,6 @@ However, the old model produced this:
  'SE': (2092.710956258901,   2114.98219794338),
  'SW': (-100.12073418872605, 2127.887912854317)}
 
-Build up a list of high-precision MCMC parameters:
+Build up a list of high-precision MCMC parameters with:
+print('\n'.join([str(x) for x in mcmcpars]))
+# copy/paste into precise_mcmc_pars.txt
