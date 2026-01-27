@@ -734,15 +734,78 @@ sys.stderr.write("Optimizing parameters ...\n")
 typical_scale = np.array([0.01, 1.0, 1.0, 0.01, 0.01, 1e-5])
 #slvkw = {'loss':'linear'}
 #slvkw = {'loss':'linear', 'x_scale':typical_scale}
-slvkw = {'method':'lm', 'xtol':1e-14, 'ftol':1e-14}
+#slvkw = {'method':'lm', 'xtol':1e-14, 'ftol':1e-14}
+slvkw = {'method':'trf', 'xtol':1e-14, 'ftol':1e-14}
 reskw = {'unsquared':True}
 #reskw = {'unsquared':True, 'snrweight':True}
 answer = opti.least_squares(squared_residuals_foc2ccd_rdist, use_params, kwargs=reskw, **slvkw)
 sys.stderr.write("Ended up with: %s\n" % str(answer))
 sys.stderr.write("Ended up with: %s\n" % str(answer['x']))
 
+sys.stderr.write("%s\n%s\n" % (fulldiv, fulldiv))
+## Fix parameters by asserting bounds == starting value:
+buffer = 1e-4
+buffer = 1e-8
+lower_bounds = use_params - np.abs(buffer*use_params)
+upper_bounds = use_params + np.abs(buffer*use_params)
 
-sys.stderr.write("\n\n\nTry again with fmin ....\n")
+## Allow CRVALn to vary:
+crval_tol = 0.2
+lower_bounds[-2:] -= crval_tol
+upper_bounds[-2:] += crval_tol
+
+#def make_bounds_like(pars, *, vary_cdmat=True, vary_crpix=True, vary_crval=True):
+## This routine makes lower/upper bounds arrays for opti.least_squares. The
+## user specifies which (if any) kinds of parameters should be held fixed.
+## Available options for fixing are: cdmat, crpix, crval
+## The return quantity is a lower,upper bounds tuple.
+##
+## This routine works by first producing a 'delta' array with infinities for
+## parameters to vary and tiny values for parameters to hold fixed. This delta
+## is then subbed from and added to the input params to produce the bounds.
+def make_bounds_like(pars, *, fixed=[], fixtol=1e-8):
+    _quads = ('NE', 'NW', 'SE', 'SW')
+    # by default, all parameters vary (delta = np.inf)
+    sifted_delta = sift_params(np.zeros_like(pars)+np.inf)
+    if 'crpix' in fixed:
+        sys.stderr.write("Fixing CRPIXs!\n")
+        sifted_delta['crpix'] = dict(zip(_quads, np.ones(8).reshape(4,2)*fixtol))
+    if 'crval' in fixed:
+        sys.stderr.write("Fixing CRVALs!\n")
+        sifted_delta['crval'] = np.ones(2)*fixtol
+    if 'cdmat' in fixed:
+        sys.stderr.write("Fixing CD matrices!\n")
+        sifted_delta['cdmat'] = dict(zip(_quads, np.ones(16).reshape(4,4)*fixtol))
+    #return sifted_delta
+    #valids = [x for x in fixed if x in sifted_delta.keys()]
+    #sys.stderr.write("valids: %s\n" % str(valids))
+    #for ptype in valids:
+    #    sys.stderr.write("ptype: %s\n" % ptype)
+    #    #import pdb; pdb.set_trace()
+    plusorminus = np.abs(pars * unsift_params(sifted_delta))
+    return (pars - plusorminus, pars + plusorminus)
+
+##lsq_bounds = (lower_bounds, upper_bounds)
+##lsq_bounds = make_bounds_like(use_params, fixed=['cdmat', 'crpix'])
+#lsq_bounds = make_bounds_like(use_params, fixed=['crval', 'crpix'])
+#answer2 = opti.least_squares(squared_residuals_foc2ccd_rdist, use_params, 
+#                             bounds=lsq_bounds, kwargs=reskw, **slvkw)
+#sys.stderr.write("Ended up with: %s\n" % str(answer2))
+#sys.stderr.write("Ended up with: %s\n" % str(answer2['x']))
+#
+#adj_params = answer2['x'].copy()
+#lsq_bounds = make_bounds_like(adj_params, fixed=['cdmat', 'crpix'])
+#answer3 = opti.least_squares(squared_residuals_foc2ccd_rdist, adj_params, 
+#                             bounds=lsq_bounds, kwargs=reskw, **slvkw)
+#sys.stderr.write("Ended up with: %s\n" % str(answer3))
+#sys.stderr.write("Ended up with: %s\n" % str(answer3['x']))
+
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
+
+sys.stderr.write("\n\n%s\n%s\n" % (fulldiv, fulldiv))
+sys.stderr.write("Try again with fmin ....\n")
 fmkw = {'full_output':True, 'xtol':1e-14, 'ftol':1e-14}
 #shrink_this = partial(fmin_squared_residuals_foc2ccd_rdist, unsquared=False, snrweight=True)
 shrink_this = partial(fmin_squared_residuals_foc2ccd_rdist, unsquared=False, snrweight=False)
@@ -761,6 +824,8 @@ if _CHOICE == 'fmin':
     fitted_pars = fanswer[0]
 if _CHOICE == 'lstq':
     fitted_pars = answer['x']
+    #fitted_pars = answer2['x']
+    #fitted_pars = answer3['x']
 
 sifted_pars = sift_params(fitted_pars)
 
