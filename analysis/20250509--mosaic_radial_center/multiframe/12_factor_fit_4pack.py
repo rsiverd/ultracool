@@ -519,42 +519,46 @@ sifted_pars = spt.sift_params(fitted_pars)
 #diag_data = diag_fmin
 #diag_data = diag_lstq
 #orig_diag_data = squared_residuals_foc2ccd_rdist(fitted_pars, diags=True)
-orig_diag_data = spt.squared_residuals_foc2ccd_rdist(fitted_pars, 
-                                                     dataset=use_gstars, diags=True)
-## Note residual rotation:
-diag_data = orig_diag_data
-rot_error = spt.show_misrotations(diag_data)
+#orig_diag_data = spt.squared_residuals_foc2ccd_rdist(fitted_pars, 
+#                                                     dataset=use_gstars, diags=True)
+### Note residual rotation:
+#diag_data = orig_diag_data
+#rot_error = spt.show_misrotations(diag_data)
+#
+### Modify parameters:
+##_adjust_pa_crpix = False
+##_adjust_pa_crpix = True
+#
+#derot_sifted = copy.deepcopy(sifted_pars)
+#for qq,resid in rot_error.items():
+#    rmat = helpers.rotation_matrix(-1.0 * np.radians(resid))
+#    _new_cdm = np.dot(rmat, derot_sifted['cdmat'][qq].reshape(2, 2))
+#    derot_sifted['cdmat'][qq] = _new_cdm.flatten()
+#    pass
+#derot_params = spt.unsift_params(derot_sifted)
+#
+### The following has the rotation fixed but wonky CRPIX:
+##derot_diags = squared_residuals_foc2ccd_rdist(derot_params, diags=True)
+#derot_diags = spt.squared_residuals_foc2ccd_rdist(derot_params,
+#                                                  dataset=use_gstars, diags=True)
+#diag_data = derot_diags
+#
+### Modify CRPIX:
+#fixed_sifted = copy.deepcopy(derot_sifted)
+#for qq,ddata in derot_diags.items():
+#    fixed_sifted['crpix'][qq][0] -= np.median(ddata['xerror'])
+#    fixed_sifted['crpix'][qq][1] -= np.median(ddata['yerror'])
+#fixed_params = spt.unsift_params(fixed_sifted)
+#
+### De-rotated and shifted results:
+##fixed_diags = squared_residuals_foc2ccd_rdist(fixed_params, diags=True)
+#fixed_diags = spt.squared_residuals_foc2ccd_rdist(fixed_params, 
+#                                                  dataset=use_gstars, diags=True)
+#                                                  #dataset=all_gstars, diags=True)
+#diag_data = fixed_diags
 
-## Modify parameters:
-#_adjust_pa_crpix = False
-#_adjust_pa_crpix = True
 
-derot_sifted = copy.deepcopy(sifted_pars)
-for qq,resid in rot_error.items():
-    rmat = helpers.rotation_matrix(-1.0 * np.radians(resid))
-    _new_cdm = np.dot(rmat, derot_sifted['cdmat'][qq].reshape(2, 2))
-    derot_sifted['cdmat'][qq] = _new_cdm.flatten()
-    pass
-derot_params = spt.unsift_params(derot_sifted)
-
-## The following has the rotation fixed but wonky CRPIX:
-#derot_diags = squared_residuals_foc2ccd_rdist(derot_params, diags=True)
-derot_diags = spt.squared_residuals_foc2ccd_rdist(derot_params,
-                                                  dataset=use_gstars, diags=True)
-diag_data = derot_diags
-
-## Modify CRPIX:
-fixed_sifted = copy.deepcopy(derot_sifted)
-for qq,ddata in derot_diags.items():
-    fixed_sifted['crpix'][qq][0] -= np.median(ddata['xerror'])
-    fixed_sifted['crpix'][qq][1] -= np.median(ddata['yerror'])
-fixed_params = spt.unsift_params(fixed_sifted)
-
-## De-rotated and shifted results:
-#fixed_diags = squared_residuals_foc2ccd_rdist(fixed_params, diags=True)
-fixed_diags = spt.squared_residuals_foc2ccd_rdist(fixed_params, 
-                                                  dataset=all_gstars, diags=True)
-diag_data = fixed_diags
+derot_params, fixed_params = spt.derotate_fit_parameters(fitted_pars, use_gstars)
 
 ## For now, adopt the fixed (derot+shift) parameters to evaluate
 ## the all_gstars dataset. This second set of diags is the basis for
@@ -578,7 +582,10 @@ stars = spt.inplace_update_catalog_radec(stars, fixed_params)
 new_mtol = 0.5
 mstars = slvh.register_catalogs_to_gaia(stars, new_mtol)  # matched
 
-
+prev_match_count = [len(x) for x in use_gstars.values()]
+this_match_count = [len(x) for x in     mstars.values()]
+sys.stderr.write("Previous Gaia matches: %s\n" % str(prev_match_count))
+sys.stderr.write("Current  Gaia matches: %s\n" % str(this_match_count))
 
 ## ----------------------------------------------------------------------- ##
 ## -----------------         MCMC Parameter Search          -------------- ##

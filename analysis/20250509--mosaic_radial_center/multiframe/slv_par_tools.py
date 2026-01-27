@@ -31,6 +31,7 @@ except NameError:
 import gc
 import os
 import sys
+import copy
 import time
 import pprint
 #import pickle
@@ -369,6 +370,53 @@ def squared_residuals_foc2ccd_rdist(params, dataset, diags=False,
 
 def fmin_squared_residuals_foc2ccd_rdist(params, dataset, **kwargs):
     return np.sum(squared_residuals_foc2ccd_rdist(params, dataset, **kwargs))
+
+##--------------------------------------------------------------------------##
+##------------------     Residual Check & Param Tuning      ----------------##
+##--------------------------------------------------------------------------##
+
+def derotate_fit_parameters(fit_params, dataset):
+    # Extract diagnostics:
+    diag_data = squared_residuals_foc2ccd_rdist(fit_params, 
+                                                dataset=dataset, diags=True)
+
+    # Estimate and correct residual rotation. Note that this effectively
+    # scrambles CRPIX (which is corrected below).
+    #rot_error = spt.show_misrotations(diag_data)
+    rot_error = show_misrotations(diag_data)
+    derot_sifted = copy.deepcopy(sifted_pars)
+    for qq,resid in rot_error.items():
+        rmat = helpers.rotation_matrix(-1.0 * np.radians(resid))
+        _new_cdm = np.dot(rmat, derot_sifted['cdmat'][qq].reshape(2, 2))
+        derot_sifted['cdmat'][qq] = _new_cdm.flatten()
+        pass
+    #derot_params = spt.unsift_params(derot_sifted)
+    derot_params = unsift_params(derot_sifted)
+
+    # Re-evaluate residuals with de-rotated parameters.
+	#derot_diags = squared_residuals_foc2ccd_rdist(derot_params, diags=True)
+    #derot_diags = spt.squared_residuals_foc2ccd_rdist(derot_params,
+    derot_diags = squared_residuals_foc2ccd_rdist(derot_params,
+                                            dataset=dataset, diags=True)
+    diag_data = derot_diags
+
+    # Modify CRPIX to soak up the offset(s) introduced by de-rotation:
+    fixed_sifted = copy.deepcopy(derot_sifted)
+    for qq,ddata in derot_diags.items():
+        fixed_sifted['crpix'][qq][0] -= np.median(ddata['xerror'])
+        fixed_sifted['crpix'][qq][1] -= np.median(ddata['yerror'])
+    #fixed_params = spt.unsift_params(fixed_sifted)
+    fixed_params = unsift_params(fixed_sifted)
+
+    # Re-evaluate residuals with de-rotated and de-shifted parameters:
+    fixed_diags = spt.squared_residuals_foc2ccd_rdist(fixed_params,
+                                                      dataset=dataset, diags=True)
+    #diag_data = fixed_diags
+
+    # Return the updated parameter sets:
+    return derot_params, fixed_params
+
+
 
 ##--------------------------------------------------------------------------##
 ##------------------     Post-Solution RA/DE Update         ----------------##
