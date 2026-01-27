@@ -176,39 +176,6 @@ halfdiv = '-' * 40
 fulldiv = '-' * 80
 
 ##--------------------------------------------------------------------------##
-## Catch interruption cleanly:
-#def signal_handler(signum, frame):
-#    sys.stderr.write("\nInterrupted!\n\n")
-#    sys.exit(1)
-#
-#signal.signal(signal.SIGINT, signal_handler)
-
-##--------------------------------------------------------------------------##
-## Save FITS image with clobber (astropy / pyfits):
-#def qsave(iname, idata, header=None, padkeys=1000, **kwargs):
-#    this_func = sys._getframe().f_code.co_name
-#    parent_func = sys._getframe(1).f_code.co_name
-#    sys.stderr.write("Writing to '%s' ... " % iname)
-#    if header:
-#        while (len(header) < padkeys):
-#            header.append() # pad header
-#    if os.path.isfile(iname):
-#        os.remove(iname)
-#    pf.writeto(iname, idata, header=header, **kwargs)
-#    sys.stderr.write("done.\n")
-
-##--------------------------------------------------------------------------##
-## Save FITS image with clobber (fitsio):
-#def qsave(iname, idata, header=None, **kwargs):
-#    this_func = sys._getframe().f_code.co_name
-#    parent_func = sys._getframe(1).f_code.co_name
-#    sys.stderr.write("Writing to '%s' ... " % iname)
-#    #if os.path.isfile(iname):
-#    #    os.remove(iname)
-#    fitsio.write(iname, idata, clobber=True, header=header, **kwargs)
-#    sys.stderr.write("done.\n")
-
-##--------------------------------------------------------------------------##
 def ldmap(things):
     return dict(zip(things, range(len(things))))
 
@@ -313,67 +280,9 @@ def argnear(vec, val):
 ##--------------------------------------------------------------------------##
 
 ##--------------------------------------------------------------------------##
-## New-style string formatting (more at https://pyformat.info/):
-
-#oldway = '%s %s' % ('one', 'two')
-#newway = '{} {}'.format('one', 'two')
-
-#oldway = '%d %d' % (1, 2)
-#newway = '{} {}'.format(1, 2)
-
-# With padding:
-#oldway = '%10s' % ('test',)        # right-justified
-#newway = '{:>10}'.format('test')   # right-justified
-#oldway = '%-10s' % ('test',)       #  left-justified
-#newway = '{:10}'.format('test')    #  left-justified
-
-# Ordinally:
-#newway = '{1} {0}'.format('one', 'two')     # prints "two one"
-
-# Dictionarily:
-#newway = '{lastname}, {firstname}'.format(firstname='Rob', lastname='Siverd')
-
-# Centered (new-only):
-#newctr = '{:^10}'.format('test')      # prints "   test   "
-
-# Numbers:
-#oldway = '%06.2f' % (3.141592653589793,)
-#newway = '{:06.2f}'.format(3.141592653589793)
-
-##--------------------------------------------------------------------------##
-## On-the-fly file modifications:
-#def fix_hashes(filename):
-#    with open(filename, 'r') as ff:
-#        for line in ff:
-#            if line.startswith('#'):
-#                if ('=' in line):
-#                    continue                # param, ignore
-#                else:
-#                    yield line.lstrip('#')  # header, keep
-#            else:
-#                yield line
-
-#def analyze_header(filename):
-#    skip_rows = 0
-#    col_names = []
-#    with open(filename, 'r') as ff:
-#        for line in ff:
-#            if line.startswith('#'):
-#                skip_rows += 1
-#                if ('=' in line):
-#                    continue
-#                else:
-#                    hline = line.rstrip()
-#                    col_names = hline.lstrip('#').split()
-#                    continue
-#            else:
-#                #sys.stderr.write("Found data ... stopping.\n")
-#                break
-#    return skip_rows, col_names
-
-##--------------------------------------------------------------------------##
 ## Quick ASCII I/O:
 #data_file = 'data.txt'
+data_file = './best_fit_diags.csv'
 #gftkw = {'encoding':None} if (_have_np_vers >= 1.14) else {}
 #gftkw.update({'names':True, 'autostrip':True})
 #gftkw.update({'delimiter':'|', 'comments':'%0%0%0%0'})
@@ -387,10 +296,10 @@ def argnear(vec, val):
 #         np.vstack((ra, de)), usemask=False)
 #all_data = append_fields(all_data, cname, cdata, usemask=False)
 
-#pdkwargs = {'skipinitialspace':True, 'low_memory':False}
+pdkwargs = {'skipinitialspace':True, 'low_memory':False}
 #pdkwargs.update({'delim_whitespace':True, 'sep':'|', 'escapechar':'#'})
 #all_data = pd.read_csv(data_file)
-#all_data = pd.read_csv(data_file, **pdkwargs)
+all_data = pd.read_csv(data_file, **pdkwargs)
 #all_data = pd.read_table(data_file)
 #all_data = pd.read_table(data_file, **pdkwargs)
 #nskip, cnames = analyze_header(data_file)
@@ -409,50 +318,8 @@ def argnear(vec, val):
 #for ii,row in all_data.iterrows():
 #    pass
 
-#vot_file = 'neato.xml'
-#vot_data = av.parse_single_table(vot_file)
-#vot_data = av.parse_single_table(vot_file).to_table()
-
 ##--------------------------------------------------------------------------##
-## Timestamp modification:
-#def time_warp(jdutc, jd_offset, scale):
-#    return (jdutc - jd_offset) * scale
-
-## Self-consistent time-modification for plotting:
-#tfudge = partial(time_warp, jd_offset=tstart.jd, scale=24.0)    # relative hrs
-#tfudge = partial(time_warp, jd_offset=tstart.jd, scale=1440.0)  # relative min
-
 ##--------------------------------------------------------------------------##
-## Quick FITS I/O:
-#data_file = 'image.fits'
-#img_vals = pf.getdata(data_file)
-#hdr_keys = pf.getheader(data_file)
-#img_vals, hdr_keys = pf.getdata(data_file, header=True)
-#img_vals, hdr_keys = pf.getdata(data_file, header=True, uint=True) # USHORT
-#img_vals, hdr_keys = fitsio.read(data_file, header=True)
-
-#date_obs = hdr_keys['DATE-OBS']
-#site_lat = hdr_keys['LATITUDE']
-#site_lon = hdr_keys['LONGITUD']
-
-## Initialize time:
-#img_time = astt.Time(hdr_keys['DATE-OBS'], scale='utc', format='isot')
-#img_time += astt.TimeDelta(0.5 * hdr_keys['EXPTIME'], format='sec')
-#jd_image = img_time.jd
-
-## Initialize location:
-#observer = ephem.Observer()
-#observer.lat = np.radians(site_lat)
-#observer.lon = np.radians(site_lon)
-#observer.date = img_time.datetime
-
-#pf.writeto('new.fits', img_vals)
-#qsave('new.fits', img_vals)
-#qsave('new.fits', img_vals, header=hdr_keys)
-
-## Star extraction:
-#pse.set_image(img_vals, gain=3.6)
-#objlist = pse.analyze(sigthresh=5.0)
 
 ##--------------------------------------------------------------------------##
 ## Misc:
@@ -511,55 +378,8 @@ def argnear(vec, val):
 #rlm_model = sm.RLM.from_formula("ivals ~ xpix + ypix", data)
 
 ##--------------------------------------------------------------------------##
-## Theil-Sen line-fitting (linear):
-#model = ts.linefit(xvals, yvals)
-#icept, slope = ts.linefit(xvals, yvals)
-
-## Theil-Sen line-fitting (loglog):
-#xvals, yvals = np.log10(original_xvals), np.log10(original_yvals)
-#xvals, yvals = np.log10(df['x'].values), np.log10(df['y'].values)
-#llmodel = ts.linefit(np.log10(xvals), np.log10(yvals))
-#icept, slope = ts.linefit(xvals, yvals)
-#fit_exponent = slope
-#fit_multiplier = 10**icept
-#bestfit_x = np.arange(5000)
-#bestfit_y = fit_multiplier * bestfit_x**fit_exponent
-
-## Theil-Sen line-fitting variants:
-#linear_model = ts.linefit(xvals, yvals)
-#loglog_model = ts.linefit(np.log10(xvals), np.log10(yvals))
-#linlog_model = ts.linefit(xvals, np.log10(yvals))
-
-
-## Evaluators:
-#def loglog_eval(xvals, model):
-#    icept, slope = model
-#    return 10**icept * np.log10(xvals)**slope
-#def loglog_eval(xvals, icept, slope):
-#    return 10**icept * xvals**slope
-
-## Better evaluators (FIXME: this should go in a modele):
-#def linear_eval(xvals, icept, slope):
-#    return icept + slope*xvals                  # for y vs x fit
-#def loglog_eval(xvals, icept, slope):
-#    return 10**(icept + slope*xvals)            # for log(y) vs x fit
-#def loglog_eval(xvals, icept, slope):
-#    return 10**(icept + slope*np.log10(xvals))  # for log(y) vs log(x) fit
-
-##--------------------------------------------------------------------------##
 ## KDE:
 #kde_pnts, kde_vals = mk.go(data_vec)
-
-##--------------------------------------------------------------------------##
-## Vaex plotting:
-#ds = vaex.open('big_file.hdf5')
-#ds = vaex.from_arrays(x=x, y=y)     # load from arrays
-#ds = vaex.from_csv('mydata.csv')
-
-## Stats:
-#ds.mean("x"), ds.std("x"), ds.correlation("vx**2+vy**2+vz**2", "E")
-#ds.plot(....)
-#http://vaex.astro.rug.nl/latest/tutorial_ipython_notebook.html
 
 ##--------------------------------------------------------------------------##
 ## Plot config:
@@ -576,27 +396,135 @@ def argnear(vec, val):
 #ax4 = plt.subplot2grid((3, 3), (2, 0))            # bot-left
 #ax5 = plt.subplot2grid((3, 3), (2, 1))            # bot-center
 
+##--------------------------------------------------------------------------##
+## Binning parameters:
+mag_min =  8.0
+mag_max = 18.0
+magbins = 10
+
+## Impose mag bins on the data set:
+mag_min =  2.0
+mag_max = 20.0
+mag_rng = mag_max - mag_min
+mbwidth =  1.0
+mbwidth =  0.5
+mbwidth =  0.75
+#mbscale = mbwidth / 
+#magbins = 18
+#mbwidth = (mag_max - mag_min) / magbins
+#all_data['mbin'] = np.int_(18 * (all_data['mag'] - 2.0) / 18.0)
+#all_data['mbin'] = np.int_((all_data['mag'] - mag_min) / (mag_rng * mbwidth))
+all_data['mbin'] = np.int_((all_data['mag'] - mag_min) / mbwidth)
+
+## Get number of bins and initialize counters:
+mbmax = all_data['mbin'].max()
+mb_centers = mbwidth * (np.arange(mbmax + 1) + 0.5)     # nominal centers
+#mb_npoints = np.int_(0 * mb_centers)
+min_pts = 5
+
+## Per-quad dictionaries for binned quantities:
+mb_npoints = {}
+xrms, yrms = {}, {}
+mavg, mmed = {}, {}
+
+## First, group by sensor:
+qgroups = all_data.groupby('qq')
+for qq, qsubset in qgroups:
+    # Initialize binned RMS to NaN:
+    mb_npoints[qq] = np.int_(0 * mb_centers)
+    xrms[qq] = np.nan * mb_centers
+    yrms[qq] = np.nan * mb_centers
+    mavg[qq] = np.nan * mb_centers
+    mmed[qq] = np.nan * mb_centers
+    mgroups = qsubset.groupby('mbin')
+    for mm,thisbin in mgroups:
+        keeper = thisbin['flags'] == 0
+        n_keep = np.sum(keeper)
+        mb_npoints[qq][mm] = n_keep
+        if n_keep >= min_pts:
+            useful   = thisbin[keeper]
+            mavg[qq][mm] = np.average(useful['mag'])
+            mmed[qq][mm] =  np.median(useful['mag'])
+            xrms[qq][mm] =  np.std(useful['xerror'])
+            yrms[qq][mm] =  np.std(useful['yerror'])
+    
+        pass
+
+
+## Binned scatter routine:
+def binned_rms(mags, resids, m1=8.0, m2=18.0, nbins=10):
+    drop = (mags < m1) | (mags >= m2)
+    use_mag = mags[~drop]
+    use_res = resids[~drop]
+
+
 
 ##--------------------------------------------------------------------------##
 #plt.style.use('bmh')   # Bayesian Methods for Hackers style
 fig_dims = (11, 9)
-fig = plt.figure(1, figsize=fig_dims)
-plt.gcf().clf()
-#fig, axs = plt.subplots(2, 2, sharex=True, figsize=fig_dims, num=1, clear=True)
+#fig = plt.figure(1, figsize=fig_dims)
+#plt.gcf().clf()
+fig, axs = plt.subplots(2, 2, sharex=True, figsize=fig_dims, num=1, clear=True)
+                        
 # sharex='col' | sharex='row'
 #fig.frameon = False # disable figure frame drawing
 #fig.subplots_adjust(left=0.07, right=0.95)
 #ax1 = plt.subplot(gs[0, 0])
-#ax1 = fig.add_subplot(111)
+#ax1 = fig.add_subplot(211)
+#ax2 = fig.add_subplot(212, sharex=ax1)
 #ax1 = fig.add_subplot(111, polar=True)
 #ax1 = fig.add_axes([0, 0, 1, 1])
 #ax1.patch.set_facecolor((0.8, 0.8, 0.8))
+#both = [ax1, ax2]
+axlist = axs.ravel()
 #ax1.grid(True)
+#ax2.grid(True)
+for ax in axlist:
+    ax.grid(True)
+#[ax.grid(True) for ax in both]
 #ax1.axis('off')
 
 ## Polar scatter:
-#skw = {'lw':0, 's':15}
+skw = {'lw':0, 's':15}
+mbskw = {'lw':0, 's':35}
+badptkw = {'lw':0, 's':50, 'c':'k'}
 #ax1.scatter(azm_rad, zdist_deg, **skw)
+
+
+
+## Multiple scatter plots:
+qgroups = all_data.groupby('qq')
+for qq,subset in qgroups:
+    #flagged = subset['flags'] > 0
+    badobj = subset[subset['flags'] > 0]
+    axs[0,0].scatter(badobj['mag'], badobj['xerror'], **badptkw)
+    axs[0,0].scatter(subset['mag'], subset['xerror'], label=qq, **skw)
+    # upper right 
+    axs[0,1].scatter(badobj['mag'], badobj['yerror'], **badptkw)
+    axs[0,1].scatter(subset['mag'], subset['yerror'], label=qq, **skw)
+
+    # lower left
+    axs[1,0].scatter(mavg[qq], xrms[qq], label=qq, **mbskw)
+    # lower right
+    axs[1,1].scatter(mavg[qq], yrms[qq], label=qq, **mbskw)
+    pass
+
+for ax in axlist:
+    ax.legend(loc='upper left')
+#axs[0,0].legend(loc='best')
+#axs[0,1].legend(loc='best')
+for ax in axs[-1]:
+    ax.set_xlabel('mag')
+    ax.set_yscale('log')
+    #ax.set_yscale('log', basex=10, nonposx='mask', subsx=mtickpos)
+
+    #ax.set_ylim(8e-3, 0.5)
+    #ax.set_ylim(3e-2, 0.3)
+    ax.set_ylim(1e-2, 0.25)
+#ax2.set_xlabel('mag')
+axs[0,1].set_ylabel('Y error [pix]')
+axs[0,0].set_ylabel('X error [pix]')
+
 
 ## For polar axes:
 #ax1.set_rmin( 0.0)                  # if using altitude in degrees
@@ -664,13 +592,10 @@ plt.gcf().clf()
 #cbar.formatter.set_useOffset(False)
 #cbar.update_ticks()
 
-#fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
-#plt.draw()
-#fig.savefig(plot_name, bbox_inches='tight')
-
-# cyclical colormap ... cmocean.cm.phase
-# cmocean: https://matplotlib.org/cmocean/
-
+plot_name = 'astrometric_residuals.png'
+fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
+plt.draw()
+fig.savefig(plot_name, bbox_inches='tight')
 
 
 
