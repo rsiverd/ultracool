@@ -567,6 +567,9 @@ derot_params, fixed_params = spt.derotate_fit_parameters(fitted_pars, use_gstars
 full_diag_data = spt.squared_residuals_foc2ccd_rdist(fixed_params,
                                              dataset=all_gstars, diags=True)
 
+diag_data = spt.squared_residuals_foc2ccd_rdist(fixed_params,
+                                             dataset=use_gstars, diags=True)
+
 #diag_data = diag_lstq
 #diag_data = orig_diag_data
 #diag_data = derot_diags
@@ -586,6 +589,33 @@ prev_match_count = [len(x) for x in use_gstars.values()]
 this_match_count = [len(x) for x in     mstars.values()]
 sys.stderr.write("Previous Gaia matches: %s\n" % str(prev_match_count))
 sys.stderr.write("Current  Gaia matches: %s\n" % str(this_match_count))
+
+## Update the Gaia-only arrays:
+all_gstars, use_gstars = {}, {}
+for qq,ss in mstars.items():
+    all_gstars[qq] = ss[ss.gid > 0].copy()
+    use_gstars[qq] = ss[ss.gid > 0].copy()
+
+## Re-run minimization (now L-M):
+use_params = fixed_params.copy()
+slvkw = {'method':'trf', 'xtol':1e-14, 'ftol':1e-14}
+reskw = {'unsquared':True}
+slvkw['method'] = 'lm'
+#reskw = {'unsquared':True, 'snrweight':True}
+minimize_this = partial(spt.squared_residuals_foc2ccd_rdist, dataset=use_gstars)
+#answer = opti.least_squares(slvh.squared_residuals_foc2ccd_rdist, use_params, kwargs=reskw, **slvkw)
+answer = opti.least_squares(minimize_this, use_params, kwargs=reskw, **slvkw)
+sys.stderr.write("Ended up with: %s\n" % str(answer))
+sys.stderr.write("Ended up with: %s\n" % str(answer['x']))
+
+## Final diags update:
+derot_params, fixed_params = spt.derotate_fit_parameters(fitted_pars, use_gstars)
+
+full_diag_data = spt.squared_residuals_foc2ccd_rdist(fixed_params,
+                                             dataset=all_gstars, diags=True)
+
+diag_data = spt.squared_residuals_foc2ccd_rdist(fixed_params,
+                                             dataset=use_gstars, diags=True)
 
 ## ----------------------------------------------------------------------- ##
 ## -----------------         MCMC Parameter Search          -------------- ##

@@ -377,6 +377,7 @@ def fmin_squared_residuals_foc2ccd_rdist(params, dataset, **kwargs):
 
 def derotate_fit_parameters(fit_params, dataset):
     # Extract diagnostics:
+    sifted_pars = sift_params(fit_params)
     diag_data = squared_residuals_foc2ccd_rdist(fit_params, 
                                                 dataset=dataset, diags=True)
 
@@ -409,7 +410,8 @@ def derotate_fit_parameters(fit_params, dataset):
     fixed_params = unsift_params(fixed_sifted)
 
     # Re-evaluate residuals with de-rotated and de-shifted parameters:
-    fixed_diags = spt.squared_residuals_foc2ccd_rdist(fixed_params,
+    #fixed_diags = spt.squared_residuals_foc2ccd_rdist(fixed_params,
+    fixed_diags = squared_residuals_foc2ccd_rdist(fixed_params,
                                                       dataset=dataset, diags=True)
     #diag_data = fixed_diags
 
