@@ -40,3 +40,9 @@ cd -
 ./11_test_fit_4pack.py -L fcat_paths.csv -I wircam_J_1325850p
 ./11_test_fit_4pack.py -L fcat_paths.csv -I wircam_J_1333371p
 
+# 5) Run the script (factored, iterative version):
+./12_factor_fit_4pack.py -L fcat_paths.csv -I wircam_J_1333371p
+
+# 6) Test-process a whole RUNID:
+./21_fit_4packs_to_RUNID.sh 11BQ02
+
