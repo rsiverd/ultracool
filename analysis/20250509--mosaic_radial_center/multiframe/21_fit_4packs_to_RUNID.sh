@@ -75,28 +75,60 @@ eval "$(FuncDef $fd_args)"  || exit $?
 ## Check for arguments:
 usage () { 
    #Recho "\nSyntax: $this_prog --START\n\n"
-   Recho "\nSyntax: $this_prog arg1\n\n"
+   Recho "\nSyntax: $this_prog RUNID\n\n"
 }
 #if [[ "$1" != "--START" ]]; then
 if [[ -z "$1" ]]; then
    usage >&2
    exit 1
 fi
+runid="$1"
 
 ## Required files:
 fcat_table="fcat_paths.csv"
+cfh_solver="./12_factor_fit_4pack.py"
 [[ -f $fcat_table ]] || PauseAbort "Can't find file: $fcat_table"
+[[ -f $cfh_solver ]] || PauseAbort "Can't find file: $cfh_solver"
 
 ##**************************************************************************##
 ##==========================================================================##
 ##--------------------------------------------------------------------------##
 
 # All entries for this RUNID:
-cmde "grep $RUNID $fcat_table"
+#cmde "grep $runid $fcat_table"
 
 # Just the basename column:
-cmde "grep $RUNID $fcat_table | cut -d, -f1"
+#cmde "grep $runid $fcat_table | cut -d, -f1"
+#cmde "grep $runid $fcat_table | cut -d, -f1 | sed 's/_fixed.*$//'"
 
+have_bases=( $(grep $runid $fcat_table | cut -d, -f1 | sed 's/_fixed.*$//') )
+#echo "have_bases: ${have_bases[*]}"
+nbases=${#have_bases[*]}
+echo "Found $nbases image bases for RUNID $runid."
+
+## Optionally randomize the image order for quasi-parallel operation:
+have_bases=( $(shuffle ${have_bases[*]}) )
+
+## Folder for data products:
+save_dir="results/$runid"
+cmde "mkdir -p $save_dir" || exit $?
+
+## Iterate over each of the bases:
+count=0
+ntodo=0
+for fbase in ${have_bases[*]}; do
+   (( count++ ))
+   pickle="${save_dir}/${fbase}.pickle"
+   if [[ -f $pickle ]]; then
+      echo "Skipping image (output $pickle exists) ..."
+      continue
+   fi
+   cmde "$cfh_solver -L $fcat_table -I $fbase -O $pickle" || exit $?
+   if [[ $ntodo -gt 0 ]] && [[ $count -ge $ntodo ]]; then
+      echo "Stopping after $count iterations."
+      break
+   fi
+done
 
 
 ##--------------------------------------------------------------------------##
