@@ -1,0 +1,6 @@
+gain = 3.8
+SNR ~ signal / sqrt(signal + sky + rdn^2) ~ sqrt(signal)
+
+SNR ~ gain * signal / sqrt(gain*[signal + sky]
+error ~ FWHM / SNR =~ 3 / sqrt(signal)
+
