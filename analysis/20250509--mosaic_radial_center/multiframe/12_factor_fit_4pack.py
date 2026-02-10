@@ -40,7 +40,7 @@ import sys
 import time
 import copy
 import pprint
-#import pickle
+import pickle
 #import vaex
 #import calendar
 #import ephem
@@ -123,6 +123,20 @@ class Unbuffered(object):
 
 sys.stdout = Unbuffered(sys.stdout)
 sys.stderr = Unbuffered(sys.stderr)
+
+##--------------------------------------------------------------------------##
+
+## Pickle store routine:
+def stash_as_pickle(filename, thing):
+    with open(filename, 'wb') as sapf:
+        pickle.dump(thing, sapf)
+    return
+
+## Pickle load routine:
+def load_pickled_object(filename):
+    with open(filename, 'rb') as lpof:
+        thing = pickle.load(lpof)
+    return thing
 
 ##--------------------------------------------------------------------------##
 
@@ -255,8 +269,8 @@ if __name__ == '__main__':
             help='input listing of fcats by basename', type=str)
     iogroup.add_argument('-I', '--image', default=None, required=True,
             help='which image to process (search token)', type=str)
-    #iogroup.add_argument('-o', '--output_file', default=None, required=True,
-    #        help='Output filename', type=str)
+    iogroup.add_argument('-O', '--output_file', default=None, required=True,
+            help='Output pickle filename', type=str)
     #iogroup.add_argument('-R', '--ref_image', default=None, required=True,
     #        help='KELT image with WCS')
     # ------------------------------------------------------------------
@@ -770,11 +784,17 @@ combo_fraction = combo_rerror / total_rerror
 sys.stderr.write("Combo rerror: %10.4f (%.1f%%)\n" % (combo_rerror, 100.*combo_fraction))
 ## Save latest bigdf for projection use:
 diags_csv = 'best_fit_diags.csv'
-bigdf.to_csv(diags_csv, index=False)
-sys.stderr.write("To keep: mv -f best_fit_diags.csv projection_func/.\n")
+#bigdf.to_csv(diags_csv, index=False)
+#sys.stderr.write("To keep: mv -f best_fit_diags.csv projection_func/.\n")
 
-#sys.stderr.write("HALT after writing out CSV file ...\n")
-#sys.exit(0)
+## Write out the salient pieces of information for a multi-image solution:
+sys.stderr.write("Saving results to %s ...\n" % context.output_file)
+#payload = bigdf, answer         # include full fmin output
+payload = bigdf, answer['x']    # only include fmin output params
+stash_as_pickle(context.output_file, payload)
+
+sys.stderr.write("HALT after writing out CSV file ...\n\n\n")
+sys.exit(0)
 
 ## Augment the list of masked objects. IMPORTANT: GIDs in the current
 ## blacklist are NOT in bigdf (they are already pruned). Objects masked
