@@ -467,11 +467,11 @@ def iter_calc_true_xyrel(xrel_dist, yrel_dist, distmod,
 ## Recalculate catalog RA/DE using latest parameters. This routine
 ## expects the original 'stars' array and the latest solution parameters.
 def inplace_update_catalog_radec(data, new_params):
-    sfixed = sift_params(new_params)
+    sparams = sift_params(new_params)
     for qq,ss in data.items():
-        #sfixed['cdmat'][qq]
-        crpix1, crpix2 = sfixed['crpix'][qq]
-        cdmcrv = np.array(sfixed['cdmat'][qq].tolist() + sfixed['crval'])
+        #sparams['cdmat'][qq]
+        crpix1, crpix2 = sparams['crpix'][qq]
+        cdmcrv = np.array(sparams['cdmat'][qq].tolist() + sparams['crval'])
         xrel_dist = ss[_xcol] - crpix1   # includes distortion
         yrel_dist = ss[_ycol] - crpix2   # includes distortion
         # Compute undistorted relative X,Y positions. We need these in order
@@ -480,11 +480,7 @@ def inplace_update_catalog_radec(data, new_params):
         xrel_true, yrel_true = \
                 iter_calc_true_xyrel(xrel_dist, yrel_dist, guess_distmod)
                 #iter_calc_true_xyrel(xrel_dist, yrel_dist, spt.guess_distmod)
-        #xnudge, ynudge = spt.calc_rdist_corrections(xrel, yrel, spt.guess_distmod)
-        #guess_xrel = xrel - xnudge
-        #guess_yrel = yrel - ynudge
         newra, newde = helpers.eval_cdmcrv(cdmcrv, xrel_true, yrel_true)
-        #newra %= 360.0
         ss[_racol] = newra % 360.0
         ss[_decol] = newde
         pass
