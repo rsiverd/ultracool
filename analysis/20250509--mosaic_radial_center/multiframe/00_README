@@ -45,4 +45,16 @@ cd -
 
 # 6) Test-process a whole RUNID:
 ./21_fit_4packs_to_RUNID.sh 11BQ02
+./21_fit_4packs_to_RUNID.sh 16AQ14
+./21_fit_4packs_to_RUNID.sh 17AQ07
+./21_fit_4packs_to_RUNID.sh 21AQ18
+
+# 7) Process all of the RUNIDs (randomized, run a few):
+./22_every_RUNID_4packs.sh --START
+
+# 8) Test-refine a whole RUNID:
+./23_fine_tune_RUNID_WCS.py -R 11BQ02
+./23_fine_tune_RUNID_WCS.py -R 16AQ14
+./23_fine_tune_RUNID_WCS.py -R 17AQ07
+./23_fine_tune_RUNID_WCS.py -R 21AQ18
 
