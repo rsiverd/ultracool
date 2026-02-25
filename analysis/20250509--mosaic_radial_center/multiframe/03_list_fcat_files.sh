@@ -4,14 +4,14 @@
 #
 # Rob Siverd
 # Created:      2026-01-13
-# Last updated: 2026-01-27
+# Last updated: 2026-02-24
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Default options:
 debug=0 ; clobber=0 ; force=0 ; timer=0 ; vlevel=0
-script_version="0.02"
+script_version="0.03"
 this_prog="${0##*/}"
 #shopt -s nullglob
 # Propagate errors through pipelines: set -o pipefail
@@ -99,6 +99,7 @@ echo "Start with $nstart sensor-frames."
 ## Extract QSOGRADE value from stored header and filter:
 maxgrade=3
 echo "Analyze QSOGRADE (max=$maxgrade) ..."
+#cmde "imhget --progress -nE IMGHEADER QSOGRADE QRUNID -l $foo -o $bar" || exit $?
 cmde "imhget --progress -nE IMGHEADER QSOGRADE -l $foo -o $bar" || exit $?
 #head $bar
 
@@ -194,7 +195,16 @@ for fbase in ${uniq_fbase[*]}; do
    #grep -m1 $fbase $baz
    #grep -m1 $fbase $baz | awk '{print $2}'
    #qsograde=$(grep -m1 $fbase $baz | awk '{print $2}')
-   qsograde=$(grep -m1 $fbase $grade_table | awk '{print $2}')
+   #qsograde=$(grep -m1 $fbase $grade_table | awk '{print $2}')
+   #runid=$(basename $(dirname $(grep -m1 $fbase $grade_table)))
+   values=( $(grep -m1 $fbase $grade_table) )
+   fullpath=${values[0]}
+   qsograde=${values[1]}
+   runid=$(basename $(dirname $fullpath))
+   #grep -m1 $fbase $grade_table | read fullpath grade
+   #echo "fullpath: $fullpath"
+   #echo "qsograde: $qsograde"
+   #exit
    #echo "qsograde: $qsograde"
    #exit
    #grep $fbase $foo
@@ -211,7 +221,7 @@ for fbase in ${uniq_fbase[*]}; do
       #exit 1
    fi
    # add an entry:
-   echo "$fbase ${fpaths[*]} $qsograde" | tr ' ' ',' >> $bar
+   echo "$fbase ${fpaths[*]} $qsograde $runid" | tr ' ' ',' >> $bar
    echo
 done
 
