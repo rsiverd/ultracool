@@ -124,6 +124,9 @@ quads = spt._quads
 import helpers
 reload(helpers)
 
+## Knowledge of prior fit solutions:
+import prior_fit
+reload(prior_fit)
 
 ##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
@@ -454,18 +457,25 @@ tmp_sifted = {
             'crval'   : copy.deepcopy(every_crval),
         }
 
-## Enforce 21AQ18 best guess:
-tmp_sifted['cdmat'] = {
-        'NE': np.array([-0.00008508,  0.00000052,  0.00000052,  0.00008508]),
-        'NW': np.array([-0.00008509,  0.00000071,  0.00000071,  0.0000851 ]),
-        'SE': np.array([-0.00008509,  0.00000064,  0.00000063,  0.00008508]),
-        'SW': np.array([-0.00008506,  0.00000073,  0.00000073,  0.00008504])}
-tmp_sifted['crpix'] = {
-        'NE': np.array([2124.0630655 ,  -91.96674513]),
-        'NW': np.array([ -59.94684968,  -83.17030954]),
-        'SE': np.array([2127.98554353, 2100.62029866]),
-        'SW': np.array([ -62.49889049, 2113.12048686])}
+## Override this guess with a prior solution if available:
+if prior_fit.solution_is_known(context.runid):
+    sys.stderr.write("Using prior solution cdmat/crpix!\n")
+    for pp in ['cdmat', 'crpix']:
+        tmp_sifted[pp] = copy.deepcopy(prior_fit.J_wcs_pars[context.runid][pp])
 
+### Enforce 21AQ18 best guess:
+#tmp_sifted['cdmat'] = {
+#        'NE': np.array([-0.00008508,  0.00000052,  0.00000052,  0.00008508]),
+#        'NW': np.array([-0.00008509,  0.00000071,  0.00000071,  0.0000851 ]),
+#        'SE': np.array([-0.00008509,  0.00000064,  0.00000063,  0.00008508]),
+#        'SW': np.array([-0.00008506,  0.00000073,  0.00000073,  0.00008504])}
+#tmp_sifted['crpix'] = {
+#        'NE': np.array([2124.0630655 ,  -91.96674513]),
+#        'NW': np.array([ -59.94684968,  -83.17030954]),
+#        'SE': np.array([2127.98554353, 2100.62029866]),
+#        'SW': np.array([ -62.49889049, 2113.12048686])}
+
+#sys.exit(0)
 
 ### Flatten the parameter list:
 #def unsift_params_multi(sifted):

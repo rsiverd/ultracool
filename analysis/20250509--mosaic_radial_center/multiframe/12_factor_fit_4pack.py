@@ -110,6 +110,10 @@ spt = slv_par_tools
 import helpers
 reload(helpers)
 
+## Knowledge of prior fit solutions:
+import prior_fit
+reload(prior_fit)
+
 ##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
 class Unbuffered(object):
@@ -299,10 +303,14 @@ if not os.path.isfile(context.fcat_list):
     sys.exit(1)
 
 #fcat_paths = pd.
+## Get filter from image name:
+this_filter = context.image.split('_')[1]
 
 ##--------------------------------------------------------------------------##
-## Load Gaia data:
-gmag_limit = 19.0
+## Filter-dependent Gaia match parameters:
+gmag_limit = 19.0               # default
+if this_filter == 'H2':
+    gmag_limit = 18.0
 
 ## Gaia stuf:
 #gaia_csv_path = '/home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/gaia_calib1_NE.0d3.csv'
@@ -363,6 +371,7 @@ pathcols = [x for x in cat_table.keys() if 'path' in x]
 chosen = cat_table[matches]
 paths = [chosen[x].iloc[0] for x in pathcols]
 #ne_fpath, nw_fpath, se_fpath, sw_fpath = paths
+this_runid = chosen['qrunid'].iloc[0]
 
 ## Dictify input paths:
 quads = ['NE', 'NW', 'SE', 'SW']
@@ -423,6 +432,12 @@ brute_param_guess = np.array([
           0.00000014,    0.00008504, -115.36232304, 2127.45977327,
             imcrval1,      imcrval2])
         #294.59563805,   35.11858534])
+
+if prior_fit.solution_is_known(this_runid):
+    brute_param_guess = prior_fit.single_image_params(this_runid,
+                                                      imcrval1, imcrval2)
+
+#sys.exit(0)
 
 ##-----------------------------------------------------------------------##
 ##-----------------------------------------------------------------------##

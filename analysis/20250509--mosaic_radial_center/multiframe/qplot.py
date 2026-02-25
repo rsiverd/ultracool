@@ -16,11 +16,13 @@ for qq in quads:
     hist(runid_xerror[qq], label=qq, **hkw)
 grid()
 legend()
-plt.gca().set_title(this_runid)
+plt.gca().set_title(this_runid + ' -- filters: ' + ' + '.join(use_filters))
 xlabel('X error [px]')
 tight_layout()
-save_file = 'runid_x_error_%s.png' % this_runid
-save_file = 'runid_x_error_%s.H2_fixed_cdmat_crpix.png' % this_runid
+ftag = '_'.join(use_filters)
+save_file = 'runid_x_error_%s.%s.png' % (this_runid, ftag)
+#save_file = 'runid_x_error_%s.%s.H2_fixed_cdmat_crpix.png' % (this_runid, ftag)
+#save_file = 'runid_x_error_%s.%s.H2_fixed_cdmat_crpix.redo.png' % (this_runid, ftag)
 savefig(save_file)
 
 

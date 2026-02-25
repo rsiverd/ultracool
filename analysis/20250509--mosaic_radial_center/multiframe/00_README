@@ -33,6 +33,7 @@ cd -
 # all four sensors with each base name.
 ./03_list_fcat_files.sh imdirs_11BQ02.txt
 ./03_list_fcat_files.sh imdirs_11.txt
+./03_list_fcat_files.sh imdirs_c1/imdirs_all.txt
 
 # 4) Run the script:
 #./11_test_fit_4pack.py -L fcat_paths.csv -I wircam_H2_1325861p
@@ -42,6 +43,7 @@ cd -
 
 # 5) Run the script (factored, iterative version):
 ./12_factor_fit_4pack.py -L fcat_paths.csv -I wircam_J_1333371p
+./12_factor_fit_4pack.py -L fcat_paths.csv -I wircam_H2_2626495p -O tmp.pickle
 
 # 6) Test-process a whole RUNID:
 ./21_fit_4packs_to_RUNID.sh 11BQ02
