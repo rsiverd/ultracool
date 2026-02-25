@@ -188,7 +188,7 @@ fi
 ##--------------------------------------------------------------------------##
 #
 ## Make sure each base has all four catalogs:
-echo "fbase,ne_fpath,nw_fpath,se_fpath,sw_fpath,qsograde,runid" > $bar
+echo "fbase,ne_fpath,nw_fpath,se_fpath,sw_fpath,qsograde,qrunid" > $bar
 for fbase in ${uniq_fbase[*]}; do
    echo "fbase: $fbase"
    #grep $fbase $baz
