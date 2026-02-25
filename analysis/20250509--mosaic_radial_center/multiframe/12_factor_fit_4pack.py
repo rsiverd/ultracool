@@ -310,7 +310,8 @@ this_filter = context.image.split('_')[1]
 ## Filter-dependent Gaia match parameters:
 gmag_limit = 19.0               # default
 if this_filter == 'H2':
-    gmag_limit = 18.0
+    #gmag_limit = 18.0
+    gmag_limit = 17.0
 
 ## Gaia stuf:
 #gaia_csv_path = '/home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/gaia_calib1_NE.0d3.csv'
