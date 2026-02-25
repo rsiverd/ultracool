@@ -790,7 +790,7 @@ diags_csv = 'best_fit_diags.csv'
 ## Write out the salient pieces of information for a multi-image solution:
 sys.stderr.write("Saving results to %s ...\n" % context.output_file)
 #payload = bigdf, answer         # include full fmin output
-payload = bigdf, answer['x']    # only include fmin output params
+payload = use_gstars, bigdf, answer['x']    # only include fmin output params
 stash_as_pickle(context.output_file, payload)
 
 sys.stderr.write("HALT after writing out CSV file ...\n\n\n")

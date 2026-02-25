@@ -454,6 +454,19 @@ tmp_sifted = {
             'crval'   : copy.deepcopy(every_crval),
         }
 
+## Enforce 21AQ18 best guess:
+tmp_sifted['cdmat'] = {
+        'NE': np.array([-0.00008508,  0.00000052,  0.00000052,  0.00008508]),
+        'NW': np.array([-0.00008509,  0.00000071,  0.00000071,  0.0000851 ]),
+        'SE': np.array([-0.00008509,  0.00000064,  0.00000063,  0.00008508]),
+        'SW': np.array([-0.00008506,  0.00000073,  0.00000073,  0.00008504])}
+tmp_sifted['crpix'] = {
+        'NE': np.array([2124.0630655 ,  -91.96674513]),
+        'NW': np.array([ -59.94684968,  -83.17030954]),
+        'SE': np.array([2127.98554353, 2100.62029866]),
+        'SW': np.array([ -62.49889049, 2113.12048686])}
+
+
 ### Flatten the parameter list:
 #def unsift_params_multi(sifted):
 #    parvec = []
@@ -614,6 +627,7 @@ for qq in spt._quads:
     runid_ypixel[qq] = np.array(tmp_ypixel)
 
 
+sys.exit(0)
 ## Attempt a solve with fmin...
 sys.stderr.write("\n\n%s\n%s\n" % (fulldiv, fulldiv))
 sys.stderr.write("Try to minimize with fmin (could be slow) ....\n")
@@ -639,7 +653,7 @@ for qq in spt._quads:
     tmp_xerror, tmp_yerror = [], []
     tmp_xpixel, tmp_ypixel = [], []
     for iname in iname_order:
-        _data = yay_diags[iname]
+        _data = yay_fdiags[iname]
         tmp_xerror.extend(_data[qq]['xerror'])
         tmp_yerror.extend(_data[qq]['yerror'])
         tmp_xpixel.extend(_data[qq]['xmeas'])

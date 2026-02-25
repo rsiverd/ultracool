@@ -137,6 +137,30 @@ def unsift_params(sifted):
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
+## Flatten the parameter list:
+def unsift_params_multi(msifted, iname_list):
+    parvec = []
+    for qq in _quads:
+        parvec.extend(msifted['cdmat'][qq])
+        parvec.extend(msifted['crpix'][qq])
+    for iname in iname_list:
+        parvec.extend(msifted['crval'][iname])
+    return np.array(parvec)
+
+## Organize the parameter list:
+def sift_params_multi(params, iname_list):
+    parsleft = params.copy()
+    cdmcrpix = parsleft[:24].reshape(-1, 6)
+    parsleft = parsleft[24:]
+    tmp_cdms = {qq:vv for qq,vv in zip(_quads, cdmcrpix[:, :4])}
+    tmp_crpx = {qq:vv for qq,vv in zip(_quads, cdmcrpix[:, 4:])}
+    tmp_crvs = dict(zip(iname_list, parsleft.reshape(-1, 2).tolist()))
+    #tmp_crvs = dict(zip(iname_order, parsleft.reshape(-1, 2).tolist()))
+    return {'cdmat':tmp_cdms, 'crpix':tmp_crpx, 'crval':tmp_crvs}
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
 ## Calculate sensor-to-sensor gutters implied by various CRPIX values:
 def describe_gutters(sifted):
     sensor_crpix = sifted['crpix']

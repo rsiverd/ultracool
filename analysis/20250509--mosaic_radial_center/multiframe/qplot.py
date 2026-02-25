@@ -12,6 +12,7 @@ hkw = {'bins':100, 'range':(-2, 2), 'density':True}
 ## X errors:
 plt.clf()
 for qq in quads:
+    sys.stderr.write("std(xerror(%s))=%.4f\n" % (qq, std(runid_xerror[qq])))
     hist(runid_xerror[qq], label=qq, **hkw)
 grid()
 legend()
@@ -19,6 +20,7 @@ plt.gca().set_title(this_runid)
 xlabel('X error [px]')
 tight_layout()
 save_file = 'runid_x_error_%s.png' % this_runid
+save_file = 'runid_x_error_%s.H2_fixed_cdmat_crpix.png' % this_runid
 savefig(save_file)
 
 

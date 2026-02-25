@@ -57,4 +57,5 @@ cd -
 ./23_fine_tune_RUNID_WCS.py -R 16AQ14
 ./23_fine_tune_RUNID_WCS.py -R 17AQ07
 ./23_fine_tune_RUNID_WCS.py -R 21AQ18
+./23_fine_tune_RUNID_WCS.py -R 21AQ18 --Jonly
 
