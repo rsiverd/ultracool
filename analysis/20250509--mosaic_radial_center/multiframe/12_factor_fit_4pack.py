@@ -311,8 +311,9 @@ this_filter = context.image.split('_')[1]
 gmag_limit = 19.0               # default
 if this_filter == 'H2':
     #gmag_limit = 18.0
-    #gmag_limit = 17.0      # slightly worse
-    gmag_limit = 17.5
+    gmag_limit = 17.0      # slightly worse
+    #gmag_limit = 17.5
+#gmag_limit = 19.0               # default
 
 ## Gaia stuf:
 #gaia_csv_path = '/home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/gaia_calib1_NE.0d3.csv'
@@ -400,6 +401,28 @@ all_gstars, use_gstars = {}, {}
 for qq,ss in mstars.items():
     all_gstars[qq] = ss[ss.gid > 0].copy()
     use_gstars[qq] = ss[ss.gid > 0].copy()
+
+## Count matches and check for errors ...
+agst_count = {qq:len(vv) for qq,vv in all_gstars.items()}
+ugst_count = {qq:len(vv) for qq,vv in use_gstars.items()}
+sys.stderr.write("Gaia match count: %s\n" % str(agst_count))
+
+## Abort if any sensor has too few matches (solution compromised):
+min_gstars = 100
+fails_file = 'fails_detected.txt'
+for qq,gcount in agst_count.items():
+    if gcount < min_gstars:
+        sys.stderr.write("\nBAD SOLUTION DETECTED!\n")
+        sys.stderr.write("%s quadrant has too few Gaia matches (%d < %d).\n"
+                         % (qq, gcount, min_gstars))
+        sys.stderr.write("Abort processing!\n")
+        with open(fails_file, 'a') as ff:
+            ff.write("%s\n" % context.image)
+        sys.exit(0)
+#if any([x<min_gstars for x in agst_count.values()]):
+#    sys.stderr.write("Bad solution: fewer than %d Gaia matches\n" % min_gstars)
+#
+#sys.exit(0)
 
 ## Purge masked entries from use_gstars (in place overwrite):
 bad_gids = None
