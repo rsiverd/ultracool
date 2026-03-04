@@ -14,3 +14,10 @@ script and see how steady the CRPIX determination really is. If rotation
 does *NOT* matter, the next thing to check is whether the discrepant cases
 have something else, like significant skew (beyond a pure rotation matrix).
 
+Previous detector layout work was done in:
+../20250224--CFHT_sensor_relative_rotations/91_theory_pixscale.py
+
+Some of the plotting code in the above script may be useful here. In this
+investigation, the first thing to check is the simplest case: coplanar CCDs
+with identical pixel scale that are related purely by shifts and rotations.
+
