@@ -1,0 +1,16 @@
+I recently completed full-QRUNID joint 4-sensor coordinate solutions:
+../20250509--mosaic_radial_center/multiframe
+../20250509--mosaic_radial_center/multiframe/31_params_over_time.py
+
+The results suggest extremely stable camera behavior. Several QRUNIDs, 
+however, are discrepant in terms of sensor-to-sensor CRPIX diffs. Those 
+discrepancies mostly correspond to cases where the PA was also markedly
+different. This side investigation aims to answer/illustrate whether/how 
+the sensor-to-sensor CRPIX difference depends on the CD matrix and field 
+rotation.
+
+If rotation *does* matter, I need to update my plots in the aforementioned
+script and see how steady the CRPIX determination really is. If rotation
+does *NOT* matter, the next thing to check is whether the discrepant cases
+have something else, like significant skew (beyond a pure rotation matrix).
+
