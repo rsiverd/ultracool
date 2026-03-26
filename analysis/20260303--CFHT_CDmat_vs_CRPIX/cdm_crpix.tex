@@ -1,0 +1,637 @@
+%
+%     Mathematical relationship(s) between CD matrix and CRPIXi.
+%
+% Rob Siverd
+% Created:       2026-03-17
+% Last modified: 2026-03-24
+%---------------------------------------------------------------------
+%*********************************************************************
+%---------------------------------------------------------------------
+
+\documentclass{article}
+
+\usepackage{color}
+\usepackage{ulem}
+\usepackage{cancel}
+\usepackage{amsmath}
+
+\pdfpagewidth 8.5in
+\pdfpageheight 11in
+\setlength\topmargin{0.2in}
+\setlength\headheight{0in}
+\setlength\textheight{8in}
+\setlength\textwidth{6in}
+\setlength\oddsidemargin{0in}
+\setlength\evensidemargin{0in}
+
+\begin{document}
+
+% Units:
+\newcommand{\Msun}{M_{sun}}
+\newcommand{\Lsun}{L_{sun}}
+\newcommand{\kg}{\mathrm{kg}}
+\newcommand{\K}{\mathrm{K}}
+\newcommand{\nm}{\mathrm{nm}}
+\newcommand{\cm}{\mathrm{cm}}
+\newcommand{\km}{\mathrm{km}}
+\newcommand{\erg}{\mathrm{erg}}
+\newcommand{\cms}{\mathrm{cm/s}}
+\newcommand{\kms}{\mathrm{km/s}}
+\newcommand{\mph}{\mathrm{mph}}
+\newcommand{\mpc}{\mathrm{Mpc}}
+\newcommand{\mi}{\mathrm{mi}}
+\newcommand{\au}{\mathrm{AU}}
+\newcommand{\Sec}{\mathrm{s}}
+\newcommand{\Min}{\mathrm{min}}
+\newcommand{\Hrs}{\mathrm{hours}}
+\newcommand{\Hr}{\mathrm{hr}}
+\newcommand{\ly}{\mathrm{ly}}
+\newcommand{\yr}{\mathrm{yr}}
+\newcommand{\pc}{\mathrm{pc}}
+\newcommand{\strs}{\mathrm{stars}}
+\newcommand{\partdiv}{------------------------------------------}
+\newcommand{\divider}{\partdiv \partdiv \partdiv}
+
+%\newcommand{\crpixone}{\mathrm{CRPIX1}}
+%\newcommand{\crpixi}[1]{\mathrm{CRPIX#1}}
+\newcommand{\cpx}[1]{\mathrm{CRPIX#1}}
+\newcommand{\pcm}[1]{\mathrm{PC}_{#1}}
+\newcommand{\cdm}[1]{\mathrm{CD}_{#1}}
+
+\newcommand{\xccd}{\mathrm{X}_{\mathrm{CCD}}}
+\newcommand{\yccd}{\mathrm{Y}_{\mathrm{CCD}}}
+\newcommand{\xfoc}{\mathrm{X}_{\mathrm{FOC}}}
+\newcommand{\yfoc}{\mathrm{Y}_{\mathrm{FOC}}}
+
+\newcommand{\COS}[1]{\mathrm{cos}(#1)}
+\newcommand{\SIN}[1]{\mathrm{sin}(#1)}
+\newcommand{\RMCOS}{\COS{\theta}}
+\newcommand{\RMSIN}{\SIN{\theta}}
+
+% Cancel text in red:
+\renewcommand{\CancelColor}{\thicklines\color{red}}
+
+
+I am using this document to stumble my way through the transformation
+algebra needed to related CRPIXi values among different WIRCam sensors.\\
+
+In what follows, we use these symbols:
+\begin{flalign*}
+   \xccd &= \text{detector X pixel coordinate} & \\
+   \yccd &= \text{detector Y pixel coordinate} & \\
+   \xfoc &= \text{X coordinate in focal plane} & \\
+   \yfoc &= \text{Y coordinate in focal plane} &
+\end{flalign*}
+
+The FITS WCS papers give formulae:
+\begin{flalign*}
+   x_i  =  s_i * &\sum \left[       m_{ij} * (p_j - r_j)  \right] & \\
+        =        &\sum \left[ s_i * m_{ij} * (p_j - r_j)  \right] &
+\end{flalign*}
+
+where:
+\begin{flalign*}
+   s_i          &== \textrm{CDELTia}   & \\
+         m_{ij} &== \textrm{PCi\_ja}   & \\
+   s_i * m_{ij} &== \textrm{CDi\_ja}   & 
+\end{flalign*}\\
+
+The last line above can be written as follows in matrix notation:
+\[
+   \begin{pmatrix}
+      \cdm{11} & \cdm{12} \\
+      \cdm{21} & \cdm{22} \\
+   \end{pmatrix}
+   =
+   \begin{pmatrix}
+      s_1 &   0 \\
+        0 & s_2 \\
+   \end{pmatrix}
+   \cdot
+   \begin{pmatrix}
+      \pcm{11} & \pcm{12} \\
+      \pcm{21} & \pcm{22} \\
+   \end{pmatrix}
+\]\\
+
+\hrule
+\vspace{2mm}
+
+A reminder about VECTOR (active) and FRAME (passive) rotation matrix conventions:
+\begin{align}
+   R_{zV}(\theta) &=
+   \begin{pmatrix}
+      \RMCOS & -\RMSIN \\
+      \RMSIN & \;\;\RMCOS
+   \end{pmatrix} \\
+   R_{zF}(\theta) &=
+   \begin{pmatrix}
+      \;\;\RMCOS & \RMSIN \\
+      -\RMSIN & \RMCOS
+   \end{pmatrix}
+\end{align}
+
+
+
+\pagebreak
+
+Definitions from the WCS papers spelled out (PC formalism):
+%\[
+\begin{flalign}
+%  \xi  &= s_1 * \textrm{PC}_{11} * (p_x - \cpx{1}) + s1 * PC1_2 * (p_y - \cpx{2}) \\
+%  \eta &= s_2 * \textrm{PC}_{21} * (p_x - \cpx{1}) + s2 * PC2_2 * (p_y - \cpx{2})
+   \xfoc &= s_1 \cdot \pcm{11} \cdot (\xccd - \cpx{1}) \;\; + s1 \cdot \pcm{12} \cdot (\yccd - \cpx{2}) \\
+   \yfoc &= s_2 \cdot \pcm{21} \cdot (\xccd - \cpx{1}) \;\; + s2 \cdot \pcm{22} \cdot (\yccd - \cpx{2}) 
+\end{flalign}
+\vspace{-7mm}
+\begin{flalign}
+   \label{eq:xfoc} \xfoc &= \cdm{11} \cdot (\xccd - \cpx{1}) \;\; + \cdm{12} \cdot (\yccd - \cpx{2}) \\
+   \label{eq:yfoc} \yfoc &= \cdm{21} \cdot (\xccd - \cpx{1}) \;\; + \cdm{22} \cdot (\yccd - \cpx{2})
+\end{flalign}\\
+
+We can put these equations into matrix form using homogeneous 
+coordinates and augmented matrices. For translation:
+\[
+   \begin{pmatrix}
+      1 & 0 & -\cpx{1} \\
+      0 & 1 & -\cpx{2} \\
+      0 & 0 & 1
+   \end{pmatrix}
+   \cdot
+   \begin{pmatrix}
+      \xccd \\
+      \yccd \\
+      1
+   \end{pmatrix}
+   =
+   \begin{pmatrix}
+      \xccd \;-\; \cpx{1} \\
+      \yccd \;-\; \cpx{2} \\
+      1
+   \end{pmatrix}
+   \rightarrow
+   \begin{pmatrix}
+      A \\
+      B \\
+      1
+   \end{pmatrix}
+\]
+
+For the CD matrix components (AFTER translation), we do:
+\[
+   \begin{pmatrix}
+      \cdm{11} & \cdm{12} & 0 \\
+      \cdm{21} & \cdm{22} & 0 \\
+         0     &    0     & 1
+   \end{pmatrix}
+   \cdot
+   \begin{pmatrix}
+      A \\
+      B \\
+      1
+   \end{pmatrix}
+   =
+   \begin{pmatrix}
+      \cdm{11} \cdot A \; + \; \cdm{12} \cdot B \\
+      \cdm{21} \cdot A \; + \; \cdm{22} \cdot B \\
+      1
+   \end{pmatrix}
+\]
+
+Combining these, we get:
+\begin{align}
+   \begin{pmatrix}
+      \xfoc \\
+      \yfoc \\
+      1
+   \end{pmatrix}
+   &=
+   \begin{pmatrix}
+      \cdm{11} & \cdm{12} & 0 \\
+      \cdm{21} & \cdm{22} & 0 \\
+         0     &    0     & 1
+   \end{pmatrix}
+   \cdot
+   \begin{pmatrix}
+      1 & 0 & -\cpx{1} \\
+      0 & 1 & -\cpx{2} \\
+      0 & 0 & 1
+   \end{pmatrix}
+   \cdot
+   \begin{pmatrix}
+      \xccd \\
+      \yccd \\
+      1
+   \end{pmatrix} \\
+   &=
+   \begin{pmatrix}
+      \cdm{11} & \cdm{12} & -(\cdm{11} \cdot \cpx{1} + \cdm{12} \cdot \cpx{2}) \\
+      \cdm{21} & \cdm{22} & -(\cdm{21} \cdot \cpx{1} + \cdm{22} \cdot \cpx{2}) \\
+         0     &    0     & 1
+   \end{pmatrix}
+   \cdot
+   \begin{pmatrix}
+      \xccd \\
+      \yccd \\
+      1
+   \end{pmatrix}
+\end{align}
+
+% -----------------------------------------------------------------------
+
+\hrule
+\vspace{2mm}
+\hrule
+\vspace{5mm}
+
+\pagebreak
+
+Next we determine how the various CDij and CRPIXn are related between the sensors.
+We showed in Eqns \ref{eq:xfoc}, \ref{eq:yfoc} how the x,y focal plane coordinates
+depend on sensor x,y, CD matrix values, and CRPIXn. Recall from above that
+(where subscript q now implies sensor):
+these equations illustrate the connections between mosaic position and individual
+sensor parameters (where subscript q implies sensor). Recall:
+\begin{align*}
+   \xfoc &= \cdm{11,q} \cdot (\xccd - \cpx{1}_q) \;\; + \cdm{12,q} \cdot (\yccd - \cpx{2}_q) \\
+   \yfoc &= \cdm{21,q} \cdot (\xccd - \cpx{1}_q) \;\; + \cdm{22,q} \cdot (\yccd - \cpx{2}_q)
+\end{align*}
+%Let $A == \cpx{1}$ and $B = \cpx{2}$ for brevity. Recall:
+%\begin{align*}
+%   \xfoc &= \cdm{11,q} \cdot (\xccd - A_q) \;\; + \cdm{12,q} \cdot (\yccd - B_q) \\
+%   \yfoc &= \cdm{21,q} \cdot (\xccd - A_q) \;\; + \cdm{22,q} \cdot (\yccd - B_q)
+%\end{align*}
+%.
+The total differentials holding CCD coordinate and CD matrix constant describe
+the connection between mosaic position in the focal plane and sensor parameters:
+\begin{align}
+   d(\xfoc) &= \frac{\partial (\xfoc)}{\partial (\cpx{1}_q)} d(\cpx{1}_q) 
+               + \frac{\partial (\xfoc)}{\partial (\cpx{2}_q)} d(\cpx{2}_q) \\
+   d(\yfoc) &= \frac{\partial (\yfoc)}{\partial (\cpx{1}_q)} d(\cpx{1}_q) 
+               + \frac{\partial (\yfoc)}{\partial (\cpx{2}_q)} d(\cpx{2}_q)
+\end{align}
+%\begin{align}
+%   d(\xfoc) &= \frac{\partial (\xfoc)}{\partial (A_q)} d(A_q) 
+%               + \frac{\partial (\xfoc)}{\partial (B_q)} d(B_q) \\
+%   d(\yfoc) &= \frac{\partial (\yfoc)}{\partial (A_q)} d(A_q) 
+%               + \frac{\partial (\yfoc)}{\partial (B_q)} d(B_q)
+%\end{align}
+where the partial differentials are:
+\begin{align*}
+   \frac{\partial (\xfoc)}{\partial (\cpx{1}_q)} &= -\cdm{11,q} &
+   \frac{\partial (\xfoc)}{\partial (\cpx{2}_q)} &= -\cdm{12,q} \\
+   \frac{\partial (\yfoc)}{\partial (\cpx{1}_q)} &= -\cdm{21,q} &
+   \frac{\partial (\yfoc)}{\partial (\cpx{2}_q)} &= -\cdm{22,q} \\
+\end{align*}
+%\begin{align}
+%   \frac{\partial (\xfoc)}{\partial (A_q)} &= 
+%              -\left[\cdm{11,q} \cdot \cpx{1} + \cdm{12,q} \cdot \cpx{2} \right] \\
+%   \frac{\partial (\yfoc)}{\partial (\cpx{1}_q)} &= 
+%              -\left[\cdm{21,q} \cdot \cpx{1} + \cdm{22,q} \cdot \cpx{2} \right]
+%\end{align}
+
+The total differentials thus become:
+\begin{align}
+   \Delta \xfoc &= -\cdm{11,q} \cdot \Delta \cpx{1}_q - \cdm{12,q} \cdot \Delta \cpx{2}_q \\
+   \Delta \yfoc &= -\cdm{21,q} \cdot \Delta \cpx{1}_q - \cdm{22,q} \cdot \Delta \cpx{2}_q
+\end{align}
+
+\hrule
+\vspace{2mm}
+\hrule
+\vspace{5mm}
+
+\pagebreak
+
+New approach: we put all of the sensors directly onto the NE pixel grid.
+\\
+
+In matrix form, CD (1st) and translation (2nd) combine as follows:
+\begin{align*}
+   \begin{pmatrix}
+      1 & 0 & T_x \\
+      0 & 1 & T_y \\
+      0 & 0 & 1
+   \end{pmatrix}
+   \begin{pmatrix}
+      \cdm{11} & \cdm{12} & 0 \\
+      \cdm{21} & \cdm{22} & 0 \\
+         0     &    0     & 1
+   \end{pmatrix}
+   =
+   \begin{pmatrix}
+      \cdm{11} & \cdm{12} & T_x \\
+      \cdm{21} & \cdm{22} & T_y \\
+         0     &    0     & 1
+   \end{pmatrix}
+\end{align*}
+
+Rotation BEFORE scale (not preferred) goes as follows:
+\begin{align*}
+   \begin{pmatrix}
+         s_1 &  0   \\
+         0   & s_2 
+   \end{pmatrix}
+   \begin{pmatrix}
+      \RMCOS   &    -\RMSIN   \\
+      \RMSIN   & \;\;\RMCOS 
+   \end{pmatrix}
+   =
+   \begin{pmatrix}
+      s_1 \, \RMCOS   &     -s_1 \, \RMSIN   \\
+      s_2 \, \RMSIN   & \;\; s_2 \, \RMCOS 
+   \end{pmatrix}
+\end{align*}
+
+Rotation AFTER scale (preferred for SRT) goes as follows:
+\begin{align*}
+   \begin{pmatrix}
+      \RMCOS   &    -\RMSIN   \\
+      \RMSIN   & \;\;\RMCOS 
+   \end{pmatrix}
+   \begin{pmatrix}
+         s_1 &  0   \\
+         0   & s_2 
+   \end{pmatrix}
+   =
+   \begin{pmatrix}
+      s_1 \, \RMCOS   &     -s_2 \, \RMSIN   \\
+      s_1 \, \RMSIN   & \;\; s_2 \, \RMCOS 
+   \end{pmatrix}
+\end{align*}
+
+The full SRT transformation series in augmented (affine
+transformation) matrix form:
+\begin{align*}
+   \begin{pmatrix}
+      1 & 0 & T_x \\
+      0 & 1 & T_y \\
+      0 & 0 & 1
+   \end{pmatrix}
+   \begin{pmatrix}
+      \RMCOS   &    -\RMSIN & 0  \\
+      \RMSIN   & \;\;\RMCOS & 0  \\
+           0   &          0 & 1
+   \end{pmatrix}
+   \begin{pmatrix}
+      s_1 &   0  & 0  \\
+        0 & s_2  & 0  \\
+        0 &   0  & 1 
+   \end{pmatrix}
+   =
+   \begin{pmatrix}
+      s_1 \, \RMCOS   &     -s_2 \, \RMSIN  & T_x \\
+      s_1 \, \RMSIN   & \;\; s_2 \, \RMCOS  & T_y \\
+                  0   &                  0  &   1
+   \end{pmatrix}
+\end{align*}
+
+The SRT order is nice because (a) any scale changes can be interpreted as
+tip/tilt in the detector plane along its native pixel axes, (b) detector
+rotation, shear, and/or skew all occur in the NE sensor pixel plane, and 
+(c) the SRT transformation is fairly standard in computer graphics and
+numerous tools and resources exist for its interpretation as a result.\\
+
+\hrule
+\vspace{2mm}
+\hrule
+\vspace{5mm}
+
+%A reminder about VECTOR (active) and FRAME (passive) rotation matrix conventions:
+%\begin{align}
+%   R_{zV}(\theta) &=
+%   \begin{pmatrix}
+%      \RMCOS & -\RMSIN \\
+%      \RMSIN & \;\;\RMCOS
+%   \end{pmatrix} \\
+%   R_{zF}(\theta) &=
+%   \begin{pmatrix}
+%      \;\;\RMCOS & \RMSIN \\
+%      -\RMSIN & \RMCOS
+%   \end{pmatrix}
+%\end{align}
+
+\pagebreak
+
+\section{Mosaic Transformation Models}
+
+The following sections describe different possible transformations from the
+other (NW, SE, SW) sensors to the NE sensor. They are presented in increasing
+order of complication (parameter count).
+
+\subsection{Rotation and Translation}
+
+The simplest case is assuming that all detectors are coplanar with matched scale
+(they differ by only a rotation and a translation). In the following, $\theta$ is
+the counter-clockwise rotation angle of detector Q axes w.r.t. NE detector axes. 
+This approach uses \textbf{3 parameters} (rotation $\theta$ and translations 
+$O_x$ and $O_y$) for each of the (NW, SE, and SW) sensors for 
+\textbf{a total of 9 parameters}.
+\begin{align*}
+%\[
+   \begin{pmatrix}
+      x \\
+      y
+   \end{pmatrix}_{NE}
+   &=
+   R_{zV}(\theta)
+   \begin{pmatrix}
+      x \\
+      y
+   \end{pmatrix}_{Q}
+   +
+   \begin{pmatrix}
+      O_x \\
+      O_y
+   \end{pmatrix}_{Q}
+   =
+   R_{zF}(-\theta)
+   \begin{pmatrix}
+      x \\
+      y
+   \end{pmatrix}_{Q}
+   +
+   \begin{pmatrix}
+      O_x \\
+      O_y
+   \end{pmatrix}_{Q} \\
+   %---------------------
+   \rightarrow
+   \begin{pmatrix}
+      x \\
+      y
+   \end{pmatrix}_{NE}
+   &=
+   \begin{pmatrix}
+      \RMCOS & -\RMSIN \\
+      \RMSIN & \;\;\RMCOS
+   \end{pmatrix}
+   \begin{pmatrix}
+      x \\
+      y
+   \end{pmatrix}_{Q}
+   +
+   \begin{pmatrix}
+      O_x \\
+      O_y
+   \end{pmatrix}_{Q} \\
+   %---------------------
+   \rightarrow
+   \begin{pmatrix}
+      x \\
+      y \\
+      1
+   \end{pmatrix}_{NE}
+   &=
+   \begin{pmatrix}
+      \RMCOS &    -\RMSIN & O_x \\
+      \RMSIN & \;\;\RMCOS & O_y \\
+           0 &          0 &   1
+   \end{pmatrix}
+   \begin{pmatrix}
+      x \\
+      y \\
+      1
+   \end{pmatrix}_{Q} 
+   \;\;\;\; \textrm{(in augmented matrix form)}
+%\]
+\end{align*}
+%\end{align*}
+
+\subsection{Scale, Rotation, and Translation (SRT)}
+
+The next case introduces two scale factors to the transformation, one for each
+pixel axis in the neighboring (NW, SE, SW) sensor. These scale factors can
+absorb detector tip/tilt relative to the NE sensor plane. After scale
+adjustment, we expect sensors Q and NE to be coplanar.
+Rotation is applied next, followed by translation. As before, $\theta$ is the
+counter-clockwise rotation angle of detector Q axes w.r.t. NE detector axes. 
+This model uses \textbf{5 parameters} (scales $s_1$, $s_2$, 
+rotation $\theta$, and translations $O_x$, $O_y$) for each of the (NW, SE, SW)
+sensors for \textbf{a total of 15 parameters}. 
+\begin{align*}
+   %---------------------
+   \begin{pmatrix}
+      x \\
+      y
+   \end{pmatrix}_{NE}
+   &=
+   \begin{pmatrix}
+      \RMCOS & -\RMSIN \\
+      \RMSIN & \;\;\RMCOS
+   \end{pmatrix}_{Q}
+   \begin{pmatrix}
+      s_1 &   0  \\
+        0 & s_2
+   \end{pmatrix}_{Q}
+   \begin{pmatrix}
+      x \\
+      y
+   \end{pmatrix}_{Q}
+   +
+   \begin{pmatrix}
+      O_x \\
+      O_y
+   \end{pmatrix}_{Q} \\
+   %---------------------
+   \rightarrow
+   \begin{pmatrix}
+      x \\
+      y
+   \end{pmatrix}_{NE}
+   &=
+   \begin{pmatrix}
+      s_1 \, \RMCOS   &       -s_2 \, \RMSIN   \\
+      s_1 \, \RMSIN   & \;\;\; s_2 \, \RMCOS 
+   \end{pmatrix}_{Q}
+   \begin{pmatrix}
+      x \\
+      y
+   \end{pmatrix}_{Q}
+   +
+   \begin{pmatrix}
+      O_x \\
+      O_y
+   \end{pmatrix}_{Q} \\
+   %---------------------
+   \rightarrow
+   \begin{pmatrix}
+      x \\
+      y \\
+      1
+   \end{pmatrix}_{NE}
+   &=
+   \begin{pmatrix}
+      s_1 \, \RMCOS   &     -s_2 \, \RMSIN  & O_x \\
+      s_1 \, \RMSIN   & \;\; s_2 \, \RMCOS  & O_y \\
+                  0   &                  0  &   1
+   \end{pmatrix}_{Q}
+   \begin{pmatrix}
+      x \\
+      y \\
+      1
+   \end{pmatrix}_{Q} 
+   \;\;\;\; \textrm{(in augmented matrix form)}
+%\]
+\end{align*}
+%\end{align*}
+
+\subsection{Scale, Rotation, and Translation (SRT)}
+
+The final case is a general affine transformation that can account for skew,
+stretch, reflection, and other things in addition to scale, rotation, and
+translation. This amounts to finding a full, 4-element CD matrix of linear
+terms for each sensor in addition to the origin offset. This only introduces
+one more parameter than the SRT model, but the meaning of the parameters
+may be a bit less obvious. As before, $\theta$ is the counter-clockwise
+rotation angle of detector Q axes w.r.t. NE detector axes. This model requires
+\textbf{6 parameters} (4 "CD" linear terms plus X and Y translations) for
+each of the (NW, SE, SW) sensors for \textbf{a total of 18 parameters} to
+merge the sensors. Note that these elements are referred to as "MCD" below
+to distinguish them from the true CD matrix elements from a FITS WCS.
+\begin{align*}
+   %---------------------
+   \rightarrow
+   \begin{pmatrix}
+      x \\
+      y
+   \end{pmatrix}_{NE}
+   &=
+   \begin{pmatrix}
+      \textrm{M}\cdm{11} & \textrm{M}\cdm{12} \\
+      \textrm{M}\cdm{21} & \textrm{M}\cdm{22} \\
+   \end{pmatrix}_{Q}
+   \begin{pmatrix}
+      x \\
+      y
+   \end{pmatrix}_{Q}
+   +
+   \begin{pmatrix}
+      O_x \\
+      O_y
+   \end{pmatrix}_{Q} \\
+   %---------------------
+   \rightarrow
+   \begin{pmatrix}
+      x \\
+      y \\
+      1
+   \end{pmatrix}_{NE}
+   &=
+   \begin{pmatrix}
+      \textrm{M}\cdm{11} & \textrm{M}\cdm{12} & O_x \\
+      \textrm{M}\cdm{21} & \textrm{M}\cdm{22} & O_y \\
+         0     &    0     & 1
+   \end{pmatrix}_{Q}
+   \begin{pmatrix}
+      x \\
+      y \\
+      1
+   \end{pmatrix}_{Q} 
+   \;\;\;\; \textrm{(in augmented matrix form)}
+%\]
+\end{align*}
+%\end{align*}
+
+\end{document}
+

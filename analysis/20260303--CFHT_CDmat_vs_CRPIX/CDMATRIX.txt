@@ -1,0 +1,23 @@
+
+x_i  =  s_i * SUM[       m_ij * (p_j - r_j)  ]
+     =        SUM[ s_i * m_ij * (p_j - r_j)  ]
+
+s_i         == CDELTia
+m_ij        == PCi_ja
+s_i * m_ij  == CDi_ja
+
+ksi = s1 * PC1_1 * (p_x - CRPIX1) + s1 * PC1_2 * (p_y - CRPIX2)
+eta = s2 * PC2_1 * (p_x - CRPIX1) + s2 * PC2_2 * (p_y - CRPIX2)
+
+# -----------------------------------------------------------------------
+# from google ...
+ksi = CD1_1 * (x - CRPIX1) + CD1_2 * (y - CRPIX2)
+eta = CD2_1 * (x - CRPIX1) + CD2_2 * (y - CRPIX2)
+
+# -----------------------------------------------------------------------
+
+# Affine translation:
+|  1     0     -CRPIX1  |
+|  0     1     -CRPIX2  |  *  
+|  0     0        1     |  
+
