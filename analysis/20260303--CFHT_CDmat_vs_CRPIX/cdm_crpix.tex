@@ -417,7 +417,10 @@ numerous tools and resources exist for its interpretation as a result.\\
 
 The following sections describe different possible transformations from the
 other (NW, SE, SW) sensors to the NE sensor. They are presented in increasing
-order of complication (parameter count).
+order of complication (parameter count). A wise course of action is fitting
+more than one model to compare results. Since these models are nested (or
+very close to it) we should be able to formally determine whether the more
+complicated models are justified statistically.
 
 \subsection{Rotation and Translation}
 
@@ -494,9 +497,8 @@ $O_x$ and $O_y$) for each of the (NW, SE, and SW) sensors for
       1
    \end{pmatrix}_{Q} 
    \;\;\;\; \textrm{(in augmented matrix form)}
-%\]
 \end{align*}
-%\end{align*}
+
 
 \subsection{Scale, Rotation, and Translation (SRT)}
 
@@ -574,21 +576,28 @@ sensors for \textbf{a total of 15 parameters}.
    \;\;\;\; \textrm{(in augmented matrix form)}
 %\]
 \end{align*}
-%\end{align*}
 
-\subsection{Scale, Rotation, and Translation (SRT)}
+\pagebreak
+
+\subsection{General Affine Transformation}
 
 The final case is a general affine transformation that can account for skew,
 stretch, reflection, and other things in addition to scale, rotation, and
-translation. This amounts to finding a full, 4-element CD matrix of linear
-terms for each sensor in addition to the origin offset. This only introduces
-one more parameter than the SRT model, but the meaning of the parameters
-may be a bit less obvious. As before, $\theta$ is the counter-clockwise
-rotation angle of detector Q axes w.r.t. NE detector axes. This model requires
-\textbf{6 parameters} (4 "CD" linear terms plus X and Y translations) for
-each of the (NW, SE, SW) sensors for \textbf{a total of 18 parameters} to
-merge the sensors. Note that these elements are referred to as "MCD" below
-to distinguish them from the true CD matrix elements from a FITS WCS.
+translation. This amounts to finding a full, 4-element matrix of linear terms
+(equivalent to the "CD" matrix from FITS WCS) for each sensor in addition to
+the origin offset. Compared to SRT, the general affine only adds a single new
+parameter but extends the model to include any affine warping (including X,Y
+shear/skew and X,Y reflections that we do not expect to see). The only downside
+is that the fitted parameters are products of all contributing simple
+transformations and additional work is needed to factor those parameters into
+contributions from the basic transformations (i.e., scale, rotation, etc).  As
+before, $\theta$ is the counter-clockwise rotation angle of detector Q axes
+w.r.t. NE detector axes.  This model requires \textbf{6 parameters} (4 "CD"
+linear terms plus X and Y translations) for each of the (NW, SE, SW) sensors
+for \textbf{a total of 18 parameters} to merge the sensors. Note that these
+elements are referred to as "MCD" below to distinguish them from the true CD
+matrix elements from a FITS WCS.
+
 \begin{align*}
    %---------------------
    \rightarrow
