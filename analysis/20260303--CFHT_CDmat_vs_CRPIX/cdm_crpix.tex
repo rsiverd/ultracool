@@ -58,8 +58,8 @@
 \newcommand{\pcm}[1]{\mathrm{PC}_{#1}}
 \newcommand{\cdm}[1]{\mathrm{CD}_{#1}}
 
-\newcommand{\xccd}{\mathrm{X}_{\mathrm{CCD}}}
-\newcommand{\yccd}{\mathrm{Y}_{\mathrm{CCD}}}
+\newcommand{\xccd}{\mathrm{X}_{\mathrm{DET}}}
+\newcommand{\yccd}{\mathrm{Y}_{\mathrm{DET}}}
 \newcommand{\xfoc}{\mathrm{X}_{\mathrm{FOC}}}
 \newcommand{\yfoc}{\mathrm{Y}_{\mathrm{FOC}}}
 
@@ -262,8 +262,9 @@ sensor parameters (where subscript q implies sensor). Recall:
 %   \yfoc &= \cdm{21,q} \cdot (\xccd - A_q) \;\; + \cdm{22,q} \cdot (\yccd - B_q)
 %\end{align*}
 %.
-The total differentials holding CCD coordinate and CD matrix constant describe
-the connection between mosaic position in the focal plane and sensor parameters:
+The total differentials below (taken holding detector coordinates and CD 
+matrix entries constant) describe the connection between mosaic position in 
+the focal plane and sensor parameters:
 \begin{align}
    d(\xfoc) &= \frac{\partial (\xfoc)}{\partial (\cpx{1}_q)} d(\cpx{1}_q) 
                + \frac{\partial (\xfoc)}{\partial (\cpx{2}_q)} d(\cpx{2}_q) \\
