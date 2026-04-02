@@ -11,6 +11,9 @@ https://www.teledyneimaging.com/en/aerospace-and-defense/products/sensors-overvi
 https://www.casca.ca/ecass/issues/2005-ws/features/cfht/cfht2.html
 https://www.casca.ca/ecass/issues/2005-ws/features/cfht/cfht2/wircam.jpg
 
+# WIRCam main page:
+https://www.cfht.hawaii.edu/Instruments/Imaging/WIRCam/
+
 # WIRCam Performance Summary:
 https://www.cfht.hawaii.edu/Instruments/Imaging/WIRCam/quickinformation.html
 --> 45" gaps between CCDs
@@ -28,6 +31,28 @@ https://www.cfht.hawaii.edu/Instruments/Filters/wircam.html
 
 # -----------------------------------------------------------------------
 
+# WIRCam Single Channel Optical Design
+https://www.cfht.hawaii.edu/News/Projects/WIRCam/Old/KH_2b.html
+
+# Mechanical design:
+https://www.cfht.hawaii.edu/News/Projects/WIRCam/Old/MechDsgn.jpg
+
+# Field corrector optical design:
+https://www.cfht.hawaii.edu/News/Projects/WIRCam/Old/CorrectorOnly.jpg
+
+# Optical layout:
+https://www.cfht.hawaii.edu/News/Projects/WIRCam/Old/OptLayout.jpg
+
+# Spot diagram:
+https://www.cfht.hawaii.edu/News/Projects/WIRCam/Old/SpotFull.jpg
+
+# -----------------------------------------------------------------------
+
+# PH2 tutorial for WIRCam:
+https://www.cfht.hawaii.edu/Instruments/Queue/NewTutorials/QSO-PH2-WC-v1.html
+
+# -----------------------------------------------------------------------
+
 # CFHT Observatory Manual:
 https://www.cfht.hawaii.edu/Instruments/ObservatoryManual/CFHT_Observatory_Manual_TOC.html
 
@@ -37,3 +62,20 @@ https://www.cfht.hawaii.edu/Instruments/ObservatoryManual/CFHT_ObservatoryManual
 # CFHT Observatory Manual - Sec 4 - TELESCOPE:
 https://www.cfht.hawaii.edu/Instruments/ObservatoryManual/CFHT_ObservatoryManual_%28Sec_4%29.html
 https://www.cfht.hawaii.edu/Instruments/ObservatoryManual/CFHT_ObservatoryManual_%28Sec_4%29.html#:~:text=General%20Characteristics,-This%20is%20a&text=The%20f%2Fratio%20is%20f,of%20139.4%20m%20per%20arcsecond.
+
+# -----------------------------------------------------------------------
+
+# MegaPrime instrument description: components:
+https://www.cfht.hawaii.edu/Instruments/Imaging/MegaPrime/megaprimecomponents.html
+
+# Looking through the Wide Field Corrector:
+https://www.cfht.hawaii.edu/News/MegaPrime/WFC_through.html
+https://www.cfht.hawaii.edu/News/MegaPrime/looking_through.jpg
+
+# A close-up on the MegaPrime Upper End on the Telescope:
+https://www.cfht.hawaii.edu/News/MegaPrime/MPUE.html
+
+# CFH12K Observer's Guide:
+https://www.cfht.hawaii.edu/Instruments/Imaging/CFH12K/cfh12k_help.html
+
+
