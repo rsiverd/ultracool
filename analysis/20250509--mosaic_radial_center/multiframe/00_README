@@ -61,3 +61,5 @@ cd -
 ./23_fine_tune_RUNID_WCS.py -R 21AQ18
 ./23_fine_tune_RUNID_WCS.py -R 21AQ18 --Jonly
 
+# 9) Fine-tune everything:
+./24_every_RUNID_finetune.sh --START
