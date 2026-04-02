@@ -408,7 +408,7 @@ ugst_count = {qq:len(vv) for qq,vv in use_gstars.items()}
 sys.stderr.write("Gaia match count: %s\n" % str(agst_count))
 
 ## Abort if any sensor has too few matches (solution compromised):
-min_gstars = 100
+min_gstars = 200
 fails_file = 'fails_detected.txt'
 for qq,gcount in agst_count.items():
     if gcount < min_gstars:
