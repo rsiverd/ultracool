@@ -1,0 +1,12 @@
+QSOGRADE is a header entry that provides a numeric quality value ranging
+from 1 (best) to 5 (worst). This should be used to filter out files from
+processing. Experience shows that QSOGRADE >3 is definitely not useful
+for calibration or science and 3 is dubious. Restricting analysis to
+QSOGRADE <= 2 will save a great deal of headache.
+
+If CADC allows, you could in principle use this header value to filter
+images prior to download. However, this then discards potentially useful
+metadata. My design preference is to retrieve all files for completeness,
+metadata, and statistics and then to restrict data processing to the files
+with appropriate QSOGRADE (possibly user-selectable).
+
