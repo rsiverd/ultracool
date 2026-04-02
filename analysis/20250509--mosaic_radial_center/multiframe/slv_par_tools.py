@@ -274,6 +274,18 @@ def poly_eval(r, model):
 ## Radial distortion model X- and Y- corrections. With a strictly positive
 ## distortion magnitude, you need to *SUBTRACT* these from RA/DE-derived
 ## positions in order to compare with measured X,Y positions.
+##
+## UPDATE 2026-04-02: I think the sense of the above description is
+## reversed. In the fine-tune scripts, we have:
+## * test_xccd = test_xrel + xnudge + tcpx1
+## * test_yccd = test_yrel + ynudge + tcpx2
+##
+## The above formulae imply that the adjustments are added to the
+## celestial coordinate-inferred Xrel, Yrel positions in order to
+## produce the measured detector coordinates. The sign of the correction
+## is handled within the corrections routine below. This description
+## should be rewritten and cleaned up later once the multi-sensor
+## transformation models are fit.
 def calc_rdist_corrections(xrel, yrel, model):
     rdist = np.hypot(xrel, yrel)     # distance from CRPIX
     rcorr = poly_eval(rdist, model)  # total correction magnitude
