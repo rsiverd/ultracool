@@ -1,0 +1,5 @@
+
+sensor CRPIX deltas over time
+sensor-to-sensor deltas over time
+take J solution and apply to H2 images, see if solution transfers
+
