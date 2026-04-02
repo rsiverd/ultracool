@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2026-03-27
-# Last modified: 2026-03-27
+# Last modified: 2026-04-02
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 ## Modules:
 #import glob
@@ -91,6 +91,7 @@ class QSquare(object):
         #self._update()
         return
 
+    # Default settings for the class:
     def _defaults(self):
         self.diam = 1.0
         self.orig = 'center'
@@ -98,10 +99,34 @@ class QSquare(object):
         self.set_position(0.0, 0.0)
         self.set_rotation_rad(0.)
 
-    # Retrieve the current vertices:
-    def get_vtx(self):
+    # Recalculation driver routine (USE BEFORE GETTING):
+    def _update(self):
         self._vtx = self._calc_vtx()
+        self._ctr = self._calc_center(self._vtx)
+
+    # Retrieve the current vertices:
+    def get_vertices(self):
+        #self._vtx = self._calc_vtx()
+        self._update()
         return self._vtx
+
+    # Retrieve a specific vertex:
+    def get_vertex(self, which):
+        if not which in self._ORI2VTX.keys():
+            sys.stderr.write("Unknown origin: %s\n" % origin)
+            sys.stderr.write("Choices are: %s\n" % str(self._ORI2VTX.keys()))
+            return
+        self._update()
+        if which == 'center':
+            return self._ctr
+        else:
+            return self._vtx[:, self._ORI2VTX.get(which)]
+        #self._vtx = self._calc_vtx()
+
+    # Calculate central X,Y from first 4 data points:
+    @staticmethod
+    def _calc_center(vertices):
+        return np.mean(vertices[:, :4], axis=1)
 
     # Update the origin coordinate chooser.
     def set_origin(self, origin):
