@@ -1,0 +1,10 @@
+
+# Find the rotation and skew of a matrix transformation:
+https://stackoverflow.com/questions/5107134/find-the-rotation-and-skew-of-a-matrix-transformation
+
+# Decompose 2D Transformation Matrix:
+https://stackoverflow.com/questions/45159314/decompose-2d-transformation-matrix
+
+# tweakwcs @ STSci:
+https://tweakwcs.readthedocs.io/en/latest/index.html
+
