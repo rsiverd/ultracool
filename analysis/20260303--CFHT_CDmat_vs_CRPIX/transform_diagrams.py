@@ -350,33 +350,51 @@ square_vtx = np.array([(LL, BB),      # lower-left
 ne_sensor = qsquare.QSquare()
 nw_sensor = qsquare.QSquare()
 
-#print("BEFORE: %s" % ne_sensor.get_vtx())
+#print("BEFORE: %s" % ne_sensor.get_vertices())
 ne_sensor.set_origin('lower-left')
 nw_sensor.set_origin('lower-left')
-#print("AFTER:  %s" % ne_sensor.get_vtx())
-#print(ne_sensor.get_vtx())
+#print("AFTER:  %s" % ne_sensor.get_vertices())
+#print(ne_sensor.get_vertices())
 
 #Rz = ne_sensor._vector_zrot(r_theta)
 #vtx = ne_sensor._update()
 #ne_sensor.set_rotation_rad(r_theta)
-#print(ne_sensor.get_vtx())
-#print(nw_sensor.get_vtx())
+#print(ne_sensor.get_vertices())
+#print(nw_sensor.get_vertices())
 
+## Detector horizontal spacing:
 gutter_frac = 0.25
 qq_xshift = 0.5 * diam * (1.0 + gutter_frac)
 ne_sensor.set_position_rel(-qq_xshift, 0.0)
 nw_sensor.set_position_rel(+qq_xshift, 0.0)
 #ne_sensor = square_vtx - qq_xshift
 #nw_sensor = square_vtx + qq_xshift
-#print(ne_sensor.get_vtx())
+#print(ne_sensor.get_vertices())
+
+## Detector vertical spacing:
+ynudge = gutter_frac / 5.
+nw_sensor.set_position_rel(0.0, -ynudge)
 
 ## Get NW coords before/after rotation:
-nw_par_vtx = nw_sensor.get_vtx()
+nw_par_vtx = nw_sensor.get_vertices()
 r_theta = np.radians(45.0)
 r_theta = np.radians(10.0)
 #r_theta = np.radians( 5.0)
 nw_sensor.set_rotation_rad(r_theta)
-nw_rot_vtx = nw_sensor.get_vtx()
+nw_rot_vtx = nw_sensor.get_vertices()
+
+## Vertical and horizontal offsets:
+ne_lowerleft = ne_sensor.get_vertex('lower-left')
+nw_lowerleft = nw_sensor.get_vertex('lower-left')
+xshift, yshift = nw_lowerleft - ne_lowerleft
+
+## Offset steps for plotting:
+llsteps = [ne_lowerleft.copy()]
+llsteps.append(ne_lowerleft + np.array([0, yshift]))
+llsteps.append(nw_lowerleft) # - np.array([xshift, 0]))
+#llsteps_vtx = np.array(llsteps).T
+llsteps1 = np.array(llsteps[:2])
+llsteps2 = np.array(llsteps[1:])
 
 ##--------------------------------------------------------------------------##
 ## Plot config:
@@ -414,22 +432,30 @@ ax1.patch.set_facecolor((0.8, 0.8, 0.8))
 ax1.grid(True)
 #ax1.axis('off')
 
-# Disable tick labels:
+## Disable tick labels:
 ax1.set_xticklabels([])
 ax1.set_yticklabels([])
 
+## Axis labeling:
+ax1.set_xlabel("NE X-axis", fontsize=14)
+ax1.set_ylabel("NE Y-axis", fontsize=14)
 
-# CCD boundary colors:
+## CCD boundary colors:
 #ne_par_color = '
 nw_par_color = 'orange'
 nw_rot_color = 'g'
 
-ax1.plot(*ne_sensor.get_vtx(), label='NE')
-#ax1.plot(*nw_sensor.get_vtx(), label='NW')
+ax1.plot(*ne_sensor.get_vertices(), label='NE')
+#ax1.plot(*nw_sensor.get_vertices(), label='NW')
 ax1.plot(*nw_par_vtx, color=nw_par_color, label='NW (par)')
 ax1.plot(*nw_rot_vtx, color=nw_rot_color, ls='--', label='NW (rot)')
 #ax1.plot(*nw_sensor)
 ax1.legend(loc='best')
+
+ax1.plot(*llsteps1.T, c='m', ls=':')
+ax1.text(*np.average(llsteps1, axis=0), 'O$_Y$  ', ha='right', va='center')
+ax1.plot(*llsteps2.T, c='m', ls=':')
+ax1.text(*np.average(llsteps2, axis=0), 'O$_X$  ', ha='center', va='top')
 
 ## Polar scatter:
 #skw = {'lw':0, 's':15}
