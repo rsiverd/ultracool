@@ -185,7 +185,8 @@ def analyze(data):
     cd_matrix = data[:4].reshape(2,2)
     cd_pscales = np.sqrt(np.sum(cd_matrix**2, axis=1))
     #cd_pscales = np.sqrt(np.sum(cd_matrix**2, axis=0))
-    norm_cdmat = cd_matrix / cd_pscales
+    #norm_cdmat = cd_matrix / cd_pscales
+    norm_cdmat = cd_matrix / cd_pscales[:,None]
     cd_ang_rad = np.arccos(norm_cdmat[0, 0])
     cd_ang_deg = np.degrees(cd_ang_rad)
     return cd_ang_deg, cd_pscales[0], cd_pscales[1]
