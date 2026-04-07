@@ -95,10 +95,10 @@ _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 import angle
 reload(angle)
 
-## Gaia catalog matching:
-import gaia_match
-reload(gaia_match)
-gm  = gaia_match.GaiaMatch()
+### Gaia catalog matching:
+#import gaia_match
+#reload(gaia_match)
+#gm  = gaia_match.GaiaMatch()
 
 ## Storage structure for analysis results:
 try:
