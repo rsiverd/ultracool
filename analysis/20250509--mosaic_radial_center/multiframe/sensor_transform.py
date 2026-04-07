@@ -71,118 +71,69 @@ _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 ## | MCD21   MCD22   Oy  |
 ## |     0       0    1  |
 
-## Parameter format in 1D:
+## BRIEF BACKGROUND SUMMARY:
+##    We expect the four detectors in the WIRCam mosaic to be rigidly coupled
+## to one another by construction. We expect time-varying flexure within the 
+## instrument to be negligible and do not consider it here. For a detector
+## mosaic with this rigid construction, transformations between the pixel
+## coordinates of the different detectors SHOULD BE CONSTANT IN TIME. We 
+## believe that these can be fit once for the entire data set and used for
+## the lifetime of the instrument with minimal (or zero) modification. 
+##    It is not clear whether a full 6-parameter affine transformation is
+## needed for the WIRCam mosaic. It might be possible to use scale, rotation,
+## and translation (SRT) alone. In this case, there would be 5 parameters per
+## detector instead of 6 but the affine transformation math is unchanged. In
+## other words, a single affine transformation formula can accommodate all
+## of the parameterizations we intend to use.
+##
+## GOAL:
+## We aim to estimate transformation parameters between the pixel coordinates
+## of the various WIRCam detectors. Using these transformations, X,Y pixel
+## coordinates of all four sensors can be "unified" onto a single, continuous
+## grid. We adopt the NE detector as the reference grid. Detector positions
+## on the other three sensors (NW, SE, SW) will be transformed onto the NE
+## detector system. This NE system will then have a SINGLE WCS transformation
+## between the detector plane and the sky. 
+## 
+## DISTORTION:
+## We expect to apply distortion to the "unified" mosaic in mosaic (NE pixel) 
+## coordinates before projecting positions onto the sky. The simplest case we
+## consider is radial distortion but there is an option to extend this to the
+## elliptic case. Elliptical distortion could arise from a tip/tilt of the
+## mosaic itself with respect to the focal plane (expected to vary by RUNID)
+## or it could relate to telescope attitude, which might require a per-image
+## solution to the distortion tip/tilt/angle. In either case, we aim to
+## separately fit for a radial distortion profile and potential tip/tilt/angle
+## of that profile with respect to the mosaic.
+
+## For more background, see the cdm_crpix.pdf document. 
+
+## Parameter format in 1D for a single detector:
 ## [MCD11, MCD12, MCD21, MCD22, Ox, Oy]
 
-#params = ...
-xform = np.array([[par[0], par[1], par[4]],
-                  [par[2], par[3], par[5]],
-                  [   0.0,    0.0,    1.0]])
+## Given an 18-element array of transformation parameters, break out with:
+## * pars_nw, pars_se, pars_sw = pars_all.reshape(3, -1)
+
+## Parameters sets will concatenate in NW, SE, SW order for consistency
+## with existing software. Optimization The base 6-parameter affine transformation model 
+## works for the general case of 
+## codes and scripts. The global fit needs to fit 6 parameters per sensor
+## (18 total parameters) in the most complete case.
+
+## The parameters for a detector are rearranged as follows before
+## performing matrix multiplication:
+#xform = np.array([[par[0], par[1], par[4]],
+#                  [par[2], par[3], par[5]],
+#                  [   0.0,    0.0,    1.0]])
+
+def mkaffine(par):
+    return np.array([[par[0], par[1], par[4]],
+                     [par[2], par[3], par[5]],
+                     [   0.0,    0.0,    1.0]])
 
 ##--------------------------------------------------------------------------##
 
 ##--------------------------------------------------------------------------##
-## New-style string formatting (more at https://pyformat.info/):
-
-#oldway = '%s %s' % ('one', 'two')
-#newway = '{} {}'.format('one', 'two')
-
-#oldway = '%d %d' % (1, 2)
-#newway = '{} {}'.format(1, 2)
-
-# With padding:
-#oldway = '%10s' % ('test',)        # right-justified
-#newway = '{:>10}'.format('test')   # right-justified
-#oldway = '%-10s' % ('test',)       #  left-justified
-#newway = '{:10}'.format('test')    #  left-justified
-
-# Ordinally:
-#newway = '{1} {0}'.format('one', 'two')     # prints "two one"
-
-# Dictionarily:
-#newway = '{lastname}, {firstname}'.format(firstname='Rob', lastname='Siverd')
-
-# Centered (new-only):
-#newctr = '{:^10}'.format('test')      # prints "   test   "
-
-# Numbers:
-#oldway = '%06.2f' % (3.141592653589793,)
-#newway = '{:06.2f}'.format(3.141592653589793)
-
-##--------------------------------------------------------------------------##
-## On-the-fly file modifications:
-#def fix_hashes(filename):
-#    with open(filename, 'r') as ff:
-#        for line in ff:
-#            if line.startswith('#'):
-#                if ('=' in line):
-#                    continue                # param, ignore
-#                else:
-#                    yield line.lstrip('#')  # header, keep
-#            else:
-#                yield line
-#
-#file_like = io.StringIO("".join(fix_hashes(filename)))  # for pandas
-
-#def analyze_header(filename):
-#    skip_rows = 0
-#    col_names = []
-#    with open(filename, 'r') as ff:
-#        for line in ff:
-#            if line.startswith('#'):
-#                skip_rows += 1
-#                if ('=' in line):
-#                    continue
-#                else:
-#                    hline = line.rstrip()
-#                    col_names = hline.lstrip('#').split()
-#                    continue
-#            else:
-#                #sys.stderr.write("Found data ... stopping.\n")
-#                break
-#    return skip_rows, col_names
-
-##--------------------------------------------------------------------------##
-## Quick ASCII I/O:
-#data_file = 'data.txt'
-#gftkw = {'encoding':None} if (_have_np_vers >= 1.14) else {}
-#gftkw.update({'names':True, 'autostrip':True})
-#gftkw.update({'delimiter':'|', 'comments':'%0%0%0%0'})
-#gftkw.update({'loose':True, 'invalid_raise':False})
-#all_data = np.genfromtxt(data_file, dtype=None, **gftkw)
-#all_data = np.atleast_1d(np.genfromtxt(data_file, dtype=None, **gftkw))
-#all_data = np.genfromtxt(fix_hashes(data_file), dtype=None, **gftkw)
-#all_data = aia.read(data_file)
-
-#all_data = append_fields(all_data, ('ra', 'de'), 
-#         np.vstack((ra, de)), usemask=False)
-#all_data = append_fields(all_data, cname, cdata, usemask=False)
-
-#pdkwargs = {'skipinitialspace':True, 'low_memory':False}
-#pdkwargs.update({'delim_whitespace':True, 'sep':'|', 'escapechar':'#'})
-#all_data = pd.read_csv(data_file)
-#all_data = pd.read_csv(data_file, **pdkwargs)
-#all_data = pd.read_table(data_file)
-#all_data = pd.read_table(data_file, **pdkwargs)
-#nskip, cnames = analyze_header(data_file)
-#all_data = pd.read_csv(data_file, names=cnames, skiprows=nskip, **pdkwargs)
-#all_data = pd.DataFrame.from_records(npy_data)
-#all_data = pd.DataFrame(all_data.byteswap().newbyteorder()) # for FITS tables
-
-### Strip leading '#' from column names:
-#def colfix(df):
-#    df.rename(columns={kk:kk.lstrip('#') for kk in df.keys()}, inplace=True)
-#colfix(all_data)
-
-#all_data.rename(columns={'old_name':'new_name'}, inplace=True)
-#all_data.reset_index()
-#firstrow = all_data.iloc[0]
-#for ii,row in all_data.iterrows():
-#    pass
-
-#vot_file = 'neato.xml'
-#vot_data = av.parse_single_table(vot_file)
-#vot_data = av.parse_single_table(vot_file).to_table()
 
 
 
