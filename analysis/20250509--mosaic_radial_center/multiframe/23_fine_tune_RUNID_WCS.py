@@ -10,13 +10,13 @@
 #
 # Rob Siverd
 # Created:       2026-02-10
-# Last modified: 2026-02-10
+# Last modified: 2026-04-02
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 
 ## Optional matplotlib control:
 #from matplotlib import use, rc, rcParams
@@ -603,7 +603,7 @@ slvkw = {'method':'lm', 'xtol':1e-8, 'ftol':1e-8}
 #slvkw = {'method':'trf', 'xtol':1e-8, 'ftol':1e-8, 'loss':'huber'}
 slvkw.update({'max_nfev':10})
 reskw = {'unsquared':True}
-minimize_this = partial(multi_squared_residuals_foc2ccd_rdist, 
+minimize_this = partial(spt.multi_squared_residuals_foc2ccd_rdist, 
                         mdataset=all_gstr, imlist=iname_order)
 answer = opti.least_squares(minimize_this, flat_params, kwargs=reskw, **slvkw)
 sys.stderr.write("Ended up with: %s\n" % str(answer))
@@ -615,7 +615,7 @@ sys.stderr.write("Solve took %.2f seconds.\n" % lsq_taken)
 sys.stderr.write("%s\n%s\n" % (fulldiv, fulldiv))
 
 ## Crank out diag data at the solution:
-yay_diags = multi_squared_residuals_foc2ccd_rdist(answer['x'], 
+yay_diags = spt.multi_squared_residuals_foc2ccd_rdist(answer['x'], 
                           mdataset=all_gstr, imlist=iname_order, diags=True)
 
 
@@ -636,6 +636,17 @@ for qq in spt._quads:
     runid_xpixel[qq] = np.array(tmp_xpixel)
     runid_ypixel[qq] = np.array(tmp_ypixel)
 
+## Save minimization results and error properties to files:
+ftag = '_'.join(use_filters)        # specify which filters we have
+jslv_dir = 'joint_pars'
+if not os.path.isdir(jslv_dir):
+    os.mkdir(jslv_dir)
+
+par_file = '%s/jpars_%s_%s.txt' % (jslv_dir, context.runid, ftag)
+with open(par_file, 'w') as ff:
+    #ff.write("%s\n" % str(answer['x'].tolist()))
+    ff.write("(\n%s,\n" % str(answer['x'].tolist()))    # dump parameters
+    ff.write("%s\n)\n"  % str(iname_order))             # associated images
 
 sys.exit(0)
 ## Attempt a solve with fmin...
