@@ -502,93 +502,93 @@ if prior_fit.solution_is_known(context.runid):
 flat_params = spt.unsift_params_multi(tmp_sifted, iname_order)
 
 
-def multi_squared_residuals_foc2ccd_rdist(params, mdataset, imlist, diags=False,
-                                          unsquared=False, snrweight=False):
-    # parse parameters:
-    msifted = spt.sift_params_multi(params, imlist)
-    brute_cdmat = msifted['cdmat']
-    brute_crpix = msifted['crpix']
-    image_crval = msifted['crval']
-
-    test_distmod = spt.guess_distmod
-
-    # iterate over images:
-    xres, yres = [], []
-    diag_data = {}
-    for iname in imlist:
-        dataset = mdataset.get(iname)
-        using_crval = image_crval.get(iname)
-        #import pdb; pdb.set_trace()
-        
-        # note average star count for normalization:
-        avg_nstars = np.average([len(x) for x in dataset.values()])
-
-        # iterate over sensors:
-        im_xres, im_yres = [], []
-        im_diag = {}
-        for qq,gst in dataset.items():
-            nstar_scale_factor = np.sqrt(avg_nstars / float(len(gst)))
-            tcpx1, tcpx2 = brute_crpix.get(qq)
-            gxx, gyy = gst['x'], gst['y']
-            cdmcrv = np.array(brute_cdmat.get(qq).tolist() + using_crval)
-            test_xrel, test_yrel = helpers.inverse_tan_cdmcrv(cdmcrv,
-                                    dataset[qq]['gra'], dataset[qq]['gde'])
-            xnudge, ynudge = spt.calc_rdist_corrections(test_xrel, test_yrel, test_distmod)
-            #import pdb; pdb.set_trace()
-            test_xccd = test_xrel + xnudge + tcpx1
-            test_yccd = test_yrel + ynudge + tcpx2
-            x_error = test_xccd - gxx.values
-            y_error = test_yccd - gyy.values
-            scaled_xerr = x_error * nstar_scale_factor
-            scaled_yerr = y_error * nstar_scale_factor
-            if snrweight:
-                scaled_xerr /= gst['realerr']
-                scaled_yerr /= gst['realerr']
-            im_xres.extend(scaled_xerr)
-            im_yres.extend(scaled_yerr)
-            if diags:
-                im_diag[qq] = {     "gid":gst['gid'],
-                                  "xmeas":gxx,
-                                  "ymeas":gyy,
-                                  "xcalc":test_xccd,
-                                  "ycalc":test_yccd,
-                                  'rdist':np.hypot(test_xrel, test_yrel),
-                                 'xnudge':xnudge,
-                                 'ynudge':ynudge,
-                                 'xerror':x_error,
-                                 'yerror':y_error,
-                                 'rerror':np.hypot(x_error, y_error),
-                                 'scaled_xerror':scaled_xerr,
-                                 'scaled_yerror':scaled_yerr,
-                                 'scaled_rerror':np.hypot(scaled_xerr, scaled_yerr),
-                                   'flux':gst['flux'],
-                                   'fwhm':gst['fwhm'],
-                                  'flags':gst['flag'],
-                                'dumbsnr':gst['dumbsnr'],
-                                'realerr':gst['realerr'],
-                                }
-
-            pass    # end of loop over sensors
-
-        xres.extend(im_xres)
-        yres.extend(im_yres)
-        diag_data[iname] = im_diag
-        pass        # end of loop over IMAGES
-
-    if diags:
-        return diag_data
-    if unsquared:
-        return np.concatenate((xres, yres))
-    return np.concatenate((xres, yres))**2
-    
-    return
-
-def multi_fmin_squared_residuals_foc2ccd_rdist(params, mdataset, 
-                                               imlist, **kwargs):
-    return np.sum(multi_squared_residuals_foc2ccd_rdist(params, mdataset,
-                                                    imlist, **kwargs))
-
-#multi_squared_residuals_foc2ccd_rdist(flat_params, all_gstr, iname_order)
+#def multi_squared_residuals_foc2ccd_rdist(params, mdataset, imlist, diags=False,
+#                                          unsquared=False, snrweight=False):
+#    # parse parameters:
+#    msifted = spt.sift_params_multi(params, imlist)
+#    brute_cdmat = msifted['cdmat']
+#    brute_crpix = msifted['crpix']
+#    image_crval = msifted['crval']
+#
+#    test_distmod = spt.guess_distmod
+#
+#    # iterate over images:
+#    xres, yres = [], []
+#    diag_data = {}
+#    for iname in imlist:
+#        dataset = mdataset.get(iname)
+#        using_crval = image_crval.get(iname)
+#        #import pdb; pdb.set_trace()
+#        
+#        # note average star count for normalization:
+#        avg_nstars = np.average([len(x) for x in dataset.values()])
+#
+#        # iterate over sensors:
+#        im_xres, im_yres = [], []
+#        im_diag = {}
+#        for qq,gst in dataset.items():
+#            nstar_scale_factor = np.sqrt(avg_nstars / float(len(gst)))
+#            tcpx1, tcpx2 = brute_crpix.get(qq)
+#            gxx, gyy = gst['x'], gst['y']
+#            cdmcrv = np.array(brute_cdmat.get(qq).tolist() + using_crval)
+#            test_xrel, test_yrel = helpers.inverse_tan_cdmcrv(cdmcrv,
+#                                    dataset[qq]['gra'], dataset[qq]['gde'])
+#            xnudge, ynudge = spt.calc_rdist_corrections(test_xrel, test_yrel, test_distmod)
+#            #import pdb; pdb.set_trace()
+#            test_xccd = test_xrel + xnudge + tcpx1
+#            test_yccd = test_yrel + ynudge + tcpx2
+#            x_error = test_xccd - gxx.values
+#            y_error = test_yccd - gyy.values
+#            scaled_xerr = x_error * nstar_scale_factor
+#            scaled_yerr = y_error * nstar_scale_factor
+#            if snrweight:
+#                scaled_xerr /= gst['realerr']
+#                scaled_yerr /= gst['realerr']
+#            im_xres.extend(scaled_xerr)
+#            im_yres.extend(scaled_yerr)
+#            if diags:
+#                im_diag[qq] = {     "gid":gst['gid'],
+#                                  "xmeas":gxx,
+#                                  "ymeas":gyy,
+#                                  "xcalc":test_xccd,
+#                                  "ycalc":test_yccd,
+#                                  'rdist':np.hypot(test_xrel, test_yrel),
+#                                 'xnudge':xnudge,
+#                                 'ynudge':ynudge,
+#                                 'xerror':x_error,
+#                                 'yerror':y_error,
+#                                 'rerror':np.hypot(x_error, y_error),
+#                                 'scaled_xerror':scaled_xerr,
+#                                 'scaled_yerror':scaled_yerr,
+#                                 'scaled_rerror':np.hypot(scaled_xerr, scaled_yerr),
+#                                   'flux':gst['flux'],
+#                                   'fwhm':gst['fwhm'],
+#                                  'flags':gst['flag'],
+#                                'dumbsnr':gst['dumbsnr'],
+#                                'realerr':gst['realerr'],
+#                                }
+#
+#            pass    # end of loop over sensors
+#
+#        xres.extend(im_xres)
+#        yres.extend(im_yres)
+#        diag_data[iname] = im_diag
+#        pass        # end of loop over IMAGES
+#
+#    if diags:
+#        return diag_data
+#    if unsquared:
+#        return np.concatenate((xres, yres))
+#    return np.concatenate((xres, yres))**2
+#    
+#    return
+#
+#def multi_fmin_squared_residuals_foc2ccd_rdist(params, mdataset, 
+#                                               imlist, **kwargs):
+#    return np.sum(multi_squared_residuals_foc2ccd_rdist(params, mdataset,
+#                                                    imlist, **kwargs))
+#
+##multi_squared_residuals_foc2ccd_rdist(flat_params, all_gstr, iname_order)
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
