@@ -373,6 +373,9 @@ se_sw_dx = se_crpix1 - sw_crpix1 ; se_sw_dy = se_crpix2 - sw_crpix2
 ne_se_dx = ne_crpix1 - se_crpix1 ; ne_se_dy = ne_crpix2 - se_crpix2
 nw_sw_dx = ne_crpix1 - se_crpix1 ; nw_sw_dy = ne_crpix2 - se_crpix2
 
+## For good measure (and transformation guess):
+ne_sw_dx = ne_crpix1 - sw_crpix1 ; ne_sw_dy = ne_crpix2 - sw_crpix2
+
 ##--------------------------------------------------------------------------##
 ##------------------         CD Matrix / PA Breakout        ----------------##
 ##--------------------------------------------------------------------------##
