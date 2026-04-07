@@ -49,10 +49,11 @@ import glob
 #import io
 import gc
 import os
+import ast
 import sys
 import time
 import pprint
-#import pickle
+import pickle
 #import ephem
 import numpy as np
 #from numpy.lib.recfunctions import append_fields
@@ -353,9 +354,96 @@ def argnear(vec, val):
 #    context.prog_name = prog_name
 #
 ##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
+## Extract RUNID from filename:
+def runid_from_filename(filename):
+    return os.path.basename(filename).split('_')[1]
+
+## Extract observing year from RUNID:
+def year_from_runid(runid):
+    return int(runid[:2])
+
+## Load parameter set from file:
+def load_parameters(filename):
+    with open(filename, 'r') as fff:
+        return ast.literal_eval(fff.read())
+
+## Extract CD matrix and CRPIX from parameter list:
+def get_cdm_crpix(parameters):
+    return np.array(parameters[:24]).reshape(4, -1)
 
 ##--------------------------------------------------------------------------##
-## Some basic configs:
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
+
+## QRUNID NOTES:
+## For this first attempt, I am restricting myself to the joint solutions
+## of QRUNIDs from 2011 - 2016, inclusive. After 2016, jointly fitted WCS
+## for the various detectors do not agree as well. It is unclear whether this
+## is because of poor initial guesses, bad sensor behavior (i.e., artifacts
+## creating false matches), or genuinely different geometry. Because of this,
+## I am suspicious of the Gaia match quality in the updated catalogs for
+## QRUNIDs starting in 2017 and plan to exclude them from this initial work.
+
+## List of available J-only joint parameter files:
+par_flist = sorted(glob.glob('joint_pars/jpars_??????_J.txt'))
+par_runid = [runid_from_filename(x) for x in par_flist]
+par_files = dict(zip(par_runid, par_flist))
+
+## Clean these out based on year/semester:
+ythresh = 11 # 16
+keepers = {}
+for rr,fname in par_files.items():
+    if year_from_runid(rr) <= ythresh:
+        keepers[rr] = fname
+par_files = keepers
+
+## Load those files:
+#raw_params = {kk:load_parameters(vv) for kk,vv in par_files.items()}
+raw_params = {}
+raw_inames = {}
+for runid,fname in par_files.items():
+    raw_params[runid], raw_inames[runid] = load_parameters(fname)
+
+##--------------------------------------------------------------------------##
+##------------------         Load Pickled Catalogs          ----------------##
+##--------------------------------------------------------------------------##
+
+## Iterate over QRUNIDs in use:
+all_data = {}       # diags data from single-image best-fit (not used)
+all_gstr = {}       # star catalog with updated Gaia matches
+all_pars = {}       # initial, single-image best-fit parameters (not used)
+for qrun in raw_params.keys():
+    qrun_data, qrun_gstr, qrun_pars = {}, {}, {}    # per-QRUNID of above
+    qrun_dir = 'results/%s' % qrun
+    sys.stderr.write("qrun: %s\n" % qrun)
+    sys.stderr.write("qrun_dir: %s\n" % qrun_dir)
+    if not os.path.isdir(qrun_dir):
+        sys.stderr.write("Error: folder not found: %s\n" % qrun_dir)
+        sys.exit(1)
+    #pickles = ['{}/{}.pickle'.format(qrun_dir, x) for x in raw_inames[qrun]]
+    use_pickles = {x:qrun_dir+'/'+x+'.pickle' for x in raw_inames[qrun]}
+    if not all([os.path.isfile(x) for x in use_pickles.values()]):
+        sys.stderr.write("Error: pickled catalog(s) missing ...\n")
+        sys.exit(1)
+    # Load pickles:
+    for pbase,ppath in use_pickles.items():
+        _gstr, _data, _pars = load_pickled_object(ppath)
+        qrun_gstr[pbase] = _gstr
+        qrun_data[pbase] = _data
+        qrun_pars[pbase] = _pars
+    # Stash finished dictionaries:
+    all_data[qrun] = qrun_data
+    all_gstr[qrun] = qrun_gstr
+    all_pars[qrun] = qrun_pars
+    break
+## First, connect identify J-band files from the RUNID:
+
+
+
 
 ##--------------------------------------------------------------------------##
 ## Quick ASCII I/O:
@@ -399,154 +487,7 @@ def argnear(vec, val):
 #vot_data = av.parse_single_table(vot_file)
 #vot_data = av.parse_single_table(vot_file).to_table()
 
-##--------------------------------------------------------------------------##
-## Timestamp modification:
-#def time_warp(jdutc, jd_offset, scale):
-#    return (jdutc - jd_offset) * scale
-
-## Self-consistent time-modification for plotting:
-#tfudge = partial(time_warp, jd_offset=tstart.jd, scale=24.0)    # relative hrs
-#tfudge = partial(time_warp, jd_offset=tstart.jd, scale=1440.0)  # relative min
-
-##--------------------------------------------------------------------------##
-## Quick FITS I/O:
-#data_file = 'image.fits'
-#img_vals = pf.getdata(data_file)
-#hdr_keys = pf.getheader(data_file)
-#img_vals, hdr_keys = pf.getdata(data_file, header=True)
-#img_vals, hdr_keys = pf.getdata(data_file, header=True, uint=True) # USHORT
-#img_vals, hdr_keys = fitsio.read(data_file, header=True)
-
-#date_obs = hdr_keys['DATE-OBS']
-#site_lat = hdr_keys['LATITUDE']
-#site_lon = hdr_keys['LONGITUD']
-
-## Initialize time:
-#img_time = astt.Time(hdr_keys['DATE-OBS'], scale='utc', format='isot')
-#img_time += astt.TimeDelta(0.5 * hdr_keys['EXPTIME'], format='sec')
-#jd_image = img_time.jd
-
-## Initialize location:
-#observer = ephem.Observer()
-#observer.lat = np.radians(site_lat)
-#observer.lon = np.radians(site_lon)
-#observer.date = img_time.datetime
-
-#pf.writeto('new.fits', img_vals)
-#qsave('new.fits', img_vals)
-#qsave('new.fits', img_vals, header=hdr_keys)
-
-## Star extraction:
-#pse.set_image(img_vals, gain=3.6)
-#objlist = pse.analyze(sigthresh=5.0)
-
-##--------------------------------------------------------------------------##
-## Misc:
-#def log_10_product(x, pos):
-#   """The two args are the value and tick position.
-#   Label ticks with the product of the exponentiation."""
-#   return '%.2f' % (x)  # floating-point
-#
-#fptformat = plt.FuncFormatter(log_10_product) # wrap function for use
-
-## Convenient, percentile-based plot limits:
-#def nice_limits(vec, pctiles=[1,99], pad=1.2):
-#    ends = np.percentile(vec[~np.isnan(vec)], pctiles)
-#    middle = np.average(ends)
-#    return (middle + pad * (ends - middle))
-
-## Convenient plot limits for datetime/astropy.Time content:
-#def nice_time_limits(tvec, buffer=0.05):
-#    lower = tvec.min()
-#    upper = tvec.max()
-#    ndays = upper - lower
-#    return ((lower - 0.05*ndays).datetime, (upper + 0.05*ndays).datetime)
-
-## Convenient limits for datetime objects:
-#def dt_limits(vec, pad=0.1):
-#    tstart, tstop = vec.min(), vec.max()
-#    trange = (tstop - tstart).total_seconds()
-#    tpad = dt.timedelta(seconds=pad*trange)
-#    return (tstart - tpad, tstop + tpad)
-
-##--------------------------------------------------------------------------##
-## Solve prep:
-#ny, nx = img_vals.shape
-#x_list = (0.5 + np.arange(nx)) / nx - 0.5            # relative (centered)
-#y_list = (0.5 + np.arange(ny)) / ny - 0.5            # relative (centered)
-#xx, yy = np.meshgrid(x_list, y_list)                 # relative (centered)
-#xx, yy = np.meshgrid(nx*x_list, ny*y_list)           # absolute (centered)
-#xx, yy = np.meshgrid(np.arange(nx), np.arange(ny))   # absolute
-#yy, xx = np.meshgrid(np.arange(ny), np.arange(nx), indexing='ij') # absolute
-#yy, xx = np.nonzero(np.ones_like(img_vals))          # absolute
-#yy, xx = np.mgrid[0:ny,   0:nx].astype('uint16')     # absolute (array)
-#yy, xx = np.mgrid[1:ny+1, 1:nx+1].astype('uint16')   # absolute (pixel)
-
-## 1-D vectors:
-#x_pix, y_pix, ivals = xx.flatten(), yy.flatten(), img_vals.flatten()
-#w_vec = np.ones_like(ivals)            # start with uniform weights
-#design_matrix = np.column_stack((np.ones(x_pix.size), x_pix, y_pix))
-
-## Image fitting (statsmodels etc.):
-#data = sm.datasets.stackloss.load()
-#ols_res = sm.OLS(ivals, design_matrix).fit()
-#rlm_res = sm.RLM(ivals, design_matrix).fit()
-#rlm_model = sm.RLM(ivals, design_matrix, M=sm.robust.norms.HuberT())
-#rlm_res = rlm_model.fit()
-#data = pd.DataFrame({'xpix':x_pix, 'ypix':y_pix})
-#rlm_model = sm.RLM.from_formula("ivals ~ xpix + ypix", data)
-
-##--------------------------------------------------------------------------##
-## Theil-Sen line-fitting (linear):
-#model = ts.linefit(xvals, yvals)
-#icept, slope = ts.linefit(xvals, yvals)
-
-## Theil-Sen line-fitting (loglog):
-#xvals, yvals = np.log10(original_xvals), np.log10(original_yvals)
-#xvals, yvals = np.log10(df['x'].values), np.log10(df['y'].values)
-#llmodel = ts.linefit(np.log10(xvals), np.log10(yvals))
-#icept, slope = ts.linefit(xvals, yvals)
-#fit_exponent = slope
-#fit_multiplier = 10**icept
-#bestfit_x = np.arange(5000)
-#bestfit_y = fit_multiplier * bestfit_x**fit_exponent
-
-## Theil-Sen line-fitting variants:
-#linear_model = ts.linefit(xvals, yvals)
-#loglog_model = ts.linefit(np.log10(xvals), np.log10(yvals))
-#linlog_model = ts.linefit(xvals, np.log10(yvals))
-
-
-## Evaluators:
-#def loglog_eval(xvals, model):
-#    icept, slope = model
-#    return 10**icept * np.log10(xvals)**slope
-#def loglog_eval(xvals, icept, slope):
-#    return 10**icept * xvals**slope
-
-## Better evaluators (FIXME: this should go in a modele):
-#def linear_eval(xvals, icept, slope):
-#    return icept + slope*xvals                  # for y vs x fit
-#def loglog_eval(xvals, icept, slope):
-#    return 10**(icept + slope*xvals)            # for log(y) vs x fit
-#def loglog_eval(xvals, icept, slope):
-#    return 10**(icept + slope*np.log10(xvals))  # for log(y) vs log(x) fit
-
-##--------------------------------------------------------------------------##
-## KDE:
-#kde_pnts, kde_vals = mk.go(data_vec)
-
-##--------------------------------------------------------------------------##
-## Vaex plotting:
-#ds = vaex.open('big_file.hdf5')
-#ds = vaex.from_arrays(x=x, y=y)     # load from arrays
-#ds = vaex.from_csv('mydata.csv')
-
-## Stats:
-#ds.mean("x"), ds.std("x"), ds.correlation("vx**2+vy**2+vz**2", "E")
-#ds.plot(....)
-#http://vaex.astro.rug.nl/latest/tutorial_ipython_notebook.html
-
+sys.exit(0)
 ##--------------------------------------------------------------------------##
 ## Plot config:
 
