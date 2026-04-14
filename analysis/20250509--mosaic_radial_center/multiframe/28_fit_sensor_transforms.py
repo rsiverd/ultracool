@@ -6,13 +6,13 @@
 #
 # Rob Siverd
 # Created:       2026-04-07
-# Last modified: 2026-04-07
+# Last modified: 2026-04-14
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 ## Optional matplotlib control:
 #from matplotlib import use, rc, rcParams
@@ -75,11 +75,11 @@ import matplotlib.pyplot as plt
 #import matplotlib.colors as mplcolors
 #import matplotlib.collections as mcoll
 #import matplotlib.gridspec as gridspec
-#from functools import partial
+from functools import partial
 #from collections import OrderedDict
 #from collections.abc import Iterable
 #import multiprocessing as mp
-#np.set_printoptions(suppress=True, linewidth=160)
+np.set_printoptions(suppress=True, linewidth=160)
 #import pandas as pd
 #import statsmodels.api as sm
 #import statsmodels.formula.api as smf
@@ -395,9 +395,13 @@ par_files = dict(zip(par_runid, par_flist))
 
 ## Clean these out based on year/semester:
 ythresh = 11 # 16
+ythresh = 18 # 16
+#ythresh = 16
+#ythresh = 25
 keepers = {}
 for rr,fname in par_files.items():
     if year_from_runid(rr) <= ythresh:
+    #if year_from_runid(rr) >= ythresh:
         keepers[rr] = fname
 par_files = keepers
 
@@ -408,6 +412,8 @@ raw_inames = {}
 for runid,fname in par_files.items():
     raw_params[runid], raw_inames[runid] = load_parameters(fname)
 
+qrun_list = raw_params.keys()
+
 ##--------------------------------------------------------------------------##
 ##------------------         Load Pickled Catalogs          ----------------##
 ##--------------------------------------------------------------------------##
@@ -416,7 +422,7 @@ for runid,fname in par_files.items():
 all_data = {}       # diags data from single-image best-fit (not used)
 all_gstr = {}       # star catalog with updated Gaia matches
 all_pars = {}       # initial, single-image best-fit parameters (not used)
-for qrun in raw_params.keys():
+for qrun in qrun_list:
     qrun_data, qrun_gstr, qrun_pars = {}, {}, {}    # per-QRUNID of above
     qrun_dir = 'results/%s' % qrun
     sys.stderr.write("qrun: %s\n" % qrun)
@@ -433,17 +439,90 @@ for qrun in raw_params.keys():
     for pbase,ppath in use_pickles.items():
         _gstr, _data, _pars = load_pickled_object(ppath)
         qrun_gstr[pbase] = _gstr
-        qrun_data[pbase] = _data
+        #qrun_data[pbase] = _data
         qrun_pars[pbase] = _pars
     # Stash finished dictionaries:
-    all_data[qrun] = qrun_data
     all_gstr[qrun] = qrun_gstr
+    #all_data[qrun] = qrun_data
     all_pars[qrun] = qrun_pars
-    break
-## First, connect identify J-band files from the RUNID:
+    del qrun_gstr, qrun_data, qrun_pars
+    del _gstr, _data, _pars
 
 
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
 
+## Initial guesses for the sensor transformation:
+#nw_xf_guess = spt.mkaffine([1.0, 0.0, 0.0, 1.0, 2184.0,    -9.0])
+#se_xf_guess = spt.mkaffine([1.0, 0.0, 0.0, 1.0,   -4.0, -2192.5])
+#sw_xf_guess = spt.mkaffine([1.0, 0.0, 0.0, 1.0, 2186.5, -2205.0])
+#nw_xf_guess = np.array([1.0, 0.0, 0.0, 1.0, 2184.0,    -9.0])
+#se_xf_guess = np.array([1.0, 0.0, 0.0, 1.0,   -4.0, -2192.5])
+#sw_xf_guess = np.array([1.0, 0.0, 0.0, 1.0, 2186.5, -2205.0])
+
+## First attempt:
+xf_guess = {
+#       'NW'  :  np.array([1.0, 0.0, 0.0, 1.0, 2184.0,    -9.0]),
+        'NW'  :  np.array([1.0, 0.0, 0.0, 1.0, 2183.9,    -8.6]),
+#       'SE'  :  np.array([1.0, 0.0, 0.0, 1.0,   -4.0, -2192.5]),
+        'SE'  :  np.array([1.0, 0.0, 0.0, 1.0,   -0.7, -2195.5]),
+#       'SW'  :  np.array([1.0, 0.0, 0.0, 1.0, 2186.5, -2205.0]),
+        'SW'  :  np.array([1.0, 0.0, 0.0, 1.0, 2192.0, -2204.1]),
+}
+
+# all_gstr['11AQ15']['wircam_J_1319377p']['NW']
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
+qrun = '11AQ15'
+sensor = 'NW'
+quads_to_fit = ['NW', 'SE', 'SW']
+
+## Attempt a solve with levmar ...
+#slvkw = {'method':'trf', 'xtol':1e-14, 'ftol':1e-14}
+
+#slvkw = {'method':'trf', 'xtol':1e-8, 'ftol':1e-8}
+slvkw = {'method':'lm', 'xtol':1e-8, 'ftol':1e-8}
+#slvkw = {'method':'trf', 'xtol':1e-8, 'ftol':1e-8, 'loss':'huber'}
+slvkw.update({'max_nfev':10})
+reskw = {'unsquared':True}
+total_result = {}
+for qrun in qrun_list:
+    runid_result = {}
+    for fitq in quads_to_fit:
+        sys.stderr.write("Attempting minimization (%s, %s) ...\n"
+                         % (qrun, fitq))
+        tik = time.time()
+        minimize_this = partial(spt.multi_squared_residuals_foc2ccd_rdist_xform,
+                                    params=np.array(raw_params.get(qrun)),
+                                    mdataset=all_gstr.get(qrun),
+                                    imlist=raw_inames.get(qrun), 
+                                    sensor=fitq)
+    
+        #minimize_this = partial(spt.multi_squared_residuals_foc2ccd_rdist,
+        #                        mdataset=all_gstr, imlist=iname_order)
+        tguess = xf_guess[fitq]
+        answer = opti.least_squares(minimize_this, tguess, 
+                                    kwargs=reskw, **slvkw)
+        sys.stderr.write("Ended up with: %s\n" % str(answer))
+        sys.stderr.write("Ended up with: %s\n" % str(answer['x']))
+        tok = time.time()
+        lsq_taken = tok - tik
+        sys.stderr.write("Solve took %.2f seconds.\n" % lsq_taken)
+        
+        sys.stderr.write("%s\n%s\n" % (fulldiv, fulldiv))
+        runid_result[fitq] = answer['x']
+        pass
+    total_result[qrun] = runid_result    
+
+##--------------------------------------------------------------------------##
+## Dump median results to screen:
+for fitq in quads_to_fit:
+    med_pars = np.median([x.get(fitq) for x in total_result.values()], axis=0)
+    sys.stderr.write("%s: %s\n" % (fitq, str(med_pars)))
+medtxform = {qq:np.median([x.get(qq) for x in total_result.values()],axis=0) \
+                    for qq in quads_to_fit}
 
 ##--------------------------------------------------------------------------##
 ## Quick ASCII I/O:
@@ -476,16 +555,6 @@ for qrun in raw_params.keys():
 #def colfix(df):
 #    df.rename(columns={kk:kk.lstrip('#') for kk in df.keys()}, inplace=True)
 #colfix(all_data)
-
-#all_data.rename(columns={'old_name':'new_name'}, inplace=True)
-#all_data.reset_index()
-#firstrow = all_data.iloc[0]
-#for ii,row in all_data.iterrows():
-#    pass
-
-#vot_file = 'neato.xml'
-#vot_data = av.parse_single_table(vot_file)
-#vot_data = av.parse_single_table(vot_file).to_table()
 
 sys.exit(0)
 ##--------------------------------------------------------------------------##
