@@ -397,7 +397,7 @@ par_files = dict(zip(par_runid, par_flist))
 ythresh = 11 # 16
 ythresh = 18 # 16
 #ythresh = 16
-#ythresh = 25
+ythresh = 25
 keepers = {}
 for rr,fname in par_files.items():
     if year_from_runid(rr) <= ythresh:
@@ -417,6 +417,10 @@ qrun_list = raw_params.keys()
 ##--------------------------------------------------------------------------##
 ##------------------         Load Pickled Catalogs          ----------------##
 ##--------------------------------------------------------------------------##
+
+## Only keep columns from gstars we actually use to save space:
+gstcols = ['x', 'y', 'flux', 'flag', 
+           'fwhm', 'dumbsnr', 'realerr', 'gid', 'gra', 'gde']
 
 ## Iterate over QRUNIDs in use:
 all_data = {}       # diags data from single-image best-fit (not used)
@@ -438,7 +442,10 @@ for qrun in qrun_list:
     # Load pickles:
     for pbase,ppath in use_pickles.items():
         _gstr, _data, _pars = load_pickled_object(ppath)
-        qrun_gstr[pbase] = _gstr
+        trim_gstr = {qq:gg[gstcols].copy() for qq,gg in _gstr.items()}
+        #qrun_gstr[pbase] = _gstr
+        #qrun_gstr[pbase] = _gstr[gstcols].copy()    # keep useful columns
+        qrun_gstr[pbase] = trim_gstr
         #qrun_data[pbase] = _data
         qrun_pars[pbase] = _pars
     # Stash finished dictionaries:
@@ -448,6 +455,8 @@ for qrun in qrun_list:
     del qrun_gstr, qrun_data, qrun_pars
     del _gstr, _data, _pars
 
+## Old all_gstr (full size): ~11.9 GiB
+## New trim_gstr (useful cols): ~2.0 GiB
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
