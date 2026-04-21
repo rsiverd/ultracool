@@ -131,7 +131,28 @@ def mkaffine(par):
                      [par[2], par[3], par[5]],
                      [   0.0,    0.0,    1.0]])
 
+nw_xform = mkaffine([1.0, 0.0, 0.0, 1.0, 2184, -9])
+
 ##--------------------------------------------------------------------------##
+## We expect relative rotations and scales between the sensors to be small.
+## The translations are fairly large, however. A decent initial guess is:
+## --> [1.0, 0.0, 0.0, 1.0, Tx, Ty]
+##
+## Initial guess for Tx, Ty can be estimated from CRPIXn. Earlier work in
+## 31_params_over_time.py (also detla_CRPIX_vs_QRUNID.png) provides a useful
+## starting point.
+
+## for NW sensor, Tx=2184 and Ty=-9
+## np.median(ne_nw_dx) -->  2184.04625259989
+## np.median(ne_nw_dy) -->    -8.809894611382461
+
+## For SE sensor, Tx=-4 and Ty=-2192.5
+## np.median(ne_se_dx) -->    -3.9547359691491693
+## np.median(ne_se_dy) --> -2192.492613334696
+
+## For SW sensor, Tx=2186.5, -2205
+## np.median(ne_sw_dx) -->  2186.649957970517
+## np.median(ne_se_dy) --> -2205.137889618869
 
 ##--------------------------------------------------------------------------##
 
