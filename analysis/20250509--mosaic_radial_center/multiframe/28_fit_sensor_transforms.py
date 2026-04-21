@@ -530,8 +530,38 @@ for qrun in qrun_list:
 for fitq in quads_to_fit:
     med_pars = np.median([x.get(fitq) for x in total_result.values()], axis=0)
     sys.stderr.write("%s: %s\n" % (fitq, str(med_pars)))
+
+## Median transform:
 medtxform = {qq:np.median([x.get(qq) for x in total_result.values()],axis=0) \
                     for qq in quads_to_fit}
+##--------------------------------------------------------------------------##
+
+## Clean parameter formatting:
+def qfmt(runid, quad, pars):
+    #outfmt = ' %12.9f'*4 + ' %16.9f'*2
+    outfmt = ' %16.9f'*6
+    valtxt = outfmt % tuple(pars)
+    return '%6s  %2s  %s' % (runid, quad, valtxt)
+
+def qqqfmt(prefix, txforms):
+    #outfmt = ' %12.9f'*4 + ' %16.9f'*2
+    #outfmt = ' %16.9f'*6
+    return '\n'.join([qfmt(prefix, *tt) for tt in txforms.items()])
+    
+
+## Print and save median:
+outfile = 'txpars_med.txt'
+with open(outfile, 'w') as fff:
+    #lines = '\n'.join([qfmt('median', *stuff) for stuff in medtxform.items()])
+    lines = qqqfmt('median', medtxform)
+    sys.stderr.write(lines + '\n')
+    fff.write(lines + '\n')
+
+## Print and save by QRUNID:
+outfile = 'txpars_all.txt'
+with open(outfile, 'w') as fff:
+    fff.write('\n'.join([qqqfmt(*qqtt) \
+            for qqtt in total_result.items()])+'\n')
 
 ##--------------------------------------------------------------------------##
 ## Quick ASCII I/O:
