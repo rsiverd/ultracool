@@ -275,6 +275,13 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None,
                 sys.stderr.write("WARNING: %s requested" % rfile
                     + " but not possible\n")
 
+    # Debugging:
+    sys.stderr.write("Starting wcs_tuneup. Important values:\n")
+    sys.stderr.write("crpix1 = %15.5f\n" % crpix1)
+    sys.stderr.write("crpix2 = %15.5f\n" % crpix2)
+    sys.stderr.write("WARNING WARNING WARNING!\n")
+    sys.stderr.write("THIS ROUTINE IS NOT FIT FOR NW/SE/SW SENSORS!\n")
+
     # column headings and 
     wcspar_cols = []
     wcspar_vals = []
@@ -288,6 +295,7 @@ def wcs_tuneup(stars, header, save_matches=None, save_wcspars=None,
 
     cdm_pa, cdm_pscale = get_cdmatrix_pa_scale(header)
     #cdm_pa = 0.0
+    #import pdb; pdb.set_trace()
 
     # Note PA+CRVALx from header:
     wcspar_cols.extend(['hdr_pa_deg', 'hdr_crval1', 'hdr_crval2'])
