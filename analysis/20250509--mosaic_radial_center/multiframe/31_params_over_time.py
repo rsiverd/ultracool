@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2026-03-03
-# Last modified: 2026-04-02
+# Last modified: 2026-05-05
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 ## Optional matplotlib control:
 #from matplotlib import use, rc, rcParams
@@ -399,6 +399,9 @@ se_cdinfo =  np.array([analyze(x) for x in se_pstack[:4].T])
 sw_cdinfo =  np.array([analyze(x) for x in sw_pstack[:4].T])
 
 ##--------------------------------------------------------------------------##
+_FIXED_LIMITS = True
+#_FIXED_LIMITS = False
+
 #plt.style.use('bmh')   # Bayesian Methods for Hackers style
 fig_dims = (11, 9)
 #fig = plt.figure(1, figsize=fig_dims)
@@ -413,25 +416,39 @@ axs[0,0].plot(runid_list, ne_nw_dx)
 axs[0,0].set_ylabel("CRPIX1 (NE - NW)")
 axs[0,1].plot(runid_list, ne_nw_dy)
 axs[0,1].set_ylabel("CRPIX2 (NE - NW)")
+if _FIXED_LIMITS:
+    axs[0,0].set_ylim(2183.5, 2184.15)
+    axs[0,1].set_ylim(-8.9, -7.4)
 
 axs[1,0].plot(runid_list, ne_se_dx)
 axs[1,0].set_ylabel("CRPIX1 (NE - SE)")
 axs[1,1].plot(runid_list, ne_se_dy)
 axs[1,1].set_ylabel("CRPIX2 (NE - SE)")
-
+if _FIXED_LIMITS:
+    axs[1,0].set_ylim(-4.2, 1.2)
+    axs[1,1].set_ylim(-2194.4, -2192.3)
 
 axs[2,0].plot(runid_list, se_sw_dx)
 axs[2,0].set_ylabel("CRPIX1 (SE - SW)")
 axs[2,1].plot(runid_list, se_sw_dy)
 axs[2,1].set_ylabel("CRPIX2 (SE - SW)")
+if _FIXED_LIMITS:
+    axs[2,0].set_ylim(2186.9, 2190.9)
+    axs[2,1].set_ylim(-12.8, -10.6)
 
 axs[3,0].plot(runid_list, nw_sw_dx)
 axs[3,0].set_ylabel("CRPIX1 (NW - SW)")
 axs[3,1].plot(runid_list, nw_sw_dy)
 axs[3,1].set_ylabel("CRPIX2 (NW - SW)")
+if _FIXED_LIMITS:
+    axs[3,0].set_ylim(-4.2, 1.0)
+    axs[3,1].set_ylim(-2194.4, -2192.2)
 
 axs[4,0].plot(runid_list, par_stack[0,0,:])
 axs[4,1].plot(runid_list, par_stack[0,3,:])
+if _FIXED_LIMITS:
+    axs[4,0].set_ylim(-8.5105e-5, -8.5075e-5)
+    axs[4,1].set_ylim(8.5015e-5, 8.5105e-5)
 
 for label in axs[-1,0].get_xticklabels():
     label.set_rotation(90)
@@ -461,13 +478,18 @@ for ii,(pa,qq) in enumerate(zip(pa_arrays, pa_naming)):
     paaxs[ii,0].plot(runid_list, pa)
     paaxs[ii,0].set_ylabel("PA(%s) [deg]" % qq)
     paaxs[ii,0].grid(True)
+    if _FIXED_LIMITS:
+        paaxs[ii,0].set_ylim(-0.25, 0.78)
 
 ## Plot PA differences relative to NE:
+rhs_lims = [(-0.05, 0.05), (0.12205, 0.1670), (-0.08, 0.099), (0.129, 0.235)]
 for ii,(pa,qq) in enumerate(zip(pa_arrays, pa_naming)):
     pa_diff = pa - pa_arrays[0]
     paaxs[ii,1].plot(runid_list, pa_diff)
     paaxs[ii,1].set_ylabel("PA(%s) - PA(NE) [deg]" % qq)
     paaxs[ii,1].grid(True)
+    if _FIXED_LIMITS:
+        paaxs[ii,1].set_ylim(*rhs_lims[ii])
 
 #paaxs[0,0].plot(runid_list, ne_cdinfo[:, 2]) # position angle
 #paaxs[0,0].set_ylabel("NE PA [deg]")
