@@ -412,7 +412,7 @@ raw_inames = {}
 for runid,fname in par_files.items():
     raw_params[runid], raw_inames[runid] = load_parameters(fname)
 
-qrun_list = raw_params.keys()
+qrun_list = list(raw_params.keys())
 
 ##--------------------------------------------------------------------------##
 ##------------------         Load Pickled Catalogs          ----------------##
@@ -458,6 +458,20 @@ for qrun in qrun_list:
 ## Old all_gstr (full size): ~11.9 GiB
 ## New trim_gstr (useful cols): ~2.0 GiB
 
+gcounts = {}
+gc_avgs = {}
+gc_meds = {}
+for qrunid,dataset in all_gstr.items():
+    imqstars = {img:{qq:len(cat) for qq,cat in vvv.items()} \
+            for img,vvv in dataset.items()}
+    gcounts[qrunid] = imqstars
+    avgcount = np.mean([list(x.values()) for x in imqstars.values()], axis=0)
+    medcount = np.median([list(x.values()) for x in imqstars.values()], axis=0)
+    gc_avgs[qrunid] = dict(zip(spt._quads, avgcount))
+    gc_meds[qrunid] = dict(zip(spt._quads, medcount))
+    pass
+#{qq:len(cat) for qq,cat in dataset['wircam_J_2887487p'].items()}
+
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
@@ -487,6 +501,8 @@ xf_guess = {
 qrun = '11AQ15'
 sensor = 'NW'
 quads_to_fit = ['NW', 'SE', 'SW']
+#qrun_batch = qrun_list
+qrun_batch = qrun_list[-3:]
 
 ## Attempt a solve with levmar ...
 #slvkw = {'method':'trf', 'xtol':1e-14, 'ftol':1e-14}
@@ -497,7 +513,7 @@ slvkw = {'method':'lm', 'xtol':1e-8, 'ftol':1e-8}
 slvkw.update({'max_nfev':10})
 reskw = {'unsquared':True}
 total_result = {}
-for qrun in qrun_list:
+for qrun in qrun_batch:
     runid_result = {}
     for fitq in quads_to_fit:
         sys.stderr.write("Attempting minimization (%s, %s) ...\n"
@@ -563,150 +579,7 @@ with open(outfile, 'w') as fff:
     fff.write('\n'.join([qqqfmt(*qqtt) \
             for qqtt in total_result.items()])+'\n')
 
-##--------------------------------------------------------------------------##
-## Quick ASCII I/O:
-#data_file = 'data.txt'
-#gftkw = {'encoding':None} if (_have_np_vers >= 1.14) else {}
-#gftkw.update({'names':True, 'autostrip':True})
-#gftkw.update({'delimiter':'|', 'comments':'%0%0%0%0'})
-#gftkw.update({'loose':True, 'invalid_raise':False})
-#all_data = np.genfromtxt(data_file, dtype=None, **gftkw)
-#all_data = np.atleast_1d(np.genfromtxt(data_file, dtype=None, **gftkw))
-#all_data = np.genfromtxt(fix_hashes(data_file), dtype=None, **gftkw)
-#all_data = aia.read(data_file)
-
-#all_data = append_fields(all_data, ('ra', 'de'), 
-#         np.vstack((ra, de)), usemask=False)
-#all_data = append_fields(all_data, cname, cdata, usemask=False)
-
-#pdkwargs = {'skipinitialspace':True, 'low_memory':False}
-#pdkwargs.update({'delim_whitespace':True, 'sep':'|', 'escapechar':'#'})
-#all_data = pd.read_csv(data_file)
-#all_data = pd.read_csv(data_file, **pdkwargs)
-#all_data = pd.read_table(data_file)
-#all_data = pd.read_table(data_file, **pdkwargs)
-#nskip, cnames = analyze_header(data_file)
-#all_data = pd.read_csv(data_file, names=cnames, skiprows=nskip, **pdkwargs)
-#all_data = pd.DataFrame.from_records(npy_data)
-#all_data = pd.DataFrame(all_data.byteswap().newbyteorder()) # for FITS tables
-
-### Strip leading '#' from column names:
-#def colfix(df):
-#    df.rename(columns={kk:kk.lstrip('#') for kk in df.keys()}, inplace=True)
-#colfix(all_data)
-
 sys.exit(0)
-##--------------------------------------------------------------------------##
-## Plot config:
-
-# gridspec examples:
-# https://matplotlib.org/users/gridspec.html
-
-#gs1 = gridspec.GridSpec(4, 4)
-#gs1.update(wspace=0.025, hspace=0.05)  # set axis spacing
-
-#ax1 = plt.subplot2grid((3, 3), (0, 0), colspan=3) # top-left + center + right
-#ax2 = plt.subplot2grid((3, 3), (1, 0), colspan=2) # mid-left + mid-center
-#ax3 = plt.subplot2grid((3, 3), (1, 2), rowspan=2) # mid-right + bot-right
-#ax4 = plt.subplot2grid((3, 3), (2, 0))            # bot-left
-#ax5 = plt.subplot2grid((3, 3), (2, 1))            # bot-center
-
-
-##--------------------------------------------------------------------------##
-#plt.style.use('bmh')   # Bayesian Methods for Hackers style
-fig_dims = (11, 9)
-fig = plt.figure(1, figsize=fig_dims)
-plt.gcf().clf()
-#fig, axs = plt.subplots(nrows=2, ncols=2, num=1, clear=True, figsize=fig_dims,
-#                        sharex=True, squeeze=False)
-# sharex='col' | sharex='row' | squeeze=False
-#fig.frameon = False # disable figure frame drawing
-#fig.subplots_adjust(left=0.07, right=0.95)
-#ax1 = plt.subplot(gs[0, 0])
-#ax1 = fig.add_subplot(111)
-#ax1 = fig.add_subplot(111, polar=True)
-#ax1 = fig.add_axes([0, 0, 1, 1])
-#ax1.patch.set_facecolor((0.8, 0.8, 0.8))
-#ax1.grid(True)
-#ax1.axis('off')
-
-## Polar scatter:
-#skw = {'lw':0, 's':15}
-#ax1.scatter(azm_rad, zdist_deg, **skw)
-
-## For polar axes:
-#ax1.set_rmin( 0.0)                  # if using altitude in degrees
-#ax1.set_rmax(90.0)                  # if using altitude in degrees
-#ax1.set_theta_direction(-1)         # clockwise
-#ax1.set_theta_direction(+1)         # counterclockwise
-#ax1.set_theta_zero_location("N")    # North-up
-#ax1.set_rlabel_position(-30.0)      # move labels 30 degrees
-
-## Disable axis offsets:
-#ax1.xaxis.get_major_formatter().set_useOffset(False)
-#ax1.yaxis.get_major_formatter().set_useOffset(False)
-
-#ax1.plot(kde_pnts, kde_vals)
-
-#ax1.pcolormesh(xx, yy, ivals)
-
-#blurb = "some text"
-#ax1.text(0.5, 0.5, blurb, transform=ax1.transAxes)
-#ax1.text(0.5, 0.5, blurb, transform=ax1.transAxes,
-#      va='top', ha='left', bbox=dict(facecolor='white', pad=10.0))
-#      fontdict={'family':'monospace'}) # fixed-width
-#      fontdict={'fontsize':24}) # larger typeface
-
-#colors = cm.rainbow(np.linspace(0, 1, len(plot_list)))
-#for camid, c in zip(plot_list, colors):
-#    cam_data = subsets[camid]
-#    xvalue = cam_data['CCDATEMP']
-#    yvalue = cam_data['PIX_MED']
-#    yvalue = cam_data['IMEAN']
-#    ax1.scatter(xvalue, yvalue, color=c, lw=0, label=camid)
-
-#mtickpos = [2,5,7]
-#ndecades = 1.0   # for symlog, set width of linear portion in units of dex
-#nonposx='mask' | nonposx='clip' | nonposy='mask' | nonposy='clip'
-#ax1.set_xscale('log', basex=10, nonposx='mask', subsx=mtickpos)
-#ax1.set_xscale('log', nonposx='clip', subsx=[3])
-#ax1.set_yscale('symlog', basey=10, linthreshy=0.1, linscaley=ndecades)
-#ax1.xaxis.set_major_formatter(fptformat) # re-format x ticks
-#ax1.set_ylim(ax1.get_ylim()[::-1])
-#ax1.set_xlabel('whatever', labelpad=30)  # push X label down 
-
-#ax1.set_xticks([1.0, 3.0, 10.0, 30.0, 100.0])
-#ax1.xticks([1, 2, 3], ['Jan', 'Feb', 'Mar'])
-#ax1.xticks([1, 2, 3], ['Jan', 'Feb', 'Mar'], rotation=45)
-#for label in ax1.get_xticklabels():
-#    label.set_rotation(30)
-#    label.set_fontsize(14) 
-
-#ax1.xaxis.label.set_fontsize(18)
-#ax1.yaxis.label.set_fontsize(18)
-
-#ax1.set_xlim(nice_limits(xvec, pctiles=[1,99], pad=1.2))
-#ax1.set_ylim(nice_limits(yvec, pctiles=[1,99], pad=1.2))
-
-#ax1.legend(loc='best', prop={'size':24})
-
-#spts = ax1.scatter(x, y, lw=0, s=5)
-##cbar = fig.colorbar(spts, orientation='vertical')   # old way
-#cbnorm = mplcolors.Normalize(*spts.get_clim())
-#scm = plt.cm.ScalarMappable(norm=cbnorm, cmap=spts.cmap)
-#scm.set_array([])
-#cbar = fig.colorbar(scm, orientation='vertical')
-#cbar = fig.colorbar(scm, ticks=cs.levels, orientation='vertical') # contours
-#cbar.formatter.set_useOffset(False)
-#cbar.update_ticks()
-
-#fig.align_labels()
-#fig.align_xlabels()
-#fig.align_ylabels()
-#fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
-#plt.draw()
-#fig.savefig(plot_name, bbox_inches='tight')
-
 
 ######################################################################
 # CHANGELOG (28_fit_sensor_transforms.py):
