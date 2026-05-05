@@ -309,6 +309,7 @@ this_filter = context.image.split('_')[1]
 ##--------------------------------------------------------------------------##
 ## Filter-dependent Gaia match parameters:
 gmag_limit = 19.0               # default
+gmag_bright_limit = 14.0
 if this_filter == 'H2':
     #gmag_limit = 18.0
     gmag_limit = 17.0      # slightly worse
@@ -392,9 +393,25 @@ cdata, chdrs, stars = slvh.load_fcats(cpath)
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
+## Restrict initial fit to very bright stars in Gaia:
+sys.stderr.write("Asserting bright limit (gmag < %f) for first Gaia match.\n"
+                 % gmag_bright_limit)
+slvh.gm.set_Gmag_limit(gmag_bright_limit)
+
+## Select the brightest N sources for the initial fit to Gaia.
+ntop = 100
+topfew = {qq:ss.iloc[:ntop].copy() for qq,ss in stars.items()}
+
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
 ## Initial match has loose tolerance:
-loose_mtol = 4.0
-mstars = slvh.register_catalogs_to_gaia(stars, loose_mtol)  # matched
+#loose_mtol = 4.0
+very_loose_mtol = 10.0
+#slvh._racol = 'dra'
+#slvh._decol = 'dde'
+mstars = slvh.register_catalogs_to_gaia(topfew, very_loose_mtol)  # matched
 
 ## Split off subsets of source catalogs with just the Gaia matches:
 all_gstars, use_gstars = {}, {}
@@ -405,10 +422,11 @@ for qq,ss in mstars.items():
 ## Count matches and check for errors ...
 agst_count = {qq:len(vv) for qq,vv in all_gstars.items()}
 ugst_count = {qq:len(vv) for qq,vv in use_gstars.items()}
-sys.stderr.write("Gaia match count: %s\n" % str(agst_count))
+sys.stderr.write("Gaia brights-only match count: %s\n" % str(agst_count))
 
 ## Abort if any sensor has too few matches (solution compromised):
-min_gstars = 200
+#min_gstars = 200
+min_gstars = 20     # very low bar for bright-stars-only matching
 fails_file = 'fails_detected.txt'
 for qq,gcount in agst_count.items():
     if gcount < min_gstars:
@@ -635,20 +653,42 @@ diag_data = spt.squared_residuals_foc2ccd_rdist(fixed_params,
 ## Update calculated RA/DE:
 stars = spt.inplace_update_catalog_radec(stars, fixed_params)
 
-## Rerun Gaia matching with tighter tolerance:
+## Rerun Gaia matching with tighter tolerance and fainter flux limit:
 new_mtol = 0.5
+slvh.gm.set_Gmag_limit(gmag_limit)
 mstars = slvh.register_catalogs_to_gaia(stars, new_mtol)  # matched
-
-prev_match_count = [len(x) for x in use_gstars.values()]
-this_match_count = [len(x) for x in     mstars.values()]
-sys.stderr.write("Previous Gaia matches: %s\n" % str(prev_match_count))
-sys.stderr.write("Current  Gaia matches: %s\n" % str(this_match_count))
 
 ## Update the Gaia-only arrays:
 all_gstars, use_gstars = {}, {}
 for qq,ss in mstars.items():
     all_gstars[qq] = ss[ss.gid > 0].copy()
     use_gstars[qq] = ss[ss.gid > 0].copy()
+
+## Freshen the match counts:
+prev_agst_count = agst_count
+this_agst_count = {qq:len(vv) for qq,vv in all_gstars.items()}
+#this_match_count = [len(x) for x in use_gstars.values()]
+sys.stderr.write("Previous Gaia matches: %s\n" % str(prev_agst_count))
+sys.stderr.write("Current  Gaia matches: %s\n" % str(this_agst_count))
+
+## Abort if any sensor has too few matches (solution compromised):
+min_gstars = 200
+fails_file = 'fails_detected.txt'
+for qq,gcount in this_agst_count.items():
+    if gcount < min_gstars:
+        sys.stderr.write("\nBAD SOLUTION DETECTED!\n")
+        sys.stderr.write("%s quadrant has too few Gaia matches (%d < %d).\n"
+                         % (qq, gcount, min_gstars))
+        sys.stderr.write("Abort processing!\n")
+        with open(fails_file, 'a') as ff:
+            ff.write("%s\n" % context.image)
+        sys.exit(0)
+
+#prev_match_count = [len(x) for x in use_gstars.values()]
+#this_match_count = [len(x) for x in     mstars.values()]
+#sys.stderr.write("Previous Gaia matches: %s\n" % str(prev_match_count))
+#sys.stderr.write("Current  Gaia matches: %s\n" % str(this_match_count))
+#sys.exit(0)
 
 ## Re-run minimization (now L-M):
 use_params = fixed_params.copy()
