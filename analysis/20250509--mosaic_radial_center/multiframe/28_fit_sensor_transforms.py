@@ -501,8 +501,8 @@ xf_guess = {
 qrun = '11AQ15'
 sensor = 'NW'
 quads_to_fit = ['NW', 'SE', 'SW']
-#qrun_batch = qrun_list
-qrun_batch = qrun_list[-3:]
+qrun_batch = qrun_list
+#qrun_batch = qrun_list[-3:]
 
 ## Attempt a solve with levmar ...
 #slvkw = {'method':'trf', 'xtol':1e-14, 'ftol':1e-14}
