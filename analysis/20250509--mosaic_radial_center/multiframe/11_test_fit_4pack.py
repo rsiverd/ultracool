@@ -8,13 +8,13 @@
 #
 # Rob Siverd
 # Created:       2026-01-13
-# Last modified: 2026-01-13
+# Last modified: 2026-05-05
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 ## Python version-agnostic module reloading:
 try:
@@ -27,10 +27,6 @@ except NameError:
 
 ## Modules:
 import argparse
-#import shutil
-#import resource
-#import signal
-#import glob
 import gc
 import os
 import sys
@@ -38,9 +34,6 @@ import time
 import copy
 import pprint
 #import pickle
-#import vaex
-#import calendar
-#import ephem
 import numpy as np
 #from numpy.lib.recfunctions import append_fields
 #import datetime as dt
@@ -62,14 +55,8 @@ import matplotlib.pyplot as plt
 #import matplotlib.collections as mcoll
 #import matplotlib.gridspec as gridspec
 from functools import partial
-#from collections import OrderedDict
-#from collections.abc import Iterable
-#import multiprocessing as mp
 #np.set_printoptions(suppress=True, linewidth=160)
 import pandas as pd
-#import statsmodels.api as sm
-#import statsmodels.formula.api as smf
-#from statsmodels.regression.quantile_regression import QuantReg
 #import theil_sen as ts
 #import window_filter as wf
 import itertools as itt

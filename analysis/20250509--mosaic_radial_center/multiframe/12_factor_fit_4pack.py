@@ -11,13 +11,13 @@
 #
 # Rob Siverd
 # Created:       2026-01-27
-# Last modified: 2026-04-28
+# Last modified: 2026-05-05
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 ## Python version-agnostic module reloading:
 try:
@@ -65,16 +65,8 @@ import matplotlib.pyplot as plt
 #import matplotlib.collections as mcoll
 #import matplotlib.gridspec as gridspec
 from functools import partial
-#from collections import OrderedDict
-#from collections.abc import Iterable
-#import multiprocessing as mp
 #np.set_printoptions(suppress=True, linewidth=160)
 import pandas as pd
-#import statsmodels.api as sm
-#import statsmodels.formula.api as smf
-#from statsmodels.regression.quantile_regression import QuantReg
-#import theil_sen as ts
-#import window_filter as wf
 import itertools as itt
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 

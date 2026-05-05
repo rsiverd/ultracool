@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:       2026-04-02
-# Last modified: 2026-04-02
+# Last modified: 2026-05-05
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -16,9 +16,6 @@ __version__ = "0.1.0"
 
 ## Modules:
 #import argparse
-#import shutil
-#import resource
-#import signal
 #import glob
 #import io
 #import gc
@@ -27,9 +24,6 @@ import sys
 import time
 #import pprint
 #import pickle
-#import vaex
-#import calendar
-#import ephem
 import numpy as np
 #from numpy.lib.recfunctions import append_fields
 #import datetime as dt
@@ -51,14 +45,8 @@ import numpy as np
 #import matplotlib.collections as mcoll
 #import matplotlib.gridspec as gridspec
 #from functools import partial
-#from collections import OrderedDict
-#from collections.abc import Iterable
-#import multiprocessing as mp
 #np.set_printoptions(suppress=True, linewidth=160)
 #import pandas as pd
-#import statsmodels.api as sm
-#import statsmodels.formula.api as smf
-#from statsmodels.regression.quantile_regression import QuantReg
 #import itertools as itt
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 

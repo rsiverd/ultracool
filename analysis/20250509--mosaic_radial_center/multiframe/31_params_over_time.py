@@ -42,8 +42,6 @@ except NameError:
 ## Modules:
 #import argparse
 #import shutil
-#import resource
-#import signal
 import glob
 #import io
 import gc
@@ -53,9 +51,6 @@ import sys
 import time
 import pprint
 #import pickle
-#import vaex
-#import calendar
-#import ephem
 import numpy as np
 #from numpy.lib.recfunctions import append_fields
 #import datetime as dt
@@ -77,19 +72,8 @@ import matplotlib.pyplot as plt
 #import matplotlib.collections as mcoll
 #import matplotlib.gridspec as gridspec
 #from functools import partial
-#from collections import OrderedDict
-#from collections.abc import Iterable
-#import multiprocessing as mp
 np.set_printoptions(suppress=True, linewidth=160)
 #import pandas as pd
-#import statsmodels.api as sm
-#import statsmodels.formula.api as smf
-#from statsmodels.regression.quantile_regression import QuantReg
-#import PIL.Image as pli
-#import seaborn as sns
-#import cmocean
-#import theil_sen as ts
-#import window_filter as wf
 #import itertools as itt
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 

@@ -28,8 +28,6 @@ except NameError:
 ## Modules:
 import argparse
 #import shutil
-#import resource
-#import signal
 #import glob
 import gc
 import os
@@ -62,16 +60,9 @@ import matplotlib.pyplot as plt
 #import matplotlib.collections as mcoll
 #import matplotlib.gridspec as gridspec
 from functools import partial
-#from collections import OrderedDict
-#from collections.abc import Iterable
-#import multiprocessing as mp
 #np.set_printoptions(suppress=True, linewidth=160)
 import pandas as pd
-#import statsmodels.api as sm
-#import statsmodels.formula.api as smf
-#from statsmodels.regression.quantile_regression import QuantReg
 #import theil_sen as ts
-#import window_filter as wf
 import itertools as itt
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
@@ -891,6 +882,9 @@ full_diag_data = squared_residuals_foc2ccd_rdist(fixed_params,
 #diag_data = diag_lstq
 #diag_data = orig_diag_data
 #diag_data = derot_diags
+
+sys.stderr.write("BAIL before reaching MCMC part ...\n")
+sys.exit(0)
 
 ## ----------------------------------------------------------------------- ##
 ## -----------------         MCMC Parameter Search          -------------- ##
