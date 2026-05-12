@@ -15,3 +15,22 @@ FINDINGS:
 The keywords noted above are populated with sensible values for the
 entire data set. This seems like a good starting point.
 
+-----------------------------------------------------------------------
+
+Useful external resources:
+* papers/CR-1A-users-manual-2009-12.pdf -- User guide / instructions for
+the Buck Research Instruments CR-1A Hygrometer. Appendix 1 provides
+conversion equations for a variety of meterological quantities, including
+dew point, vapor pressure, pressure, mixing ratios, absolute humidity, etc.
+From: https://www.hygrometers.com/wp-content/uploads/CR-1A-users-manual-2009-12.pdf
+* papers/WaterVapor.pdf -- water vapor notes from an Arizona atmospheres 
+class. This includes a variety of formulas for atmospheric quantities of
+interest and conversion factors among them.
+From: http://www.atmo.arizona.edu/students/courselinks/spring08/atmo336s1/courses/fall13/atmo551a/Site/ATMO_451a_551a_files/WaterVapor.pdf
+* papers/1981--Buck--New_vapor_pressure_and_enhancement_factor_equations.pdf --
+Journal article by Arden L Buck (1981) that seems to be very frequently cited 
+in meteorological products and in various books.
+* papers/2014--Sigismondi--Sun_figure_from_ground_based_experiments.pdf -- Conference
+proceedings from 2014 with description of the effect of atmospheric refraction on
+the appearance of the sun and other things.
+
