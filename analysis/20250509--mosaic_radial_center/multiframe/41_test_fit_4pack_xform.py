@@ -28,7 +28,7 @@ except NameError:
 ## Modules:
 import argparse
 #import shutil
-#import glob
+import glob
 import gc
 import os
 import sys
@@ -336,11 +336,34 @@ pathcols = [x for x in cat_table.keys() if 'path' in x]
 chosen = cat_table[matches]
 paths = [chosen[x].iloc[0] for x in pathcols]
 ne_fpath, nw_fpath, se_fpath, sw_fpath = paths
+qrunid = chosen.qrunid.iloc[0]
 
 ## Dictify input paths:
 quads = ['NE', 'NW', 'SE', 'SW']
 cpath = dict(zip(quads, paths))
 sensor_order = quads
+
+##--------------------------------------------------------------------------##
+##------------------        External Coord Solution         ----------------##
+##--------------------------------------------------------------------------##
+
+## Look for existing joint parameters:
+jpars_dir = 'joint_pars'
+if not os.path.isdir(jpars_dir):
+    sys.stderr.write("Error: folder not found: %s\n" % jpars_dir)
+    sys.exit(1)
+
+## Look for relevant file (J-band):
+ftag = 'J'
+par_flist = sorted(glob.glob('%s/jpars_%s_%s.txt' % (jpars_dir, qrunid, ftag)))
+if not par_flist:
+    sys.stderr.write("No parameters file found for QRUNID=%s!\n" % qrunid)
+    sys.exit(1)
+
+sys.exit(1)
+##--------------------------------------------------------------------------##
+##------------------        Detections and Metadata         ----------------##
+##--------------------------------------------------------------------------##
 
 ## Ensure presence of paths:
 if not all([os.path.isfile(x) for x in paths]):

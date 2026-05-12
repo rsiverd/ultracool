@@ -343,6 +343,15 @@ par_stack = np.dstack([get_cdm_crpix(raw_params[x]) for x in runid_list])
 ne_pstack, nw_pstack, se_pstack, sw_pstack = par_stack
 
 ##--------------------------------------------------------------------------##
+##------------------         Load fcat paths table          ----------------##
+##--------------------------------------------------------------------------##
+
+fcat_list = 'fcat_paths.csv'
+pdkwargs = {'skipinitialspace':True, 'low_memory':False}
+cat_table = pd.read_csv(fcat_list, **pdkwargs)
+
+
+##--------------------------------------------------------------------------##
 ##------------------         CRPIX Breakout/Diffs           ----------------##
 ##--------------------------------------------------------------------------##
 
@@ -444,7 +453,7 @@ for label in axs[-1,1].get_xticklabels():
 fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
 plt.draw()
 plot_name = 'delta_CRPIX_vs_QRUNID.png'
-fig.savefig(plot_name, bbox_inches='tight')
+#fig.savefig(plot_name, bbox_inches='tight')
 
 ##--------------------------------------------------------------------------##
 ##------------------         Sensor Orientations            ----------------##
@@ -505,7 +514,7 @@ pafig.align_ylabels()
 pafig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
 plt.draw()
 plot_name = 'PA_vs_QRUNID.png'
-pafig.savefig(plot_name, bbox_inches='tight')
+#pafig.savefig(plot_name, bbox_inches='tight')
 
 ##--------------------------------------------------------------------------##
 ##------------------         Some Other Stuff Later         ----------------##
