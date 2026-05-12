@@ -1,0 +1,10 @@
+
+# 110 mm Round Interference Filters (Wircam):
+https://www.cfht.hawaii.edu/Instruments/Filters/wircam.html
+
+# JHK WIRCam filters - CADC:
+https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/wirwolf/docs/filt.html
+
+# SVO Filter Profile Service - WIRCam
+http://svo2.cab.inta-csic.es/svo/theory/fps/index.php?id=CFHT/Wircam.H2
+
