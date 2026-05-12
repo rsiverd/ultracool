@@ -89,8 +89,12 @@ def calc_refr_TPWH(zd_obs_deg, temp_C, pressure_mbar, lam_nm, rel_hum_pct):
 #    """Returns refraction in arcseconds."""
 #    numer = 21.5 * pressure_mmhg
 
+def refr_multiplier(pressure_mbar=1010.0, temp_c=10.):
+    return pressure_mbar * 0.2802 / (273. + temp_c)
+
 def calc_refr_bennett(apparent_alt_deg, pressure_mbar=1010.0, temp_c=10.):
-    """Returns refraction angle in degrees."""
+    """Returns refraction angle in degrees. This correction is SUBTRACTED
+    from the apparent altitude to obtain the true altitude."""
     #if (apparent_alt_deg < -1.0) or (apparent_alt_deg > 89.9):
     #    return 0.0 * apparent_alt_deg
     #R_arcmin = np.zeros_like(apparent_alt_deg)
@@ -103,33 +107,55 @@ def calc_refr_bennett(apparent_alt_deg, pressure_mbar=1010.0, temp_c=10.):
     R_arcmin   = multiplier / np.tan(np.radians(tan_arg))
     if isinstance(apparent_alt_deg, np.ndarray):
         R_arcmin[apparent_alt_deg < -1.0] = 0.0
-        R_arcmin[apparent_alt_deg > 89.9] = 0.0
+        R_arcmin[apparent_alt_deg > 90.0] = 0.0
     return R_arcmin / 60.0
 
-# Test altitudes (degrees):
+# Saemundsson inverse refraction formula given true altitude:
+def calc_refr_inverse_saem(true_alt_deg, pressure_mbar=1010.0, temp_c=10.):
+    """Returns refraction angle in degrees. This correction is ADDED to
+    the true altitude to obtain the apparent altitude."""
+    tan_arg = true_alt_deg + (10.3 / (true_alt_deg + 5.11))
+    multiplier = pressure_mbar * 0.2802 / (273. + temp_c)
+    R_arcmin   = multiplier * 1.02 / np.tan(np.radians(tan_arg))
+    if isinstance(true_alt_deg, np.ndarray):
+        R_arcmin[true_alt_deg < -1.0] = 0.0
+        R_arcmin[true_alt_deg > 90.0] = 0.0
+    return R_arcmin / 60.0
+
+# Test altitudes (APPARENT, degrees):
 #trial_alt = np.arange(90)
-trial_alt = np.linspace(10, 90, 200)
+trial_app_alt_top = np.linspace(10, 90, 200)
+trial_app_alt_mid = trial_app_alt_top - half_diam_deg
+trial_app_alt_bot = trial_app_alt_mid - half_diam_deg
+
 
 # Fancy version:
-refr_mid_fancy_J = calc_refr_TPWH(90-trial_alt, 
+refr_mid_fancy_J = calc_refr_TPWH(90-trial_app_alt_mid, 
         nominal_temp_C, nominal_P_mbar, J_wlen, nominal_RH_pct)
-refr_mid_fancy_H = calc_refr_TPWH(90-trial_alt, 
+refr_mid_fancy_H = calc_refr_TPWH(90-trial_app_alt_mid, 
         nominal_temp_C, nominal_P_mbar, H2_wlen, nominal_RH_pct)
 
 # Top/mod/bot refraction (arcmin):
-refr_top = 60.0 * calc_refr_bennett(trial_alt + half_diam_deg)
-refr_mid = 60.0 * calc_refr_bennett(trial_alt)
-refr_bot = 60.0 * calc_refr_bennett(trial_alt - half_diam_deg)
+refr_top_deg = calc_refr_bennett(trial_app_alt_top)
+refr_mid_deg = calc_refr_bennett(trial_app_alt_mid)
+refr_bot_deg = calc_refr_bennett(trial_app_alt_bot)
 
 # ACTUAL altitude would be:
-true_alt_deg = trial_alt - (refr_mid / 60.)
+true_alt_deg = trial_app_alt_mid - refr_mid_deg
 
 
 # Differential refraction (arcsec and pixels)
-rdif_top_arcsec = 60*(refr_top - refr_mid)
-rdif_bot_arcsec = 60*(refr_bot - refr_mid)
+rdif_top_arcsec = 3600*(refr_top_deg - refr_mid_deg)
+rdif_bot_arcsec = 3600*(refr_mid_deg - refr_bot_deg)
 rdif_top_pixels = rdif_top_arcsec / wircam_pixscale
 rdif_bot_pixels = rdif_bot_arcsec / wircam_pixscale
+rel_refr_arcsec = rdif_top_arcsec - rdif_bot_arcsec
+rel_refr_pixels = rel_refr_arcsec / wircam_pixscale
+
+# Change in refraction-per-degree as a function of altitude:
+trial_app_alt_midpoints = 0.5*(trial_app_alt_mid[:-1] + trial_app_alt_mid[1:])
+delta_refr_mid = np.diff(3600*refr_mid_deg) / np.diff(trial_app_alt_mid)
+
 
 # Draw stuff:
 fig = plt.figure(1, figsize=(14,7))
@@ -138,12 +164,13 @@ ax1 = fig.add_subplot(121)
 ax2 = fig.add_subplot(122)
 ax1.grid(True)
 ax2.grid(True)
-ax1.plot(trial_alt, refr_mid)
+ax1.plot(trial_app_alt_mid, 60*refr_mid_deg)
 ax1.set_xlabel('Altitude [deg]')
 ax1.set_ylabel('Refraction [arcmin]')
-ax2.plot(trial_alt, rdif_top_pixels, label='top')
-ax2.plot(trial_alt, rdif_bot_pixels, label='bot')
+ax2.plot(trial_app_alt_mid, rdif_top_pixels, label='sensor top-mid')
+ax2.plot(trial_app_alt_mid, rdif_bot_pixels, label='sensor mid-bot')
 ax2.set_ylabel('Refraction offset [pix]')
+ax2.legend(loc='upper right')
 
 fig.tight_layout()
 
