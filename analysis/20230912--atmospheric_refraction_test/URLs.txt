@@ -1,0 +1,53 @@
+
+# USNO REFRAC routine lives in:
+aa.usno.navy.mil/software/novas/novas_f/NOVAS_F3.1.f
+
+# USNO NOVAS @ ASCL:
+https://ascl.net/1202.003
+https://ascl.net/assets/codes/NOVAS/NOVAS_Py-3.1.1.zip
+
+# -----------------------------------------------------------------------
+
+https://en.wikipedia.org/wiki/Atmospheric_pressure
+
+http://www.atmo.arizona.edu/students/courselinks/spring08/atmo336s1/courses/fall13/atmo551a/Site/ATMO_451a_551a_files/WaterVapor.pdf
+
+# Arden Buck equations:
+https://en.wikipedia.org/wiki/Arden_Buck_equation
+
+# New Equations for Computing Vapor Pressure and Enhancement Factor
+https://journals.ametsoc.org/view/journals/apme/20/12/1520-0450_1981_020_1527_nefcvp_2_0_co_2.xml
+https://journals.ametsoc.org/downloadpdf/view/journals/apme/20/12/1520-0450_1981_020_1527_nefcvp_2_0_co_2.pdf
+--> apme-1520-0450_1981_020_1527_nefcvp_2_0_co_2.pdf
+
+# CR-1A User's Manual (Buck Research):
+http://www.hygrometers.com/wp-content/uploads/CR-1A-users-manual-2009-12.pdf
+
+# Moist Air - Relative Humidity (Engineering Toolbox):
+https://www.engineeringtoolbox.com/relative-humidity-air-d_687.html
+
+# Moist Air - Water Vapor and Saturation Pressure (Engineering Toolbox):
+https://www.engineeringtoolbox.com/water-vapor-saturation-pressure-air-d_689.html
+
+# -----------------------------------------------------------------------
+
+# An accurate method for computing atmospheric refraction
+https://iopscience.iop.org/article/10.1086/133831
+
+# Exact Theory of astronomical refraction for the real atmosphere
+https://adsabs.harvard.edu/full/1995A%26AS..111..579Y
+
+# -----------------------------------------------------------------------
+# wild ...
+https://arxiv.org/pdf/1402.0497
+
+# Refraction Tables of Pulkovo Observatory:
+https://ui.adsabs.harvard.edu/abs/1985rtpo.book.....A/abstract
+
+# on the accuracy of the refraction tables of pulkovo observatory 5th ed
+https://adsabs.harvard.edu/full/1988AN....309..213K
+https://onlinelibrary.wiley.com/doi/10.1002/asna.2113090314
+https://onlinelibrary.wiley.com/doi/epdf/10.1002/asna.2113090314
+
+# Refraction Tables of Pulkovo Observatory
+https://www.semanticscholar.org/paper/Refraction-Tables-of-Pulkovo-Observatory.-Abalakin/81d93fc7f1cff6722cd9e92c981813a3b8d6a57c
