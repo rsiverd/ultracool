@@ -451,14 +451,17 @@ fig.savefig(plot_name, bbox_inches='tight')
 ##--------------------------------------------------------------------------##
 
 fig_dims = (11, 9)
-pafig, paaxs = plt.subplots(nrows=4, ncols=2, num=2, clear=True, figsize=fig_dims,
-                        sharex=True, squeeze=True)
+pafig, paaxs = plt.subplots(nrows=4, ncols=2, num=2, clear=True,
+                            figsize=fig_dims, sharex=True, squeeze=True)
 
-pa_arrays = [ne_cdinfo[:, 2], nw_cdinfo[:, 2], se_cdinfo[:, 2], sw_cdinfo[:, 2]]
-pa_naming = ['NE', 'NW', 'SE', 'SW']
+info_arrays = [ne_cdinfo, nw_cdinfo, se_cdinfo, sw_cdinfo]
+pa_arrays = np.array([info[:, 2] for info in info_arrays])
+
+#pa_arrays = [ne_cdinfo[:, 2], nw_cdinfo[:, 2], se_cdinfo[:, 2], sw_cdinfo[:, 2]]
+sensor_order = ['NE', 'NW', 'SE', 'SW']
 
 ## Plot the measured position angles:
-for ii,(pa,qq) in enumerate(zip(pa_arrays, pa_naming)):
+for ii,(pa,qq) in enumerate(zip(pa_arrays, sensor_order)):
     paaxs[ii,0].plot(runid_list, pa)
     paaxs[ii,0].set_ylabel("PA(%s) [deg]" % qq)
     paaxs[ii,0].grid(True)
@@ -467,7 +470,7 @@ for ii,(pa,qq) in enumerate(zip(pa_arrays, pa_naming)):
 
 ## Plot PA differences relative to NE:
 rhs_lims = [(-0.05, 0.05), (0.12205, 0.1670), (-0.08, 0.099), (0.129, 0.235)]
-for ii,(pa,qq) in enumerate(zip(pa_arrays, pa_naming)):
+for ii,(pa,qq) in enumerate(zip(pa_arrays, sensor_order)):
     pa_diff = pa - pa_arrays[0]
     paaxs[ii,1].plot(runid_list, pa_diff)
     paaxs[ii,1].set_ylabel("PA(%s) - PA(NE) [deg]" % qq)
