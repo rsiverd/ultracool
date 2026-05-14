@@ -35,6 +35,9 @@ cd -
 ./03_list_fcat_files.sh imdirs_11.txt
 ./03_list_fcat_files.sh imdirs_c1/imdirs_all.txt
 
+# 3a) Mine headers for downstream seasonal effects analysis:
+./04_mine_fcat_headers.sh fcat_paths.csv seasonal_data.csv
+
 # 4) Run the script:
 #./11_test_fit_4pack.py -L fcat_paths.csv -I wircam_H2_1325861p
 ./11_test_fit_4pack.py -L fcat_paths.csv -I wircam_J_1325839p
@@ -44,12 +47,21 @@ cd -
 # 5) Run the script (factored, iterative version):
 ./12_factor_fit_4pack.py -L fcat_paths.csv -I wircam_J_1333371p
 ./12_factor_fit_4pack.py -L fcat_paths.csv -I wircam_H2_2626495p -O tmp.pickle
+./12_factor_fit_4pack.py -L fcat_paths.csv -I wircam_J_2887486p -O tmp.pickle     # 23AQ21 ...
+
+# 5a) Testing refit ability:
+#./15_test_refit_sensor.py -L fcat_paths.csv -I wircam_J_2887486p -O tmp.pickle
 
 # 6) Test-process a whole RUNID:
 ./21_fit_4packs_to_RUNID.sh 11BQ02
 ./21_fit_4packs_to_RUNID.sh 16AQ14
 ./21_fit_4packs_to_RUNID.sh 17AQ07
 ./21_fit_4packs_to_RUNID.sh 21AQ18
+./21_fit_4packs_to_RUNID.sh 23AQ21
+./21_fit_4packs_to_RUNID.sh 18AQ15
+trouble=( 17AQ07 18AQ11 18AQ15 18BQ07 18BQ18 20BQ03 22BQ02 23AQ21 )
+for badfit in ${trouble[*]}; do       cmde "./21_fit_4packs_to_RUNID.sh $badfit"  ; done
+for badfit in ${trouble[*]}; do echo "cmde './21_fit_4packs_to_RUNID.sh $badfit'" ; done
 
 # 7) Process all of the RUNIDs (randomized, run a few):
 ./22_every_RUNID_4packs.sh --START
@@ -60,6 +72,22 @@ cd -
 ./23_fine_tune_RUNID_WCS.py -R 17AQ07
 ./23_fine_tune_RUNID_WCS.py -R 21AQ18
 ./23_fine_tune_RUNID_WCS.py -R 21AQ18 --Jonly
+./23_fine_tune_RUNID_WCS.py -R 23AQ21 --Jonly
+for badfit in ${trouble[*]}; do       cmde "./23_fine_tune_RUNID_WCS.py -R $badfit --Jonly"  ; done
+for badfit in ${trouble[*]}; do echo "cmde './23_fine_tune_RUNID_WCS.py -R $badfit --Jonly'" ; done
 
 # 9) Fine-tune everything:
 ./24_every_RUNID_finetune.sh --START
+
+-----------------------------------------------------------------------
+-----------------------------------------------------------------------
+
+# 10) Fit the sensor-to-sensor transforms from existing joint solutions:
+./28_fit_sensor_transforms.py
+
+-----------------------------------------------------------------------
+-----------------------------------------------------------------------
+
+# 10) Test-fit 4-sensor images with affine transform and single WCS
+./41_test_fit_4pack_xform.py -L fcat_paths.csv -I wircam_J_1325839p
+
