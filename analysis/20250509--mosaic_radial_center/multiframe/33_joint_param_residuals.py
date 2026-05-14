@@ -20,25 +20,18 @@
 # refraction and aberration correction would show up here.
 #   5) Optionally iterate over multiple QRUNIDs.
 #
+# NOTES:
+# * rather than iterate over QRUNIDs, I am going to load everything at
+# once using code already in 28_fit_sensor_transforms.py. This should fit
+# in memory without issues and provides a means of doing a GLOBAL examination
+# of residuals across all time so far.
+#
 # Rob Siverd
 # Created:       2026-05-14
 # Last modified: 2026-05-14
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
-
-## Logging setup:
-import logging
-#logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
-logger.setLevel(logging.INFO)
-
-## Python 2/3 compatibility (modules):
-#from __future__ import absolute_import, division, print_function
-
-#from builtins import *
 
 ## Current version:
 __version__ = "0.0.1"
@@ -69,26 +62,18 @@ except NameError:
     except ImportError:
         from imp import reload          # Python 3.0 - 3.3
 
-### Python version-agnostic module reloading (cute, 2.7+?):
-#import sys
-#reload = sys.modules['imp' if 'imp' in sys.modules else 'importlib'].reload
-
 ## Modules:
 #import argparse
 #import shutil
-#import resource
-#import signal
-#import glob
+import glob
 #import io
 import gc
 import os
+import ast
 import sys
 import time
 #import pprint
-#import pickle
-#import vaex
-#import calendar
-#import ephem
+import pickle
 import numpy as np
 #from numpy.lib.recfunctions import append_fields
 #import datetime as dt
@@ -109,22 +94,31 @@ import matplotlib.pyplot as plt
 #import matplotlib.colors as mplcolors
 #import matplotlib.collections as mcoll
 #import matplotlib.gridspec as gridspec
-#from functools import partial
+from functools import partial
 #from collections import OrderedDict
 #from collections.abc import Iterable
 #import multiprocessing as mp
-#np.set_printoptions(suppress=True, linewidth=160)
+np.set_printoptions(suppress=True, linewidth=160)
 #import pandas as pd
 #import statsmodels.api as sm
 #import statsmodels.formula.api as smf
 #from statsmodels.regression.quantile_regression import QuantReg
-#import PIL.Image as pli
-#import seaborn as sns
-#import cmocean
 #import theil_sen as ts
-#import window_filter as wf
-#import itertools as itt
+import itertools as itt
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
+
+## Coordinate solve helpers:
+import slv_helper
+reload(slv_helper)
+slvh = slv_helper
+
+## Solution parameter helpers:
+import slv_par_tools
+reload(slv_par_tools)
+spt = slv_par_tools
+quads = spt._quads
+
+
 
 ## Because obviously:
 #import warnings
@@ -141,58 +135,18 @@ _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
 
 ##--------------------------------------------------------------------------##
-## Projections with cartopy:
-#try:
-#    import cartopy.crs as ccrs
-#    from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
-#    from cartopy.feature.nightshade import Nightshade
-#    #from cartopy import config as cartoconfig
-#except ImportError:
-#    sys.stderr.write("Error: cartopy module not found!\n")
-#    sys.exit(1)
-
-##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
-#class Unbuffered(object):
-#   def __init__(self, stream):
-#       self.stream = stream
-#   def write(self, data):
-#       self.stream.write(data)
-#       self.stream.flush()
-#   def __getattr__(self, attr):
-#       return getattr(self.stream, attr)
-#
-#sys.stdout = Unbuffered(sys.stdout)
-#sys.stderr = Unbuffered(sys.stderr)
+class Unbuffered(object):
+   def __init__(self, stream):
+       self.stream = stream
+   def write(self, data):
+       self.stream.write(data)
+       self.stream.flush()
+   def __getattr__(self, attr):
+       return getattr(self.stream, attr)
 
-##--------------------------------------------------------------------------##
-
-### Process resources (see https://docs.python.org/3/library/resource.html)
-#unlimited = (resource.RLIM_INFINITY, resource.RLIM_INFINITY)
-#prettybig = (3e9, 6e9)    # 3 GB soft, 6 GB hard limit
-#if (resource.getrlimit(resource.RLIMIT_DATA) == unlimited):
-#    resource.setrlimit(resource.RLIMIT_DATA, prettybig)     # limit heap size
-#if (resource.getrlimit(resource.RLIMIT_AS) == unlimited):
-#    resource.setrlimit(resource.RLIMIT_AS, prettybig)       # address space
-
-## Memory management:
-#def get_memory():
-#    with open('/proc/meminfo', 'r') as mem:
-#        free_memory = 0
-#        for i in mem:
-#            sline = i.split()
-#            if str(sline[0]) in ('MemFree:', 'Buffers:', 'Cached:'):
-#                free_memory += int(sline[1])
-#    return free_memory
-#
-#def memory_limit():
-#    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
-#    resource.setrlimit(resource.RLIMIT_AS, (get_memory() * 1024 / 2, hard))
-
-### Measure memory used so far:
-#def check_mem_usage_MB():
-#    max_kb_used = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-#    return max_kb_used / 1000.0
+sys.stdout = Unbuffered(sys.stdout)
+sys.stderr = Unbuffered(sys.stderr)
 
 ##--------------------------------------------------------------------------##
 
@@ -221,25 +175,6 @@ def load_pickled_object(filename):
 #           "Please install and try again ...\n\n")
 #    sys.exit(1)
 
-## Home-brew KDE:
-#try:
-#    import my_kde
-#    reload(my_kde)
-#    mk = my_kde
-#except ImportError:
-#    logger.error("module my_kde not found!  Install and retry.")
-#    sys.stderr.write("\nError!  my_kde module not found!\n"
-#           "Please install and try again ...\n\n")
-#    sys.exit(1)
-
-## Fast FITS I/O:
-#try:
-#    import fitsio
-#except ImportError:
-#    logger.error("fitsio module not found!  Install and retry.")
-#    sys.stderr.write("\nError: fitsio module not found!\n")
-#    sys.exit(1)
-
 ## Various from astropy:
 #try:
 #    import astropy.io.ascii as aia
@@ -255,16 +190,6 @@ def load_pickled_object(filename):
 #    logger.error("astropy module not found!  Install and retry.")
 #    sys.stderr.write("\nError: astropy module not found!\n")
 #    sys.exit(1)
-
-## Star extraction:
-#try:
-#    import easy_sep
-#    reload(easy_sep)
-#except ImportError:
-#    logger.error("easy_sep module not found!  Install and retry.")
-#    sys.stderr.write("Error: easy_sep module not found!\n\n")
-#    sys.exit(1)
-#pse = easy_sep.EasySEP()
 
 ##--------------------------------------------------------------------------##
 ## Colors for fancy terminal output:
@@ -294,39 +219,6 @@ degree_sign = u'\N{DEGREE SIGN}'
 ## Dividers:
 halfdiv = '-' * 40
 fulldiv = '-' * 80
-
-##--------------------------------------------------------------------------##
-## Catch interruption cleanly:
-#def signal_handler(signum, frame):
-#    sys.stderr.write("\nInterrupted!\n\n")
-#    sys.exit(1)
-#
-#signal.signal(signal.SIGINT, signal_handler)
-
-##--------------------------------------------------------------------------##
-## Save FITS image with clobber (astropy / pyfits):
-#def qsave(iname, idata, header=None, padkeys=1000, **kwargs):
-#    this_func = sys._getframe().f_code.co_name
-#    parent_func = sys._getframe(1).f_code.co_name
-#    sys.stderr.write("Writing to '%s' ... " % iname)
-#    if header:
-#        while (len(header) < padkeys):
-#            header.append() # pad header
-#    if os.path.isfile(iname):
-#        os.remove(iname)
-#    pf.writeto(iname, idata, header=header, **kwargs)
-#    sys.stderr.write("done.\n")
-
-##--------------------------------------------------------------------------##
-## Save FITS image with clobber (fitsio):
-#def qsave(iname, idata, header=None, **kwargs):
-#    this_func = sys._getframe().f_code.co_name
-#    parent_func = sys._getframe(1).f_code.co_name
-#    sys.stderr.write("Writing to '%s' ... " % iname)
-#    #if os.path.isfile(iname):
-#    #    os.remove(iname)
-#    fitsio.write(iname, idata, clobber=True, header=header, **kwargs)
-#    sys.stderr.write("done.\n")
 
 ##--------------------------------------------------------------------------##
 def ldmap(things):
@@ -431,67 +323,118 @@ def argnear(vec, val):
 #    context.prog_name = prog_name
 #
 ##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
+## Extract RUNID from filename:
+def runid_from_filename(filename):
+    return os.path.basename(filename).split('_')[1]
+
+## Extract observing year from RUNID:
+def year_from_runid(runid):
+    return int(runid[:2])
+
+## Load parameter set from file:
+def load_parameters(filename):
+    with open(filename, 'r') as fff:
+        return ast.literal_eval(fff.read())
+
+## Extract CD matrix and CRPIX from parameter list:
+def get_cdm_crpix(parameters):
+    return np.array(parameters[:24]).reshape(4, -1)
 
 ##--------------------------------------------------------------------------##
-## New-style string formatting (more at https://pyformat.info/):
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
 
-#oldway = '%s %s' % ('one', 'two')
-#newway = '{} {}'.format('one', 'two')
+## List of available J-only joint parameter files:
+par_flist = sorted(glob.glob('joint_pars/jpars_??????_J.txt'))
+par_runid = [runid_from_filename(x) for x in par_flist]
+par_files = dict(zip(par_runid, par_flist))
 
-#oldway = '%d %d' % (1, 2)
-#newway = '{} {}'.format(1, 2)
+## Clean these out based on year/semester:
+ythresh = 99
+keepers = {}
+for rr,fname in par_files.items():
+    if year_from_runid(rr) <= ythresh:
+    #if year_from_runid(rr) >= ythresh:
+        keepers[rr] = fname
+par_files = keepers
 
-# With padding:
-#oldway = '%10s' % ('test',)        # right-justified
-#newway = '{:>10}'.format('test')   # right-justified
-#oldway = '%-10s' % ('test',)       #  left-justified
-#newway = '{:10}'.format('test')    #  left-justified
+## Load those files:
+#jnt_params = {kk:load_parameters(vv) for kk,vv in par_files.items()}
+jnt_params = {}
+jnt_inames = {}
+for runid,fname in par_files.items():
+    jnt_params[runid], jnt_inames[runid] = load_parameters(fname)
 
-# Ordinally:
-#newway = '{1} {0}'.format('one', 'two')     # prints "two one"
-
-# Dictionarily:
-#newway = '{lastname}, {firstname}'.format(firstname='Rob', lastname='Siverd')
-
-# Centered (new-only):
-#newctr = '{:^10}'.format('test')      # prints "   test   "
-
-# Numbers:
-#oldway = '%06.2f' % (3.141592653589793,)
-#newway = '{:06.2f}'.format(3.141592653589793)
+qrun_list = list(jnt_params.keys())
 
 ##--------------------------------------------------------------------------##
-## On-the-fly file modifications:
-#def fix_hashes(filename):
-#    with open(filename, 'r') as ff:
-#        for line in ff:
-#            if line.startswith('#'):
-#                if ('=' in line):
-#                    continue                # param, ignore
-#                else:
-#                    yield line.lstrip('#')  # header, keep
-#            else:
-#                yield line
-#
-#file_like = io.StringIO("".join(fix_hashes(filename)))  # for pandas
+##------------------         Load Pickled Catalogs          ----------------##
+##--------------------------------------------------------------------------##
 
-#def analyze_header(filename):
-#    skip_rows = 0
-#    col_names = []
-#    with open(filename, 'r') as ff:
-#        for line in ff:
-#            if line.startswith('#'):
-#                skip_rows += 1
-#                if ('=' in line):
-#                    continue
-#                else:
-#                    hline = line.rstrip()
-#                    col_names = hline.lstrip('#').split()
-#                    continue
-#            else:
-#                #sys.stderr.write("Found data ... stopping.\n")
-#                break
-#    return skip_rows, col_names
+## Only keep columns from gstars we actually use to save space:
+gstcols = ['x', 'y', 'flux', 'flag',
+           'fwhm', 'dumbsnr', 'realerr', 'gid', 'gra', 'gde']
+
+## Iterate over QRUNIDs in use:
+all_data = {}       # diags data from single-image best-fit (not used)
+all_gstr = {}       # star catalog with updated Gaia matches
+all_pars = {}       # initial, single-image best-fit parameters (not used)
+for qrun in qrun_list:
+    qrun_data, qrun_gstr, qrun_pars = {}, {}, {}    # per-QRUNID of above
+    qrun_dir = 'results/%s' % qrun
+    sys.stderr.write("qrun: %s\n" % qrun)
+    sys.stderr.write("qrun_dir: %s\n" % qrun_dir)
+    if not os.path.isdir(qrun_dir):
+        sys.stderr.write("Error: folder not found: %s\n" % qrun_dir)
+        sys.exit(1)
+    #pickles = ['{}/{}.pickle'.format(qrun_dir, x) for x in jnt_inames[qrun]]
+    use_pickles = {x:qrun_dir+'/'+x+'.pickle' for x in jnt_inames[qrun]}
+    if not all([os.path.isfile(x) for x in use_pickles.values()]):
+        sys.stderr.write("Error: pickled catalog(s) missing ...\n")
+        sys.exit(1)
+    # Load pickles:
+    for pbase,ppath in use_pickles.items():
+        _gstr, _data, _pars = load_pickled_object(ppath)
+        trim_gstr = {qq:gg[gstcols].copy() for qq,gg in _gstr.items()}
+        #qrun_gstr[pbase] = _gstr
+        #qrun_gstr[pbase] = _gstr[gstcols].copy()    # keep useful columns
+        qrun_gstr[pbase] = trim_gstr
+        #qrun_data[pbase] = _data
+        qrun_pars[pbase] = _pars
+    # Stash finished dictionaries:
+    all_gstr[qrun] = qrun_gstr
+    #all_data[qrun] = qrun_data
+    all_pars[qrun] = qrun_pars
+    del qrun_gstr, qrun_data, qrun_pars
+    del _gstr, _data, _pars
+
+## Old all_gstr (full size): ~11.9 GiB
+## New trim_gstr (useful cols): ~2.0 GiB
+
+gcounts = {}
+gc_avgs = {}
+gc_meds = {}
+for qrunid,dataset in all_gstr.items():
+    imqstars = {img:{qq:len(cat) for qq,cat in vvv.items()} \
+            for img,vvv in dataset.items()}
+    gcounts[qrunid] = imqstars
+    avgcount = np.mean([list(x.values()) for x in imqstars.values()], axis=0)
+    medcount = np.median([list(x.values()) for x in imqstars.values()], axis=0)
+    gc_avgs[qrunid] = dict(zip(spt._quads, avgcount))
+    gc_meds[qrunid] = dict(zip(spt._quads, medcount))
+    pass
+
+
+##--------------------------------------------------------------------------##
+## Work an example ...
+working = qrun_list[:1]
+for qrun in working:
+
+    # Confusingly, 
+    pass
 
 ##--------------------------------------------------------------------------##
 ## Quick ASCII I/O:
