@@ -73,7 +73,7 @@ import matplotlib.pyplot as plt
 #import matplotlib.gridspec as gridspec
 #from functools import partial
 np.set_printoptions(suppress=True, linewidth=160)
-#import pandas as pd
+import pandas as pd
 #import itertools as itt
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
@@ -343,13 +343,113 @@ par_stack = np.dstack([get_cdm_crpix(raw_params[x]) for x in runid_list])
 ne_pstack, nw_pstack, se_pstack, sw_pstack = par_stack
 
 ##--------------------------------------------------------------------------##
-##------------------         Load fcat paths table          ----------------##
+##------------------         Load fcats and seasonal        ----------------##
 ##--------------------------------------------------------------------------##
 
+## Coordinates:
+cfht_latNdeg =   19.825252
+cfht_lonEdeg = -155.468876
+
+## Files:
 fcat_list = 'fcat_paths.csv'
+season_data = 'seasonal_data.csv'
+
+## Load the fcat table:
+sys.stderr.write("Loading %s ... " % fcat_list)
 pdkwargs = {'skipinitialspace':True, 'low_memory':False}
 cat_table = pd.read_csv(fcat_list, **pdkwargs)
 
+## Load the seasonal data:
+sys.stderr.write("%s ... " % season_data)
+seasonal = pd.read_csv(season_data, **pdkwargs)
+sys.stderr.write("done.\n")
+
+##--------------------------------------------------------------------------##
+##------------------       Deal with LST/HA and similar     ----------------##
+##--------------------------------------------------------------------------##
+
+twopi = 2.0 * np.pi
+
+## Convert HHMMSS.SS to degrees:
+def hms2deg(hmstxt):
+    th, tm, ts = hmstxt.split(':')
+    is_neg = hmstxt.startswith('-')
+    mm = float(ts) / 60.0 + float(tm)
+    hh = float(th) - mm/60. if is_neg else float(th) + mm/60.
+    return 15.0*hh
+
+## This works because LST doesn't get close to 360 ...
+lst1 = np.array([hms2deg(x) for x in seasonal.SIDTIME])
+lst2 = np.array([hms2deg(x) for x in seasonal.LSTEND])
+lst_deg = 0.5 * (lst1 + lst2)
+
+## HA is +/- and doesn't wrap, also OK for this method:
+ha1 = np.array([hms2deg(x) for x in seasonal.HA])
+ha2 = np.array([hms2deg(x) for x in seasonal.HAEND])
+ha_deg = 0.5 * (ha1 + ha2)
+
+## Compute parallactic angle:
+#r_dec = np.radians(seasonal.CRVAL2 - 20)
+r_dec = np.radians(seasonal.CRVAL2)
+numer = np.sin(np.radians(ha_deg))
+denom = np.tan(np.radians(cfht_latNdeg)) * np.cos(r_dec) \
+        - np.sin(r_dec) * np.cos(np.radians(ha_deg))
+#parang_rad = np.arctan2(numer, denom)
+parang_rad = np.arctan2(numer, denom) % twopi
+#parang_rad = np.arctan(numer / denom)
+parang_deg = np.degrees(parang_rad)
+seasonal['PARANG'] = parang_deg
+
+##--------------------------------------------------------------------------##
+##------------------         Mean/stddev of parameters      ----------------##
+##--------------------------------------------------------------------------##
+
+## Compute per-RUNID averages and stddevs for various seasonal quantities:
+## 'MCTR_RA', 'MCTR_DEC'
+statcols = ['JDTDB', 'AIRMASS', 'TELALT', 'TELAZ', 'CRVAL1', 'CRVAL2',
+            'OBS_X', 'OBS_Y', 'OBS_Z', 'OBS_VX', 'OBS_VY', 'OBS_VZ', 'PARANG']
+rstats = {}
+for runid,imlist in raw_inames.items():
+    subset = seasonal[seasonal.qrunid == runid]
+    things = {}
+    for col in statcols:
+        #things[col] = {'avg':np.average(subset[col]),
+        #               'med':np.median(subset[col]),
+        #               'std':np.std(subset[col])}
+        #sys.stderr.write("avg %s : %f\n" % (col, np.average(subset[col])))
+        #sys.stderr.write("std %s : %f\n" % (col, np.std(subset[col])))
+        things[col] = (np.average(subset[col]), np.std(subset[col]))
+    rstats[runid] = things
+    pass
+
+##--------------------------------------------------------------------------##
+##------------------         Seasonal Helper Routines       ----------------##
+##--------------------------------------------------------------------------##
+
+## RA/Dec to Cartesian:
+def rade2xyz(rad_ra, rad_de):
+    x = np.cos(rad_de) * np.cos(rad_ra)
+    y = np.cos(rad_de) * np.sin(rad_ra)
+    z = np.sin(rad_de)
+    return np.vstack((x, y, z))
+
+## Convert Cartesian points to RA, Dec:
+def xyz2equ(xyz_pts):
+    # Shape/dimension sanity check:
+    if ((xyz_pts.ndim != 2) or (xyz_pts.shape[0] != 3)):
+        sys.stderr.write("XYZ points have wrong shape!\n")
+        return (0,0)
+    tx = np.array(xyz_pts[0]).flatten()
+    ty = np.array(xyz_pts[1]).flatten()
+    tz = np.array(xyz_pts[2]).flatten()
+    ra = np.arctan2(ty, tx)
+    de = np.arcsin(tz)
+    equ_coo = np.vstack((ra, de))
+    return equ_coo
+
+## Vector length:
+def veclen(vec):
+    return np.sqrt(np.sum(vec*vec, axis=0))
 
 ##--------------------------------------------------------------------------##
 ##------------------         CRPIX Breakout/Diffs           ----------------##
@@ -392,129 +492,231 @@ se_cdinfo =  np.array([analyze(x) for x in se_pstack[:4].T])
 sw_cdinfo =  np.array([analyze(x) for x in sw_pstack[:4].T])
 
 ##--------------------------------------------------------------------------##
-_FIXED_LIMITS = True
-#_FIXED_LIMITS = False
+## Reorder the CDxx according to various seasonal parameters ...
+cd11 = par_stack[0,0,:]
+cd22 = par_stack[0,3,:]
 
+## Averages of everything:
+rstats_runid_order = {ss:np.array([rstats[rr][ss][0] for rr in runid_list]) \
+                                                        for ss in statcols}
+## Order by fractional year:
+j2k_epoch = 2451545.0
+rst_jdtdb = rstats_runid_order['JDTDB']
+rst_yfrac = (rst_jdtdb - j2k_epoch) % 365.25
+yfr_order = np.argsort(rst_yfrac)
+#cd11_yfr  = cd11[yfr_order]
+
+## Order by azimuth:
+rst_telaz = rstats_runid_order['TELAZ']
+azm_order = np.argsort(rst_telaz)
+
+## Order by altitude:
+rst_altit = rstats_runid_order['TELALT']
+alt_order = np.argsort(rst_altit)
+
+## Order by parallactic angle:
+rst_paran = rstats_runid_order['PARANG']
+par_order = np.argsort(rst_paran)
+
+## XYZ position and velocity vectors:
+xyzpos = np.column_stack([rstats_runid_order[x] \
+                        for x in ['OBS_X', 'OBS_Y', 'OBS_Z']])
+xyzvel = np.column_stack([rstats_runid_order[x] \
+                        for x in ['OBS_VX', 'OBS_VY', 'OBS_VZ']])
+rtotal = np.sum(xyzpos**2, axis=1)**0.5
+vtotal = np.sum(xyzvel**2, axis=1)**0.5
+u_xyzvel = xyzvel / veclen(xyzvel.T)[:, None]
+
+## What are the XYZ coordinates of the nominal pointing RA/Dec?
+avg_ra_rad = np.radians(np.average(rstats_runid_order['CRVAL1']))
+avg_de_rad = np.radians(np.average(rstats_runid_order['CRVAL2']))
+calib1_xyz = np.squeeze(rade2xyz(avg_ra_rad, avg_de_rad))
+
+## What is the angle between Earth's velocity and that pointing?
+## Use theta = np.arccos(A dot B):
+vdotcalib1 = np.degrees(np.arccos([np.dot(calib1_xyz, x) for x in u_xyzvel]))
+
+## Order by vdotcalib1:
+vel_order = np.argsort(vdotcalib1)
+
+##--------------------------------------------------------------------------##
+#_FIXED_LIMITS = True
+_FIXED_LIMITS = False
+
+
+#axs[4,0].plot(runid_list, par_stack[0,0,:])
+#axs[4,1].plot(runid_list, par_stack[0,3,:])
+
+figtrans = True
+figtrans = False
 #plt.style.use('bmh')   # Bayesian Methods for Hackers style
 fig_dims = (11, 9)
 #fig = plt.figure(1, figsize=fig_dims)
 #plt.gcf().clf()
-fig, axs = plt.subplots(nrows=5, ncols=2, num=1, clear=True, figsize=fig_dims,
-                        sharex=True, squeeze=True)
+fg1, axs1 = plt.subplots(nrows=4, ncols=2, num=1, clear=True, figsize=fig_dims,
+#fig, axs = plt.subplots(nrows=2, ncols=6, num=1, clear=True, figsize=fig_dims,
+                        sharex=False, squeeze=True)
 
-for ax in axs.ravel():
+def fts(cc,rr):
+    if figtrans:
+        return rr,cc
+    return cc,rr
+
+for ax in axs1.ravel():
     ax.grid(True)
 
-axs[0,0].plot(runid_list, ne_nw_dx)
-axs[0,0].set_ylabel("CRPIX1 (NE - NW)")
-axs[0,1].plot(runid_list, ne_nw_dy)
-axs[0,1].set_ylabel("CRPIX2 (NE - NW)")
-if _FIXED_LIMITS:
-    axs[0,0].set_ylim(2183.5, 2184.15)
-    axs[0,1].set_ylim(-8.9, -7.4)
+i = 0
+axs1[fts(i,0)].scatter(rst_yfrac[yfr_order], cd11[yfr_order])
+axs1[fts(i,0)].set_ylabel("CD11")
+axs1[fts(i,0)].set_xlabel("Day of year")
+axs1[fts(i,1)].scatter(rst_yfrac[yfr_order], cd22[yfr_order])
+axs1[fts(i,1)].set_ylabel("CD22")
+axs1[fts(i,1)].set_xlabel("Day of year")
+#if _FIXED_LIMITS:
+#    axs1[0,0].set_ylim(2183.5, 2184.15)
+#    axs1[0,1].set_ylim(-8.9, -7.4)
 
-axs[1,0].plot(runid_list, ne_se_dx)
-axs[1,0].set_ylabel("CRPIX1 (NE - SE)")
-axs[1,1].plot(runid_list, ne_se_dy)
-axs[1,1].set_ylabel("CRPIX2 (NE - SE)")
-if _FIXED_LIMITS:
-    axs[1,0].set_ylim(-4.2, 1.2)
-    axs[1,1].set_ylim(-2194.4, -2192.3)
+i += 1
+axs1[fts(i,0)].scatter(vdotcalib1[vel_order], cd11[vel_order])
+axs1[fts(i,0)].set_ylabel("CD11")
+axs1[fts(i,0)].set_xlabel("$v_E \cdot RA/DE$")
+axs1[fts(i,1)].scatter(vdotcalib1[vel_order], cd22[vel_order])
+axs1[fts(i,1)].set_ylabel("CD22")
+axs1[fts(i,1)].set_xlabel("$v_E \cdot RA/DE$")
+#if _FIXED_LIMITS:
+#    axs1[1,0].set_ylim(2186.9, 2190.9)
+#    axs1[1,1].set_ylim(-12.8, -10.6)
 
-axs[2,0].plot(runid_list, se_sw_dx)
-axs[2,0].set_ylabel("CRPIX1 (SE - SW)")
-axs[2,1].plot(runid_list, se_sw_dy)
-axs[2,1].set_ylabel("CRPIX2 (SE - SW)")
-if _FIXED_LIMITS:
-    axs[2,0].set_ylim(2186.9, 2190.9)
-    axs[2,1].set_ylim(-12.8, -10.6)
+#i += 1
+#axs1[fts(i,0)].scatter(rst_telaz[azm_order], cd11[azm_order])
+#axs1[fts(i,0)].set_ylabel("CD11")
+#axs1[fts(i,0)].set_xlabel("TELAZ (deg)")
+#axs1[fts(i,1)].scatter(rst_telaz[azm_order], cd22[azm_order])
+#axs1[fts(i,1)].set_ylabel("CD22")
+#axs1[fts(i,1)].set_xlabel("TELAZ (deg)")
+##if _FIXED_LIMITS:
+##    axs1[2,0].set_ylim(-4.2, 1.2)
+##    axs1[2,1].set_ylim(-2194.4, -2192.3)
 
-axs[3,0].plot(runid_list, nw_sw_dx)
-axs[3,0].set_ylabel("CRPIX1 (NW - SW)")
-axs[3,1].plot(runid_list, nw_sw_dy)
-axs[3,1].set_ylabel("CRPIX2 (NW - SW)")
-if _FIXED_LIMITS:
-    axs[3,0].set_ylim(-4.2, 1.0)
-    axs[3,1].set_ylim(-2194.4, -2192.2)
+#i += 1
+#axs1[fts(i,0)].scatter(rst_altit[alt_order], cd11[alt_order])
+#axs1[fts(i,0)].set_ylabel("CD11")
+#axs1[fts(i,0)].set_xlabel("TELALT (deg)")
+#axs1[fts(i,1)].scatter(rst_altit[alt_order], cd22[alt_order])
+#axs1[fts(i,1)].set_ylabel("CD22")
+#axs1[fts(i,1)].set_xlabel("TELALT (deg)")
+##if _FIXED_LIMITS:
+##    axs1[3,0].set_ylim(-4.2, 1.2)
+##    axs1[3,1].set_ylim(-2194.4, -2192.3)
 
-axs[4,0].plot(runid_list, par_stack[0,0,:])
-axs[4,1].plot(runid_list, par_stack[0,3,:])
-if _FIXED_LIMITS:
-    axs[4,0].set_ylim(-8.5105e-5, -8.5075e-5)
-    axs[4,1].set_ylim(8.5015e-5, 8.5105e-5)
+i += 1
+axs1[fts(i,0)].scatter(rst_paran[par_order], cd11[par_order])
+axs1[fts(i,0)].set_ylabel("CD11")
+axs1[fts(i,0)].set_xlabel("PARANG (deg)")
+axs1[fts(i,1)].scatter(rst_paran[par_order], cd22[par_order])
+axs1[fts(i,1)].set_ylabel("CD22")
+axs1[fts(i,1)].set_xlabel("PARANG (deg)")
+#if _FIXED_LIMITS:
+#    axs[3,0].set_ylim(-4.2, 1.2)
+#    axs[3,1].set_ylim(-2194.4, -2192.3)
 
-for label in axs[-1,0].get_xticklabels():
+#axs[3,0].plot(runid_list, nw_sw_dx)
+#axs[3,0].set_ylabel("CRPIX1 (NW - SW)")
+#axs[3,1].plot(runid_list, nw_sw_dy)
+#axs[3,1].set_ylabel("CRPIX2 (NW - SW)")
+#if _FIXED_LIMITS:
+#    axs[3,0].set_ylim(-4.2, 1.0)
+#    axs[3,1].set_ylim(-2194.4, -2192.2)
+
+axs1[fts(-1,0)].plot(runid_list, par_stack[0,0,:])
+axs1[fts(-1,1)].plot(runid_list, par_stack[0,3,:])
+if _FIXED_LIMITS:
+    axs1[-1,0].set_ylim(-8.5105e-5, -8.5075e-5)
+    axs1[-1,1].set_ylim(8.5015e-5, 8.5105e-5)
+
+for label in axs1[fts(-1,0)].get_xticklabels():
     label.set_rotation(90)
     label.set_fontsize(8) 
-for label in axs[-1,1].get_xticklabels():
+for label in axs1[fts(-1,1)].get_xticklabels():
     label.set_rotation(90)
     label.set_fontsize(8) 
 
-fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
+fg1.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
 plt.draw()
-plot_name = 'delta_CRPIX_vs_QRUNID.png'
-#fig.savefig(plot_name, bbox_inches='tight')
+plot_name = 'seasonal_CD11_CD22.png'
+fg1.savefig(plot_name, bbox_inches='tight')
+
 
 ##--------------------------------------------------------------------------##
 ##------------------         Sensor Orientations            ----------------##
 ##--------------------------------------------------------------------------##
 
 fig_dims = (11, 9)
-pafig, paaxs = plt.subplots(nrows=4, ncols=2, num=2, clear=True, figsize=fig_dims,
-                        sharex=True, squeeze=True)
+fg2, anaxs = plt.subplots(nrows=3, ncols=2, num=2, clear=True, 
+                            figsize=fig_dims, sharex=True, squeeze=True)
 
-pa_arrays = [ne_cdinfo[:, 2], nw_cdinfo[:, 2], se_cdinfo[:, 2], sw_cdinfo[:, 2]]
-pa_naming = ['NE', 'NW', 'SE', 'SW']
+info_arrays = [ne_cdinfo, nw_cdinfo, se_cdinfo, sw_cdinfo]
+xs_arrays = np.array([info[:, 0] for info in info_arrays])
+ys_arrays = np.array([info[:, 1] for info in info_arrays])
+pa_arrays = np.array([info[:, 2] for info in info_arrays])
+sk_arrays = np.array([info[:, 3] for info in info_arrays])
+#pa_arrays = [ne_cdinfo[:, 2], nw_cdinfo[:, 2],
+#             se_cdinfo[:, 2], sw_cdinfo[:, 2]]
+#pa_arrays = [ne_cdinfo[:, 0], nw_cdinfo[:, 0],
+#             se_cdinfo[:, 2], sw_cdinfo[:, 2]]
+
+sensor_order = ['NE', 'NW', 'SE', 'SW']
+
+mas_per_deg = 3.6e6
+scale_lims = (306.1, 306.45)
+
+## Plot the X-scales:
+for ii,(xs,qq) in enumerate(zip(xs_arrays, sensor_order)):
+    anaxs[0,0].plot(runid_list, mas_per_deg*xs, label=qq)
+    anaxs[0,0].set_ylabel("X-scale")
+    anaxs[0,0].grid(True)
+    anaxs[0,0].set_ylim(*scale_lims)
+
+## Plot the Y-scales:
+for ii,(ys,qq) in enumerate(zip(ys_arrays, sensor_order)):
+    anaxs[0,1].plot(runid_list, mas_per_deg*ys, label=qq)
+    anaxs[0,1].set_ylabel("Y-scale")
+    anaxs[0,1].grid(True)
+    anaxs[0,1].set_ylim(*scale_lims)
 
 ## Plot the measured position angles:
-for ii,(pa,qq) in enumerate(zip(pa_arrays, pa_naming)):
-    paaxs[ii,0].plot(runid_list, pa)
-    paaxs[ii,0].set_ylabel("PA(%s) [deg]" % qq)
-    paaxs[ii,0].grid(True)
-    if _FIXED_LIMITS:
-        paaxs[ii,0].set_ylim(-0.25, 0.78)
+for ii,(pa,qq) in enumerate(zip(pa_arrays, sensor_order)):
+    anaxs[1,0].plot(runid_list, pa, label=qq)
+    anaxs[1,0].set_ylabel("Y-axis PA [deg]")
+    anaxs[1,0].grid(True)
+    anaxs[1,0].set_ylim(-0.35, 1.05)
+    anaxs[1,0].legend(loc='upper left')
 
-## Plot PA differences relative to NE:
-rhs_lims = [(-0.05, 0.05), (0.12205, 0.1670), (-0.08, 0.099), (0.129, 0.235)]
-for ii,(pa,qq) in enumerate(zip(pa_arrays, pa_naming)):
-    pa_diff = pa - pa_arrays[0]
-    paaxs[ii,1].plot(runid_list, pa_diff)
-    paaxs[ii,1].set_ylabel("PA(%s) - PA(NE) [deg]" % qq)
-    paaxs[ii,1].grid(True)
-    if _FIXED_LIMITS:
-        paaxs[ii,1].set_ylim(*rhs_lims[ii])
+## Plot the measured axis skews:
+for ii,(sk,qq) in enumerate(zip(sk_arrays, sensor_order)):
+    anaxs[1,1].plot(runid_list, sk, label=qq)
+    anaxs[1,1].set_ylabel("X-Y skew")
+    anaxs[1,1].grid(True)
 
-#paaxs[0,0].plot(runid_list, ne_cdinfo[:, 2]) # position angle
-#paaxs[0,0].set_ylabel("NE PA [deg]")
-#
-#paaxs[1,0].plot(runid_list, nw_cdinfo[:, 2]) # position angle
-#paaxs[1,0].set_ylabel("NW PA [deg]")
-#
-#paaxs[2,0].plot(runid_list, se_cdinfo[:, 2]) # position angle
-#paaxs[2,0].set_ylabel("SE PA [deg]")
-#
-#paaxs[3,0].plot(runid_list, sw_cdinfo[:, 2]) # position angle
-#paaxs[3,0].set_ylabel("SW PA [deg]")
+## Plot the measured axis skews:
+for ii,(sr,qq) in enumerate(zip(xs_arrays/ys_arrays-1, sensor_order)):
+    anaxs[2,0].plot(runid_list, sr, label=qq)
+    anaxs[2,0].set_ylabel("(X-scale / Y-scale) - 1")
+    anaxs[2,0].grid(True)
 
-## PA differences:
-#for ii,pa2 in enumerate([ne_cdinfo[:, 2], nw_cdinfo[:, 2],
-#                         se_cdinfo[:, 2], sw_cdinfo[:, 2]):
-#    delta_PA = 
-#paaxs[0,1].plot(runid_list, ne_cdinfo[:, 2] - )
-#paaxs[0,1].set_ylabel("CRPIX2 (NE - NW)")
-
-for label in paaxs[-1,0].get_xticklabels():
+## Fix QRUNID labels:
+for label in anaxs[-1,0].get_xticklabels():
     label.set_rotation(90)
     label.set_fontsize(8)
-for label in paaxs[-1,1].get_xticklabels():
+for label in anaxs[-1,1].get_xticklabels():
     label.set_rotation(90)
     label.set_fontsize(8)
 
-pafig.align_ylabels()
-pafig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
+fg2.align_ylabels()
+fg2.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
 plt.draw()
-plot_name = 'PA_vs_QRUNID.png'
-#pafig.savefig(plot_name, bbox_inches='tight')
+plot_name = 'scale_PA_skew_by_QRUNID.png'
+fg2.savefig(plot_name, bbox_inches='tight')
 
 ##--------------------------------------------------------------------------##
 ##------------------         Some Other Stuff Later         ----------------##
