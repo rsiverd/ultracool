@@ -88,23 +88,23 @@ np.set_printoptions(suppress=True, linewidth=160)
 import itertools as itt
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
-## Angular math routines:
-import angle
-reload(angle)
+### Angular math routines:
+#import angle
+#reload(angle)
+#
+### Gaia catalog matching:
+#import gaia_match
+#reload(gaia_match)
+#gm  = gaia_match.GaiaMatch()
 
-## Gaia catalog matching:
-import gaia_match
-reload(gaia_match)
-gm  = gaia_match.GaiaMatch()
-
-## Storage structure for analysis results:
-try:
-    import extended_catalog
-    reload(extended_catalog)
-    ecl = extended_catalog.ExtendedCatalog()
-except ImportError:
-    logger.error("failed to import extended_catalog module!")
-    sys.exit(1)
+### Storage structure for analysis results:
+#try:
+#    import extended_catalog
+#    reload(extended_catalog)
+#    ecl = extended_catalog.ExtendedCatalog()
+#except ImportError:
+#    logger.error("failed to import extended_catalog module!")
+#    sys.exit(1)
 
 ## Coordinate solve helpers:
 import slv_helper
