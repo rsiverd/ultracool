@@ -406,13 +406,13 @@ for rr,fname in par_files.items():
 par_files = keepers
 
 ## Load those files:
-#raw_params = {kk:load_parameters(vv) for kk,vv in par_files.items()}
-raw_params = {}
-raw_inames = {}
+#jnt_params = {kk:load_parameters(vv) for kk,vv in par_files.items()}
+jnt_params = {}
+jnt_inames = {}
 for runid,fname in par_files.items():
-    raw_params[runid], raw_inames[runid] = load_parameters(fname)
+    jnt_params[runid], jnt_inames[runid] = load_parameters(fname)
 
-qrun_list = list(raw_params.keys())
+qrun_list = list(jnt_params.keys())
 
 ##--------------------------------------------------------------------------##
 ##------------------         Load Pickled Catalogs          ----------------##
@@ -434,8 +434,8 @@ for qrun in qrun_list:
     if not os.path.isdir(qrun_dir):
         sys.stderr.write("Error: folder not found: %s\n" % qrun_dir)
         sys.exit(1)
-    #pickles = ['{}/{}.pickle'.format(qrun_dir, x) for x in raw_inames[qrun]]
-    use_pickles = {x:qrun_dir+'/'+x+'.pickle' for x in raw_inames[qrun]}
+    #pickles = ['{}/{}.pickle'.format(qrun_dir, x) for x in jnt_inames[qrun]]
+    use_pickles = {x:qrun_dir+'/'+x+'.pickle' for x in jnt_inames[qrun]}
     if not all([os.path.isfile(x) for x in use_pickles.values()]):
         sys.stderr.write("Error: pickled catalog(s) missing ...\n")
         sys.exit(1)
@@ -520,9 +520,9 @@ for qrun in qrun_batch:
                          % (qrun, fitq))
         tik = time.time()
         minimize_this = partial(spt.multi_squared_residuals_foc2ccd_rdist_xform,
-                                    params=np.array(raw_params.get(qrun)),
+                                    params=np.array(jnt_params.get(qrun)),
                                     mdataset=all_gstr.get(qrun),
-                                    imlist=raw_inames.get(qrun), 
+                                    imlist=jnt_inames.get(qrun), 
                                     sensor=fitq)
     
         #minimize_this = partial(spt.multi_squared_residuals_foc2ccd_rdist,
