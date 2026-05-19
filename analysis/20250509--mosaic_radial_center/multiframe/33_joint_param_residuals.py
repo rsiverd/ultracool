@@ -90,7 +90,7 @@ import matplotlib.pyplot as plt
 #import matplotlib.cm as cm
 #import matplotlib.ticker as mt
 #import matplotlib._pylab_helpers as hlp
-#from matplotlib.colors import LogNorm
+from matplotlib.colors import LogNorm
 #import matplotlib.colors as mplcolors
 #import matplotlib.collections as mcoll
 #import matplotlib.gridspec as gridspec
@@ -99,7 +99,7 @@ from functools import partial
 #from collections.abc import Iterable
 #import multiprocessing as mp
 np.set_printoptions(suppress=True, linewidth=160)
-#import pandas as pd
+import pandas as pd
 #import statsmodels.api as sm
 #import statsmodels.formula.api as smf
 #from statsmodels.regression.quantile_regression import QuantReg
@@ -430,202 +430,40 @@ for qrunid,dataset in all_gstr.items():
 
 ##--------------------------------------------------------------------------##
 ## Work an example ...
+sys.stderr.write("\n%s\n" % fulldiv)
+sys.stderr.write("Do some analysis ...\n")
 working = qrun_list[:1]
 for qrun in working:
 
-    # Confusingly, 
+    #jpars = jnt_params[qrun]
+    #run_= get_cdm_crpix(jpars)
+    run_jntpar = np.array(jnt_params.get(qrun))
+    run_imlist = jnt_inames.get(qrun)
+    run_gstars = all_gstr.get(qrun)
+    run_diags  = spt.multi_squared_residuals_foc2ccd_rdist(run_jntpar,
+                                         run_gstars, run_imlist, diags=True)
+
+    # first, let's see what the typical residual is like in every frame ...
+    for ibase,diags in run_diags.items():
+
+        pass
     pass
 
-##--------------------------------------------------------------------------##
-## Quick ASCII I/O:
-#data_file = 'data.txt'
-#gftkw = {'encoding':None} if (_have_np_vers >= 1.14) else {}
-#gftkw.update({'names':True, 'autostrip':True})
-#gftkw.update({'delimiter':'|', 'comments':'%0%0%0%0'})
-#gftkw.update({'loose':True, 'invalid_raise':False})
-#all_data = np.genfromtxt(data_file, dtype=None, **gftkw)
-#all_data = np.atleast_1d(np.genfromtxt(data_file, dtype=None, **gftkw))
-#all_data = np.genfromtxt(fix_hashes(data_file), dtype=None, **gftkw)
-#all_data = aia.read(data_file)
+# diags['NE']['dumbsnr'], diags['NE']['scaled_rerror']
+# plt.scatter(25-np.log(diags['NE']['flux']),
+#                       diags['NE']['rerror'], lw=0,s=15)
 
-#all_data = append_fields(all_data, ('ra', 'de'), 
-#         np.vstack((ra, de)), usemask=False)
-#all_data = append_fields(all_data, cname, cdata, usemask=False)
-
-#pdkwargs = {'skipinitialspace':True, 'low_memory':False}
-#pdkwargs.update({'delim_whitespace':True, 'sep':'|', 'escapechar':'#'})
-#all_data = pd.read_csv(data_file)
-#all_data = pd.read_csv(data_file, **pdkwargs)
-#all_data = pd.read_table(data_file)
-#all_data = pd.read_table(data_file, **pdkwargs)
-#nskip, cnames = analyze_header(data_file)
-#all_data = pd.read_csv(data_file, names=cnames, skiprows=nskip, **pdkwargs)
-#all_data = pd.DataFrame.from_records(npy_data)
-#all_data = pd.DataFrame(all_data.byteswap().newbyteorder()) # for FITS tables
-
-### Strip leading '#' from column names:
-#def colfix(df):
-#    df.rename(columns={kk:kk.lstrip('#') for kk in df.keys()}, inplace=True)
-#colfix(all_data)
-
-#all_data.rename(columns={'old_name':'new_name'}, inplace=True)
-#all_data.reset_index()
-#firstrow = all_data.iloc[0]
-#for ii,row in all_data.iterrows():
-#    pass
-
-#vot_file = 'neato.xml'
-#vot_data = av.parse_single_table(vot_file)
-#vot_data = av.parse_single_table(vot_file).to_table()
+#plt.scatter(diags['NE']['xmeas'], diags['NE']['ymeas'], 
+#            c=diags['NE']['rerror'], lw=0, s=15)
 
 ##--------------------------------------------------------------------------##
-## Timestamp modification:
-#def time_warp(jdutc, jd_offset, scale):
-#    return (jdutc - jd_offset) * scale
-
-## Self-consistent time-modification for plotting:
-#tfudge = partial(time_warp, jd_offset=tstart.jd, scale=24.0)    # relative hrs
-#tfudge = partial(time_warp, jd_offset=tstart.jd, scale=1440.0)  # relative min
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
 
 ##--------------------------------------------------------------------------##
-## Quick FITS I/O:
-#data_file = 'image.fits'
-#img_vals = pf.getdata(data_file)
-#hdr_keys = pf.getheader(data_file)
-#img_vals, hdr_keys = pf.getdata(data_file, header=True)
-#img_vals, hdr_keys = pf.getdata(data_file, header=True, uint=True) # USHORT
-#img_vals, hdr_keys = fitsio.read(data_file, header=True)
-
-#date_obs = hdr_keys['DATE-OBS']
-#site_lat = hdr_keys['LATITUDE']
-#site_lon = hdr_keys['LONGITUD']
-
-## Initialize time:
-#img_time = astt.Time(hdr_keys['DATE-OBS'], scale='utc', format='isot')
-#img_time += astt.TimeDelta(0.5 * hdr_keys['EXPTIME'], format='sec')
-#jd_image = img_time.jd
-
-## Initialize location:
-#observer = ephem.Observer()
-#observer.lat = np.radians(site_lat)
-#observer.lon = np.radians(site_lon)
-#observer.date = img_time.datetime
-
-#pf.writeto('new.fits', img_vals)
-#qsave('new.fits', img_vals)
-#qsave('new.fits', img_vals, header=hdr_keys)
-
-## Star extraction:
-#pse.set_image(img_vals, gain=3.6)
-#objlist = pse.analyze(sigthresh=5.0)
-
-##--------------------------------------------------------------------------##
-## Misc:
-#def log_10_product(x, pos):
-#   """The two args are the value and tick position.
-#   Label ticks with the product of the exponentiation."""
-#   return '%.2f' % (x)  # floating-point
-#
-#fptformat = plt.FuncFormatter(log_10_product) # wrap function for use
-
-## Convenient, percentile-based plot limits:
-#def nice_limits(vec, pctiles=[1,99], pad=1.2):
-#    ends = np.percentile(vec[~np.isnan(vec)], pctiles)
-#    middle = np.average(ends)
-#    return (middle + pad * (ends - middle))
-
-## Convenient plot limits for datetime/astropy.Time content:
-#def nice_time_limits(tvec, buffer=0.05):
-#    lower = tvec.min()
-#    upper = tvec.max()
-#    ndays = upper - lower
-#    return ((lower - 0.05*ndays).datetime, (upper + 0.05*ndays).datetime)
-
-## Convenient limits for datetime objects:
-#def dt_limits(vec, pad=0.1):
-#    tstart, tstop = vec.min(), vec.max()
-#    trange = (tstop - tstart).total_seconds()
-#    tpad = dt.timedelta(seconds=pad*trange)
-#    return (tstart - tpad, tstop + tpad)
-
-##--------------------------------------------------------------------------##
-## Solve prep:
-#ny, nx = img_vals.shape
-#x_list = (0.5 + np.arange(nx)) / nx - 0.5            # relative (centered)
-#y_list = (0.5 + np.arange(ny)) / ny - 0.5            # relative (centered)
-#xx, yy = np.meshgrid(x_list, y_list)                 # relative (centered)
-#xx, yy = np.meshgrid(nx*x_list, ny*y_list)           # absolute (centered)
-#xx, yy = np.meshgrid(np.arange(nx), np.arange(ny))   # absolute
-#yy, xx = np.meshgrid(np.arange(ny), np.arange(nx), indexing='ij') # absolute
-#yy, xx = np.nonzero(np.ones_like(img_vals))          # absolute
-#yy, xx = np.mgrid[0:ny,   0:nx].astype('uint16')     # absolute (array)
-#yy, xx = np.mgrid[1:ny+1, 1:nx+1].astype('uint16')   # absolute (pixel)
-
-## 1-D vectors:
-#x_pix, y_pix, ivals = xx.flatten(), yy.flatten(), img_vals.flatten()
-#w_vec = np.ones_like(ivals)            # start with uniform weights
-#design_matrix = np.column_stack((np.ones(x_pix.size), x_pix, y_pix))
-
-## Image fitting (statsmodels etc.):
-#data = sm.datasets.stackloss.load()
-#ols_res = sm.OLS(ivals, design_matrix).fit()
-#rlm_res = sm.RLM(ivals, design_matrix).fit()
-#rlm_model = sm.RLM(ivals, design_matrix, M=sm.robust.norms.HuberT())
-#rlm_res = rlm_model.fit()
-#data = pd.DataFrame({'xpix':x_pix, 'ypix':y_pix})
-#rlm_model = sm.RLM.from_formula("ivals ~ xpix + ypix", data)
-
-##--------------------------------------------------------------------------##
-## Theil-Sen line-fitting (linear):
-#model = ts.linefit(xvals, yvals)
-#icept, slope = ts.linefit(xvals, yvals)
-
-## Theil-Sen line-fitting (loglog):
-#xvals, yvals = np.log10(original_xvals), np.log10(original_yvals)
-#xvals, yvals = np.log10(df['x'].values), np.log10(df['y'].values)
-#llmodel = ts.linefit(np.log10(xvals), np.log10(yvals))
-#icept, slope = ts.linefit(xvals, yvals)
-#fit_exponent = slope
-#fit_multiplier = 10**icept
-#bestfit_x = np.arange(5000)
-#bestfit_y = fit_multiplier * bestfit_x**fit_exponent
-
-## Theil-Sen line-fitting variants:
-#linear_model = ts.linefit(xvals, yvals)
-#loglog_model = ts.linefit(np.log10(xvals), np.log10(yvals))
-#linlog_model = ts.linefit(xvals, np.log10(yvals))
-
-
-## Evaluators:
-#def loglog_eval(xvals, model):
-#    icept, slope = model
-#    return 10**icept * np.log10(xvals)**slope
-#def loglog_eval(xvals, icept, slope):
-#    return 10**icept * xvals**slope
-
-## Better evaluators (FIXME: this should go in a modele):
-#def linear_eval(xvals, icept, slope):
-#    return icept + slope*xvals                  # for y vs x fit
-#def loglog_eval(xvals, icept, slope):
-#    return 10**(icept + slope*xvals)            # for log(y) vs x fit
-#def loglog_eval(xvals, icept, slope):
-#    return 10**(icept + slope*np.log10(xvals))  # for log(y) vs log(x) fit
-
-##--------------------------------------------------------------------------##
-## KDE:
-#kde_pnts, kde_vals = mk.go(data_vec)
-
-##--------------------------------------------------------------------------##
-## Vaex plotting:
-#ds = vaex.open('big_file.hdf5')
-#ds = vaex.from_arrays(x=x, y=y)     # load from arrays
-#ds = vaex.from_csv('mydata.csv')
-
-## Stats:
-#ds.mean("x"), ds.std("x"), ds.correlation("vx**2+vy**2+vz**2", "E")
-#ds.plot(....)
-#http://vaex.astro.rug.nl/latest/tutorial_ipython_notebook.html
-
 ##--------------------------------------------------------------------------##
 ## Plot config:
 
@@ -645,10 +483,10 @@ for qrun in working:
 ##--------------------------------------------------------------------------##
 #plt.style.use('bmh')   # Bayesian Methods for Hackers style
 fig_dims = (11, 9)
-fig = plt.figure(1, figsize=fig_dims)
-plt.gcf().clf()
-#fig, axs = plt.subplots(nrows=2, ncols=2, num=1, clear=True, figsize=fig_dims,
-#                        sharex=True, squeeze=False)
+#fig = plt.figure(1, figsize=fig_dims)
+#plt.gcf().clf()
+fig, axs = plt.subplots(nrows=2, ncols=2, num=1, clear=True, figsize=fig_dims,
+                        sharex=True, squeeze=False)
 # sharex='col' | sharex='row' | squeeze=False
 #fig.frameon = False # disable figure frame drawing
 #fig.subplots_adjust(left=0.07, right=0.95)
@@ -659,6 +497,192 @@ plt.gcf().clf()
 #ax1.patch.set_facecolor((0.8, 0.8, 0.8))
 #ax1.grid(True)
 #ax1.axis('off')
+
+axmap = dict(zip(spt.sensor_order, axs.flatten()))
+
+## Bin cell config:
+cells = 32
+cellpix = 2048 / cells
+
+#cells = 32
+#cellpix = 2048 / cells
+skw = {'lw':0, 's':15, 'vmax':0.5}
+count = 0
+#rerr_max_pix = 0.75
+pixerr_thresh =   0.75
+objsnr_thresh = 100.
+everything = {qq:[] for qq in spt.sensor_order}
+cleanstuff = {qq:[] for qq in spt.sensor_order}
+dirtystuff = {qq:[] for qq in spt.sensor_order}
+clean_text = 'pixerr <= %.2f AND SNR >= %.0f' % (pixerr_thresh, objsnr_thresh)
+for ibase,diags in run_diags.items():
+    count += 1
+    for qq,ax in axmap.items():
+        tdata = pd.DataFrame.from_dict(diags[qq])
+        tdata['xbin'] = np.int_(tdata['xmeas'] / cellpix)
+        tdata['ybin'] = np.int_(tdata['ymeas'] / cellpix)
+        #which = (tdata['dumbsnr'] > 250.)
+        bright = (tdata['dumbsnr'] >= objsnr_thresh)
+        nearby = (tdata[ 'rerror'] <= pixerr_thresh)
+        which = bright & nearby
+        clean = tdata[which].copy()
+        dirty = tdata[~which].copy()
+        #clean['xbin'] = np.int_(clean['xmeas'] / cellpix)
+        #clean['ybin'] = np.int_(clean['ymeas'] / cellpix)
+        everything[qq].append(tdata)
+        cleanstuff[qq].append(clean)
+        dirtystuff[qq].append(dirty)
+        ax.scatter(clean['xmeas'], clean['ymeas'], 
+            c=clean['rerror'], **skw)
+        ax.set_aspect('equal')
+
+    if count > 1000:
+        break
+
+fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
+plt.draw()
+#fig.savefig(plot_name, bbox_inches='tight')
+
+##--------------------------------------------------------------------------##
+##------------------         CONCATENATE DATAFRAMES         ----------------##
+##--------------------------------------------------------------------------##
+
+
+## Concatenate DataFrames:
+everything = {qq:pd.concat(ll) for qq,ll in everything.items()}
+cleanstuff = {qq:pd.concat(ll) for qq,ll in cleanstuff.items()}
+dirtystuff = {qq:pd.concat(ll) for qq,ll in dirtystuff.items()}
+
+### Add 
+#for qq,bigdf in everything.items():
+#    bigdf['xbin'] = np.int_(bigdf['xmeas'] / cellpix)
+#    bigdf['ybin'] = np.int_(bigdf['ymeas'] / cellpix)
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
+## Another figure with heatmaps:
+fg2, axs2 = plt.subplots(nrows=2, ncols=2, num=2, clear=True, figsize=fig_dims,
+                        sharex=True, squeeze=False)
+axmap2 = dict(zip(spt.sensor_order, axs2.flatten()))
+
+## Iterate and make heatmaps:
+hmap = {}
+lnorm = LogNorm(vmin=0.05, vmax=1.0)
+#pckw = {'vmin':0.05, 'vmax':0.65}
+pckw = {'vmin':0.05, 'vmax':0.5}
+#pckw = {'norm':LogNorm(vmin=0.05, vmax=1.0)}
+for qq,bigdf in everything.items():
+    #groups = bigdf.groupby(['xbin', 'ybin'])
+    bam = bigdf.groupby(['ybin', 'xbin'])['rerror'].median()
+    hmap[qq] = bam
+    # plt.pcolor(bam.unstack())
+    #axmap2[qq].pcolor(bam.unstack(), **pckw)
+    ax = axmap2[qq]
+    ax.imshow(bam.unstack(), **pckw)
+    #ax.imshow(np.sqrt(bam.unstack()))
+    ax.yaxis.set_inverted(False)
+    ax.set_aspect('equal')
+
+fg2.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
+plt.draw()
+#fg2.savefig(plot_name, bbox_inches='tight')
+ 
+## IS THERE NONSENSE IN THE CORNERS?
+swdata = everything['SW']
+lrcorn = 2048, 1
+lrdist = np.hypot(swdata.xmeas - 2048., swdata.ymeas - 1.0)
+bogus  = lrdist <= 150.
+sys.stderr.write("Nsrcs SW extreme LR corner: %d\n" % np.sum(bogus))
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
+
+## Radial distance/error plot:
+fg3, axs3 = plt.subplots(nrows=2, ncols=2, num=3, clear=True, figsize=fig_dims,
+                        sharex=True, squeeze=True)
+#fg3 = plt.figure(3, figsize=fig_dims)
+#fg3.clf()
+#ax3 = fg3.add_subplot(111)
+rskw = {'lw':0, 's':5}
+xeax, yeax, reax, prax = axs3.flatten()
+for qq,bigdf in everything.items():
+    xeax.scatter(bigdf.rdist, bigdf.xerror, label=qq, **rskw)
+    yeax.scatter(bigdf.rdist, bigdf.yerror, label=qq, **rskw)
+    reax.scatter(bigdf.rdist, bigdf.rerror, label=qq, **rskw)
+    #prax.scatter(bigdf.rdist, 
+
+    pass
+xeax.set_ylabel('X error [pix]')
+yeax.set_ylabel('Y error [pix]')
+axs3[0,0].legend(loc='upper left')
+
+ndecades = 1.0
+#axs3[0].set_yscale('symlog', basey=10, linthreshy=0.5, linscaley=ndecades)
+#axs3[0,0].set_yscale('log')
+#axs3[0,0].set_ylim(bottom=0.003)
+axs3[1,0].set_ylabel("R error [pix]")
+axs3[1,0].set_xlabel("Distance from CRPIX [pix]")
+fg3.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
+plt.draw()
+
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
+## Quiver config:
+qxkw = {'angles':'xy', 'scale_units':'xy', 'scale':0.1}
+#ascale = 100
+ascale = 50
+fig_dims = (10, 9)
+
+## Quiver plot with everything:
+fg5, axs5 = plt.subplots(nrows=2, ncols=2, num=5, clear=True, figsize=fig_dims,
+                        sharex=True, squeeze=True)
+axmap5 = dict(zip(spt.sensor_order, axs5.flatten()))
+for qq,bigdf in everything.items():
+    ax = axmap5[qq]
+    #bam = bigdf.groupby(['ybin', 'xbin'])['rerror'].median()
+    xpos = bigdf.groupby(['ybin', 'xbin'])['xmeas'].median()
+    ypos = bigdf.groupby(['ybin', 'xbin'])['ymeas'].median()
+    xerr = bigdf.groupby(['ybin', 'xbin'])['xerror'].median()
+    yerr = bigdf.groupby(['ybin', 'xbin'])['yerror'].median()
+    ax.quiver(xpos, ypos, ascale*xerr, ascale*yerr, color='r', **qxkw)
+    ax.set_aspect('equal')
+fg5.suptitle('everything')
+fg5.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
+plt.draw()
+
+## Same plot, clean objects only though:
+fg6, axs6 = plt.subplots(nrows=2, ncols=2, num=6, clear=True, figsize=fig_dims,
+                        sharex=True, squeeze=True)
+axmap6 = dict(zip(spt.sensor_order, axs6.flatten()))
+for qq,bigdf in cleanstuff.items():
+    ax = axmap6[qq]
+    #bam = bigdf.groupby(['ybin', 'xbin'])['rerror'].median()
+    xpos = bigdf.groupby(['ybin', 'xbin'])['xmeas'].median()
+    ypos = bigdf.groupby(['ybin', 'xbin'])['ymeas'].median()
+    xerr = bigdf.groupby(['ybin', 'xbin'])['xerror'].median()
+    yerr = bigdf.groupby(['ybin', 'xbin'])['yerror'].median()
+    ax.quiver(xpos, ypos, ascale*xerr, ascale*yerr, color='r', **qxkw)
+    ax.set_aspect('equal')
+fg6.suptitle(clean_text)
+fg6.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
+plt.draw()
+
+
+
+
+
+
+
+
+#ndecades = 1.0   # for symlog, set width of linear portion in units of dex
+#nonposx='mask' | nonposx='clip' | nonposy='mask' | nonposy='clip'
+#ax1.set_xscale('log', basex=10, nonposx='mask', subsx=mtickpos)
+#ax1.set_xscale('log', nonposx='clip', subsx=[3])
+#ax1.set_yscale('symlog', basey=10, linthreshy=0.1, linscaley=ndecades)
 
 ## Polar scatter:
 #skw = {'lw':0, 's':15}
@@ -736,11 +760,6 @@ plt.gcf().clf()
 #fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
 #plt.draw()
 #fig.savefig(plot_name, bbox_inches='tight')
-
-# cyclical colormap ... cmocean.cm.phase
-# cmocean: https://matplotlib.org/cmocean/
-
-
 
 
 ######################################################################
