@@ -102,7 +102,8 @@ sed '1 d' $fcat_csv | cut -d, -f2 > $foo
 #sed '1 d' $foo | awk '{print $2}' > $bar
 
 ## Extract desired keywords from all imgheader extensions, save to file:
-imgkeys="AIRMASS TELALT TELAZ MCTR_RA MCTR_DEC"
+#imgkeys="AIRMASS TELALT TELAZ MCTR_RA MCTR_DEC CRVAL1 CRVAL2"
+imgkeys="SIDTIME LSTEND HA HAEND AIRMASS TELALT TELAZ CRVAL1 CRVAL2"
 imgargs="-E IMGHEADER -d, -N"
 cmde "imhget $imgargs -l $foo $imgkeys -o $bar" || exit $?
 head $bar
