@@ -415,6 +415,48 @@ for runid,fname in par_files.items():
 qrun_list = list(jnt_params.keys())
 
 ##--------------------------------------------------------------------------##
+##------------------       Detector Plane Boundaries        ----------------##
+##--------------------------------------------------------------------------##
+
+## For future reference and simulation, it will help to know the approximate 
+## size in pixels of the full mosaic. In other words, how big does a pixel
+## grid need to be to span the outermost four corners of the mosaic. 
+
+## Extract CD matrix and CRPIX from parameter list:
+def get_cdm_crpix(parameters):
+    return np.array(parameters[:24]).reshape(4, -1)
+
+## Params over time:
+par_stack = np.dstack([get_cdm_crpix(jnt_params[x]) for x in par_runid])
+ne_pstack, nw_pstack, se_pstack, sw_pstack = par_stack
+
+## X-span between NE/NW and SE/SW sensor pairs across QRUNIDs:
+ne_xrel_min =    1.0 - ne_pstack[4]     #  NE xrel min (left)
+se_xrel_min =    1.0 - se_pstack[4]     #  SE xrel min (left)
+nw_xrel_max = 2048.0 - nw_pstack[4]     #  NW xrel max (right)
+sw_xrel_max = 2048.0 - sw_pstack[4]     #  SW xrel max (right)
+nenw_xrel_range = nw_xrel_max - ne_xrel_min
+sesw_xrel_range = sw_xrel_max - se_xrel_min
+#nenw_x_span = ne_pstack[4] + (2048 - nw_pstack[4])
+#sesw_x_span = se_pstack[4] + (2048 - sw_pstack[4])
+
+## Y-span between NE/SE and NW/SW sensor pairs across QRUNIDs:
+#nese_y_span = 
+ne_yrel_max = 2048.0 - ne_pstack[5]     #  NE yrel max (top)
+nw_yrel_max = 2048.0 - nw_pstack[5]     #  NW yrel max (top)
+se_yrel_min =    1.0 - se_pstack[5]     #  SE yrel min (bottom)
+sw_yrel_min =    1.0 - sw_pstack[5]     #  SW yrel min (bottom)
+nese_yrel_range = ne_yrel_max - se_yrel_min
+nwsw_yrel_range = nw_yrel_max - sw_yrel_min
+
+## Maximum extents in X, Y:
+peak_xrel_range = np.concatenate((nenw_xrel_range, sesw_xrel_range)).max()
+peak_yrel_range = np.concatenate((nese_yrel_range, nwsw_yrel_range)).max()
+sys.stderr.write("peak_xrel_range: %.2f\n" % peak_xrel_range)
+sys.stderr.write("peak_yrel_range: %.2f\n" % peak_yrel_range)
+## --> Use a 4250x4250 square
+
+##--------------------------------------------------------------------------##
 ##------------------         Load Pickled Catalogs          ----------------##
 ##--------------------------------------------------------------------------##
 
