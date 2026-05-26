@@ -119,6 +119,8 @@ spt = slv_par_tools
 quads = spt._quads
 
 
+import get_deep_size
+reload(get_deep_size)
 
 ## Because obviously:
 #import warnings
@@ -553,6 +555,24 @@ everything = {qq:pd.concat(ll) for qq,ll in everything.items()}
 cleanstuff = {qq:pd.concat(ll) for qq,ll in cleanstuff.items()}
 dirtystuff = {qq:pd.concat(ll) for qq,ll in dirtystuff.items()}
 
+## Identify referents and their sizes:
+sys.stderr.write("Size tally method 1 ... ")
+tik = time.time()
+refs, sizs = get_deep_size.get_all_referents_and_sizes(everything)
+tok = time.time()
+taken = tok - tik
+sys.stderr.write("done. Took %.3f seconds.\n" % taken)
+get_deep_size.sizeprint(sizs)
+
+## Identify referents and their sizes:
+sys.stderr.write("Size tally method 2 ... ")
+tik = time.time()
+refs, sizs = get_deep_size.get_obj_size(everything)
+tok = time.time()
+taken = tok - tik
+sys.stderr.write("done. Took %.3f seconds.\n" % taken)
+get_deep_size.sizeprint(sizs)
+
 ### Add 
 #for qq,bigdf in everything.items():
 #    bigdf['xbin'] = np.int_(bigdf['xmeas'] / cellpix)
@@ -571,6 +591,7 @@ hmap = {}
 lnorm = LogNorm(vmin=0.05, vmax=1.0)
 #pckw = {'vmin':0.05, 'vmax':0.65}
 pckw = {'vmin':0.05, 'vmax':0.5}
+pckw = {'vmin':0.05, 'vmax':0.3}
 #pckw = {'norm':LogNorm(vmin=0.05, vmax=1.0)}
 for qq,bigdf in everything.items():
     #groups = bigdf.groupby(['xbin', 'ybin'])
@@ -607,18 +628,26 @@ fg3, axs3 = plt.subplots(nrows=2, ncols=2, num=3, clear=True, figsize=fig_dims,
 #ax3 = fg3.add_subplot(111)
 rskw = {'lw':0, 's':5}
 xeax, yeax, reax, prax = axs3.flatten()
+every_rdist, every_rdelt = [], []
 for qq,bigdf in everything.items():
     xeax.scatter(bigdf.rdist, bigdf.xerror, label=qq, **rskw)
     yeax.scatter(bigdf.rdist, bigdf.yerror, label=qq, **rskw)
     reax.scatter(bigdf.rdist, bigdf.rerror, label=qq, **rskw)
-    #prax.scatter(bigdf.rdist, 
-
+    xdelta = bigdf.xerror - bigdf.xnudge
+    ydelta = bigdf.yerror - bigdf.ynudge
+    rdelta = np.hypot(xdelta, ydelta)
+    prax.scatter(bigdf.rdist, rdelta, label=qq, **rskw)
+    every_rdist.extend(bigdf.rdist)
+    every_rdelt.extend(rdelta)
     pass
 xeax.set_ylabel('X error [pix]')
 yeax.set_ylabel('Y error [pix]')
 axs3[0,0].legend(loc='upper left')
+axs3[1,1].legend(loc='upper left')
+every_rdist = np.array(every_rdist)
+every_rdelt = np.array(every_rdelt)
 
-ndecades = 1.0
+#ndecades = 1.0
 #axs3[0].set_yscale('symlog', basey=10, linthreshy=0.5, linscaley=ndecades)
 #axs3[0,0].set_yscale('log')
 #axs3[0,0].set_ylim(bottom=0.003)
