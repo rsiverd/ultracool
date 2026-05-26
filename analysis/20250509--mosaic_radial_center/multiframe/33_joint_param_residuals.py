@@ -555,23 +555,23 @@ everything = {qq:pd.concat(ll) for qq,ll in everything.items()}
 cleanstuff = {qq:pd.concat(ll) for qq,ll in cleanstuff.items()}
 dirtystuff = {qq:pd.concat(ll) for qq,ll in dirtystuff.items()}
 
-## Identify referents and their sizes:
-sys.stderr.write("Size tally method 1 ... ")
-tik = time.time()
-refs, sizs = get_deep_size.get_all_referents_and_sizes(everything)
-tok = time.time()
-taken = tok - tik
-sys.stderr.write("done. Took %.3f seconds.\n" % taken)
-get_deep_size.sizeprint(sizs)
+### Identify referents and their sizes:
+#sys.stderr.write("Size tally method 1 ... ")
+#tik = time.time()
+#refs, sizs = get_deep_size.get_all_referents_and_sizes(everything)
+#tok = time.time()
+#taken = tok - tik
+#sys.stderr.write("done. Took %.3f seconds.\n" % taken)
+#get_deep_size.sizeprint(sizs)
 
-## Identify referents and their sizes:
-sys.stderr.write("Size tally method 2 ... ")
-tik = time.time()
-refs, sizs = get_deep_size.get_obj_size(everything)
-tok = time.time()
-taken = tok - tik
-sys.stderr.write("done. Took %.3f seconds.\n" % taken)
-get_deep_size.sizeprint(sizs)
+### Identify referents and their sizes:
+#sys.stderr.write("Size tally method 2 ... ")
+#tik = time.time()
+#refs, sizs = get_deep_size.get_obj_size(everything)
+#tok = time.time()
+#taken = tok - tik
+#sys.stderr.write("done. Took %.3f seconds.\n" % taken)
+#get_deep_size.sizeprint(sizs)
 
 ### Add 
 #for qq,bigdf in everything.items():
