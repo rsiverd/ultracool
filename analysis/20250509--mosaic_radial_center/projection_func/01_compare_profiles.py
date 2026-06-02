@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2025-10-28
-# Last modified: 2025-10-28
+# Last modified: 2026-06-02
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 ## Optional matplotlib control:
 #from matplotlib import use, rc, rcParams
@@ -77,11 +77,12 @@ import matplotlib.pyplot as plt
 #import matplotlib.colors as mplcolors
 #import matplotlib.collections as mcoll
 #import matplotlib.gridspec as gridspec
-#from functools import partial
+from functools import partial
 #from collections import OrderedDict
 #from collections.abc import Iterable
 #import multiprocessing as mp
 #np.set_printoptions(suppress=True, linewidth=160)
+np.set_printoptions(suppress=False, linewidth=120)
 import pandas as pd
 #import statsmodels.api as sm
 #import statsmodels.formula.api as smf
@@ -321,6 +322,7 @@ ddata = all_ddata[~all_ddata.masked]
 every_rsep = ddata['rdist']
 every_rerr = np.hypot(ddata['xerror'] - ddata['xnudge'],
                       ddata['yerror'] - ddata['ynudge'])
+every_rccd = ddata['rdmeas']
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
@@ -390,6 +392,67 @@ def cheb_eval(x, c0, c1, c2, c3, c4):
     #return c0 + c1 * T1 + c2 * T2 + c3 * T3
     #return c0 + c1 * T1 + c2 * T2
 
+##--------------------------------------------------------------------------##
+## In prep, back out CRPIX1/CRPIX2 from rdist and xcalc,ycalc:
+
+#def make_me_zero(params, data):
+#    crpix1, crpix2 = params
+#    t_xrel = data['xcalc'] - data['xnudge'] - crpix1
+#    t_yrel = data['ycalc'] - data['ynudge'] - crpix2
+#    t_rrel = data['rdist']
+#    #return np.hypot(t_xrel, t_yrel) - t_rrel
+#    #return np.sum(np.abs(t_xrel*t_xrel + t_yrel*t_yrel - t_rrel*t_rrel))
+#    #return np.sum(np.abs(t_xrel*t_xrel + t_yrel*t_yrel - t_rrel*t_rrel))
+#
+#minimize_this = partial(make_me_zero, data=ddata)
+#guess_crpix = np.array([2100., -50.])
+#answer = opti.fmin(minimize_this, guess_crpix)
+
+##--------------------------------------------------------------------------##
+## UPDATE 2026-06-02: It may be smarter to solve for this distortion as a
+## ratio of the form:
+## r_distort = r_proper * (1 + c1*r + ...)
+## 
+## Standard barrel and pincushion distortion work in much this way. See:
+## https://stackoverflow.com/questions/6199636/formulas-for-barrel-pincushion-distortion
+## https://arxiv.org/pdf/1911.12141
+## https://www.imatest.com/imaging/distortion/
+
+
+def barrelize1(r, c1, c2):
+    x = r / 3100.0
+    return x * (1.0 + c1*x + c2*x*x)
+
+def barrelize2(r, c1, c2):
+    x = r / 3100.0
+    return x * (1.0 + c1*x*x + c2*x**4)
+
+def barrelize3(r, c1, c2, c3, c4):
+    x = r / 3100.0
+    return x * (1.0 + x * (c1 + x * (c2 + x * (c3 + x * c4))))
+
+def barrelize4(r, c1, c2, c3, c4, c5):
+    x = r / 3100.0
+    return x * (1.0 + x * (c1 + x * (c2 + x * (c3 + x * (c4 + x*c5)))))
+
+#def barrelize4(x, c1, c2, c3, c4):
+#    T0 = 1.0
+#    T1 = x
+#    T2 = 2 * x * T1 - T0
+#    T3 = 2 * x * T2 - T1
+#    T4 = 2 * x * T3 - T2
+#    return x * (1.0 + c1 * T1 + c2 * T2 + c3 * T3 + c4 * T4)
+
+def barrelize4(x, c1, c2, c3, c4, c5):
+    T0 = 1.0
+    T1 = x
+    T2 = 2 * x * T1 - T0
+    T3 = 2 * x * T2 - T1
+    T4 = 2 * x * T3 - T2
+    T5 = 2 * x * T4 - T3
+    return x * (1.0 + c1 * T1 + c2 * T2 + c3 * T3 + c4 * T4 + c5 * T5)
+
+    #return x * (1.0 + x * (c1 + x * (c2 + x * (c3 + x * (c4 + x*c5)))))
 
 ## Fit the function as a polynomial:
 #badguess = None
@@ -401,6 +464,11 @@ bestpar, bestcov = opti.curve_fit(dumb_poly_eval,
 
 chebpar, chebcov = opti.curve_fit(cheb_eval, every_rsep, every_rerr)
 
+bar1par, bar1cov = opti.curve_fit(barrelize1, every_rsep, every_rccd)
+bar2par, bar2cov = opti.curve_fit(barrelize2, every_rsep, every_rccd)
+bar3par, bar3cov = opti.curve_fit(barrelize3, every_rsep, every_rccd)
+bar4par, bar4cov = opti.curve_fit(barrelize4, every_rsep, every_rccd)
+
 ## Illustrate the best fit:
 showme_x = np.linspace(1.0, 3000.)
 showme_y = dumb_poly_eval(showme_x, *bestpar)
@@ -409,6 +477,16 @@ residuals = every_rerr - dumb_poly_eval(every_rsep, *bestpar)
 
 showch_y = cheb_eval(showme_x, *chebpar)
 cheby_res = every_rerr - cheb_eval(every_rsep, *chebpar)
+
+## Barrel version:
+showbar1y = barrelize1(showme_x, *bar1par)
+barr1_res = every_rccd - barrelize1(every_rsep, *bar1par)
+showbar2y = barrelize2(showme_x, *bar2par)
+barr2_res = every_rccd - barrelize2(every_rsep, *bar2par)
+showbar3y = barrelize3(showme_x, *bar3par)
+barr3_res = every_rccd - barrelize3(every_rsep, *bar3par)
+showbar4y = barrelize4(showme_x, *bar4par)
+barr4_res = every_rccd - barrelize4(every_rsep, *bar4par)
 
 ## Print best fit to terminal:
 print('\n'.join(['%15e'%x for x in bestpar]))
@@ -447,7 +525,10 @@ print('\n'.join(['%15e'%x for x in bestpar]))
 fig_dims = (11, 9)
 fig = plt.figure(1, figsize=fig_dims)
 plt.gcf().clf()
-#fig, axs = plt.subplots(2, 2, sharex=True, figsize=fig_dims, num=1, clear=True)
+#fg2 = plt.figure(2, figsize=fig_dims, clear=True)
+#bax = fg2.add_subplot(111)
+fg2, baxs = plt.subplots(2, 4, sharex=True, figsize=(15,9), num=2, clear=True)
+[ax.grid(True) for ax in baxs.ravel()]
 # sharex='col' | sharex='row'
 #fig.frameon = False # disable figure frame drawing
 #fig.subplots_adjust(left=0.07, right=0.95)
@@ -489,6 +570,23 @@ ax3.scatter(every_rsep, residuals, **skw)
 ax2.scatter(every_rsep, every_rerr, **skw)
 ax2.plot(showme_x, showch_y, c='r')
 ax4.scatter(every_rsep, cheby_res, **skw)
+
+# -----------------------------------------------------------------------
+baxs[0,0].scatter(every_rsep, every_rccd, **skw)
+baxs[0,0].plot(showme_x, showbar1y, c='r')
+baxs[1,0].scatter(every_rsep, barr1_res, **skw)
+
+baxs[0,1].scatter(every_rsep, every_rccd, **skw)
+baxs[0,1].plot(showme_x, showbar2y, c='r')
+baxs[1,1].scatter(every_rsep, barr2_res, **skw)
+
+baxs[0,2].scatter(every_rsep, every_rccd, **skw)
+baxs[0,2].plot(showme_x, showbar3y, c='r')
+baxs[1,2].scatter(every_rsep, barr3_res, **skw)
+
+baxs[0,3].scatter(every_rsep, every_rccd, **skw)
+baxs[0,3].plot(showme_x, showbar4y, c='r')
+baxs[1,3].scatter(every_rsep, barr4_res, **skw)
 
 ## For polar axes:
 #ax1.set_rmin( 0.0)                  # if using altitude in degrees
@@ -557,6 +655,7 @@ ax4.scatter(every_rsep, cheby_res, **skw)
 #cbar.update_ticks()
 
 fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
+fg2.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
 plt.draw()
 #fig.savefig(plot_name, bbox_inches='tight')
 
