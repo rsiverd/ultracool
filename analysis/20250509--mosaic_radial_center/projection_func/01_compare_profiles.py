@@ -417,7 +417,7 @@ def cheb_eval(x, c0, c1, c2, c3, c4):
 ## https://stackoverflow.com/questions/6199636/formulas-for-barrel-pincushion-distortion
 ## https://arxiv.org/pdf/1911.12141
 ## https://www.imatest.com/imaging/distortion/
-
+## https://www.researchgate.net/publication/228546868_A_real-time_FPGA_implementation_of_a_barrel_distortion_correction_algorithm_with_bilinear_interpolation/link/0c96051ef1ca6ee9ca000000/download
 
 def barrelize1(r, c1, c2):
     x = r / 3100.0
