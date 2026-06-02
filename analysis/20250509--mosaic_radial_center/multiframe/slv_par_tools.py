@@ -268,6 +268,15 @@ def calc_rdist_corrections(xrel, yrel, model):
     ycorr = rcorr * np.sin(theta)
     return xcorr, ycorr
 
+calc_rdist_corr_sky2det = calc_rdist_corrections
+
+## Manually reverse correction direction going det -> sky:
+def calc_rdist_corr_det2sky(xrel, yrel, model):
+    xcorr, ycorr = calc_rdist_corrections(xrel, yrel, model)
+    return -xcorr, -ycorr
+
+
+
 ## ----------------------------------------------------------------------- ##
 ## Misrotation calculator:
 def calc_roterr_deg(ddata):
