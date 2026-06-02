@@ -16,6 +16,10 @@
 # profile to accommodate actual tip/tilt of the detector mosaic plane. This
 # testbed aims to determine what functional form might work well.
 #
+# Other URLs related to ellipse geometry:
+# * https://www.researchgate.net/publication/228546868_A_real-time_FPGA_implementation_of_a_barrel_distortion_correction_algorithm_with_bilinear_interpolation/link/0c96051ef1ca6ee9ca000000/download
+# * https://www.onemathematicalcat.org/Math/Precalculus_obj/getEllipseStretchShrinkCircle.htm
+#
 # Rob Siverd
 # Created:       2026-05-26
 # Last modified: 2026-06-02
