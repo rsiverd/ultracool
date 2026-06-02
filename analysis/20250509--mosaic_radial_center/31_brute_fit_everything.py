@@ -1210,6 +1210,14 @@ full_diag_data = squared_residuals_foc2ccd_rdist(fixed_params,
 #diag_data = orig_diag_data
 #diag_data = derot_diags
 
+## Add the fixed radial distance of each source for profile fitting:
+for qq,sdata in full_diag_data.items():
+    _cpx1, _cpx2 = fixed_sifted['crpix'][qq]
+    xmrel = sdata['xmeas'] - _cpx1
+    ymrel = sdata['ymeas'] - _cpx2
+    sdata['rdmeas'] = np.hypot(xmrel, ymrel)
+    pass
+
 
 ## ----------------------------------------------------------------------- ##
 ## -----------------         MCMC Parameter Search          -------------- ##
