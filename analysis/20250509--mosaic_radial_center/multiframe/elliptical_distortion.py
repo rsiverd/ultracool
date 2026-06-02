@@ -10,15 +10,21 @@
 # https://www.aanda.org/articles/aa/full_html/2015/08/aa26773-15/aa26773-15.html
 # https://www.aanda.org/articles/aa/pdf/2015/08/aa26773-15.pdf
 #
+# The main idea is that the profile is likely circular / symmetric when
+# sampled in a plane perpendicular to the chief ray. As a result, it makes
+# sense to model the elliptical profile as essentially a tilted circular
+# profile to accommodate actual tip/tilt of the detector mosaic plane. This
+# testbed aims to determine what functional form might work well.
+#
 # Rob Siverd
 # Created:       2026-05-26
-# Last modified: 2026-05-26
+# Last modified: 2026-06-02
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 ## Optional matplotlib control:
 #from matplotlib import use, rc, rcParams
@@ -70,7 +76,7 @@ import numpy as np
 #import scipy.linalg as sla
 #import scipy.signal as ssig
 #import scipy.ndimage as ndi
-#import scipy.optimize as opti
+import scipy.optimize as opti
 #import scipy.interpolate as stp
 #import scipy.spatial.distance as ssd
 #import scipy.stats as scst
@@ -83,11 +89,12 @@ import matplotlib.pyplot as plt
 #import matplotlib.colors as mplcolors
 #import matplotlib.collections as mcoll
 #import matplotlib.gridspec as gridspec
-#from functools import partial
+from functools import partial
 #from collections import OrderedDict
 #from collections.abc import Iterable
 #import multiprocessing as mp
 #np.set_printoptions(suppress=True, linewidth=160)
+np.set_printoptions(suppress=False, linewidth=120)
 #import operator
 #import pandas as pd
 #import statsmodels.api as sm
@@ -96,7 +103,7 @@ import matplotlib.pyplot as plt
 #import PIL.Image as pli
 #import seaborn as sns
 #import cmocean
-#import theil_sen as ts
+import theil_sen as ts
 #import window_filter as wf
 #import itertools as itt
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
@@ -347,6 +354,16 @@ def argnear(vec, val):
 #    return (tstart - tpad, tstop + tpad)
 
 ##--------------------------------------------------------------------------##
+## Tip/tilt demo:
+ytilt_mrad = 450.
+xtilt_mrad = 250.
+rmat_xtilt = frot.Rx(xtilt_mrad / 1e3)
+rmat_ytilt = frot.Ry(ytilt_mrad / 1e3)
+
+yxt_rmat = rmat_ytilt @ rmat_xtilt
+xyt_rmat = rmat_xtilt @ rmat_ytilt
+
+##--------------------------------------------------------------------------##
 ## Solve prep:
 #ny, nx = img_vals.shape
 #ny, nx = 4250., 4250.
@@ -359,25 +376,85 @@ y_list = x_list
 #x_list = (0.5 + np.arange(nx)) / nx - 0.5            # relative (centered)
 #y_list = (0.5 + np.arange(ny)) / ny - 0.5            # relative (centered)
 #xx, yy = np.meshgrid(x_list, y_list)                 # relative (centered)
-xx, yy = np.meshgrid(x_list, y_list)                 # relative (centered)
-#xx, yy = np.meshgrid(nx*x_list, ny*y_list)           # absolute (centered)
-#xx *= 4.0   # rescale to true size
-#yy *= 4.0   # rescale to true size
-#rr = np.hypot(xx, yy)
-#xx, yy = np.meshgrid(np.arange(nx), np.arange(ny))   # absolute
-#yy, xx = np.meshgrid(np.arange(ny), np.arange(nx), indexing='ij') # absolute
-#yy, xx = np.nonzero(np.ones_like(img_vals))          # absolute
-#yy, xx = np.mgrid[0:ny,   0:nx].astype('uint16')     # absolute (array)
-#yy, xx = np.mgrid[1:ny+1, 1:nx+1].astype('uint16')   # absolute (pixel)
+mxx, myy = np.meshgrid(x_list, y_list)                 # relative (centered)
+mzz = np.zeros_like(mxx)
+
+mxyz1d = np.vstack((mxx.ravel(), myy.ravel(), mzz.ravel()))
+# [x0 ... xN],
+# [y0 ... yN],
+# [z0 ... zN]
 
 
-## Compute rdist corrections for all grid points:
-xnudge2d, ynudge2d = spt.calc_rdist_corrections(xx, yy, spt.guess_distmod)
-#xnudge1d, ynudge1d = spt.calc_rdist_corrections(xrel, yrel, spt.guess_distmod)
-rnudge2d = np.hypot(xnudge2d, ynudge2d)
-xnudge = xnudge2d.ravel()
-ynudge = ynudge2d.ravel()
+## Before starting in anger, let's get inverse polynomial coefficients. The
+## model currently coded is used to convert sky-compatible xrel/yrel to
+## measured detector xdet,ydet. For this task (and others) we want to quickly
+## invert the sense of that solution.
+## +txcor, +tycor = calc_rdist_corrections(xrsky, yrsky, sky2det_coeffs)
+## -txcor, -tycor = calc_rdist_corrections(txdet, yrsky, sky2det_coeffs)
+sky2det_coeffs = spt.guess_distmod.copy()
+xr_sky, yr_sky = np.meshgrid(x_list, y_list)
+x_corr, y_corr = spt.calc_rdist_corrections(xr_sky, yr_sky, sky2det_coeffs)
+xr_det, yr_det = xr_sky + x_corr, yr_sky + y_corr
 
+badguess = np.ones_like(sky2det_coeffs)
+
+rr_sky = np.hypot(xr_sky, yr_sky)
+rr_det = np.hypot(xr_det, yr_det)
+r_corr = np.hypot(x_corr, y_corr)
+
+
+
+## Recover fit parameters:
+sys.stderr.write("Try to recover parameters from data ...\n")
+#fitme_redo = partial(
+recov_par, recov_cov = opti.curve_fit(spt.poly_eval5, 
+                                  rr_sky.ravel(), r_corr.ravel(), badguess)
+sys.stderr.write("Got: %s\n" % str(recov_par))
+
+## Fit the inverse:
+sys.stderr.write("Next fit for inverse coefficients ...\n")
+inver_par, inver_cov = opti.curve_fit(spt.poly_eval5,
+                                  rr_det.ravel(), r_corr.ravel(), badguess)
+sys.stderr.write("Got: %s\n" % str(inver_par))
+det2sky_coeffs = inver_par
+
+## Test run:
+ixcorr, iycorr = spt.calc_rdist_corr_det2sky(xr_det, yr_det, det2sky_coeffs)
+calc_xr_sky = xr_det + ixcorr
+calc_yr_sky = yr_det + iycorr
+
+# exponents = 1./(1.+np.arange(len(spt.guess_distmod)))
+
+
+## Convert mosaic to focal plane coordinates (where distortion is circular):
+fpxyz_det = yxt_rmat @ mxyz1d
+fpx_det, fpy_det, fpz_det = fpxyz_det
+fpxcorr, fpycorr = spt.calc_rdist_corr_det2sky(fpx_det, fpy_det, det2sky_coeffs)
+fpx_sky, fpy_sky = fpx_det + fpxcorr, fpy_det + fpycorr
+fpxyz_sky = np.vstack((fpx_sky, fpy_sky, fpz_det))
+mxyz_sky = yxt_rmat.T @ fpxyz_sky
+mxcorr, mycorr, _ = mxyz1d - mxyz_sky
+mxc2d = mxcorr.reshape(mxx.shape)
+myc2d = mycorr.reshape(myy.shape)
+
+## Things to plot:
+rnudge2d = np.hypot(mxc2d, myc2d)
+xnudge = mxcorr
+ynudge = mycorr
+
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
+## Also make a grid to illustrate the warping:
+g_list = np.linspace(-2000., 2000., 21)
+gxx_det, gyy_det = np.meshgrid(g_list, g_list)
+grr_det = np.hypot(gxx_det, gyy_det)
+gxcorr, gycorr = spt.calc_rdist_corr_det2sky(gxx_det, gyy_det, det2sky_coeffs)
+gxx_sky, gyy_sky = gxx_det + gxcorr, gyy_det + gycorr
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
 
 ## Radial-only ...
 #rrel1d   = np.hypot(xrel, yrel)
@@ -385,25 +462,44 @@ ynudge = ynudge2d.ravel()
 #rrel2d   = np.hypot(xx2d, yy2d)
 #rnudge2d = np.hypot(xnudge2d, ynudge2d)
 
-xrel = xx.ravel()
-yrel = yy.ravel()
+xrel = mxx.ravel()
+yrel = myy.ravel()
 
+##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 #plt.style.use('bmh')   # Bayesian Methods for Hackers style
 fig_dims = (11, 9)
-fig = plt.figure(1, figsize=fig_dims)
-fig.clf()
+fig_dims = (10, 9)
+figkw = {'figsize':fig_dims, 'clear':True}
+qfig = plt.figure(1, **figkw)
+qax1 = qfig.add_subplot(111, aspect='equal')
 
-rfig = plt.figure(2, figsize=fig_dims)
-rfig.clf()
-rax1 = rfig.add_subplot(111)
+rfig = plt.figure(2, **figkw)
+rax1 = rfig.add_subplot(111, aspect='equal')
+
+cfig = plt.figure(3, **figkw)
+cax1 = cfig.add_subplot(111, aspect='equal')
+
+gfig = plt.figure(4, **figkw)
+gax1 = gfig.add_subplot(111, aspect='equal')
+
+pfig = plt.figure(5, **figkw)
+pax1 = pfig.add_subplot(111)
+
+fig_list = [qfig, rfig, cfig, gfig, pfig]
+axs_list = [qax1, rax1, cax1, gax1, pax1]
+
+## Clear figs:
+#for ff in fig_list:
+#    ff.clf()
+
 #fig, axs = plt.subplots(nrows=2, ncols=2, num=1, clear=True, figsize=fig_dims,
 #                        sharex=True, squeeze=False)
 # sharex='col' | sharex='row' | squeeze=False
 #fig.frameon = False # disable figure frame drawing
 #fig.subplots_adjust(left=0.07, right=0.95)
 #ax1 = plt.subplot(gs[0, 0])
-ax1 = fig.add_subplot(111, aspect='equal')
+#ax1 = fig.add_subplot(111, aspect='equal')
 #ax1 = fig.add_subplot(111, polar=True)
 #ax1 = fig.add_axes([0, 0, 1, 1])
 #ax1.patch.set_facecolor((0.8, 0.8, 0.8))
@@ -413,23 +509,52 @@ ax1 = fig.add_subplot(111, aspect='equal')
 ascale = 1
 qxkw = {'angles':'xy', 'scale_units':'xy', 'scale':0.1}
 #ax1.quiver(xx, yy, ascale*xnudge, ascale*ynudge, **qxkw)
-ax1.quiver(xrel, yrel, ascale*xnudge, ascale*ynudge, **qxkw)
+qax1.quiver(xrel, yrel, ascale*xnudge, ascale*ynudge, **qxkw)
 #ax1.scatter(x
 rax1.imshow(rnudge2d)
 
 skw = {'lw':0, 's':15}
-#rax1.scatter(rrel, rnudge)
-## Polar scatter:
-#skw = {'lw':0, 's':15}
-#ax1.scatter(azm_rad, zdist_deg, **skw)
 
-## For polar axes:
-#ax1.set_rmin( 0.0)                  # if using altitude in degrees
-#ax1.set_rmax(90.0)                  # if using altitude in degrees
-#ax1.set_theta_direction(-1)         # clockwise
-#ax1.set_theta_direction(+1)         # counterclockwise
-#ax1.set_theta_zero_location("N")    # North-up
-#ax1.set_rlabel_position(-30.0)      # move labels 30 degrees
+
+#cax1.contour(rnudge2d)
+cax1.contour(mxx, myy, rnudge2d)
+
+
+## Grid diagram:
+detpkw = {'color':'blue', 'ls':'-'}
+gax1.plot(gxx_det, gyy_det, **detpkw)
+gax1.plot(gxx_det.T, gyy_det.T, **detpkw)
+skypkw = {'color':'red', 'ls':'--'}
+gax1.plot(gxx_sky, gyy_sky, **skypkw)
+gax1.plot(gxx_sky.T, gyy_sky.T, **skypkw)
+
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
+def barrel1(r, zpt, k2):
+    return zpt + r*(1 + k2*r*r)
+
+## Distorted / undistorted ratio:
+badguess1 = 0.1 * np.ones(2)
+xvals = rr_sky.ravel()
+yvals = rr_det.ravel()
+ratio = yvals / xvals
+tsmod = ts.linefit(xvals, ratio - 1.0)
+xtest = 0.01 + np.linspace(0, 3000)
+#ytest = 1.0 + tsmod[0] + tsmod[1]*xtest
+ytest = 1.0 + tsmod[1]*xtest
+bar1par, bar1cov = opti.curve_fit(barrel1, xvals, yvals)
+b1_ytest = barrel1(xtest, *bar1par)
+b1_ratio = b1_ytest / xtest
+
+## Plotting:
+pskw = {'lw':0, 's':15}
+pax1.grid(True)
+pax1.scatter(rr_sky, rr_det / rr_sky, **pskw)
+pax1.set_ylim(bottom=1.0)
+pax1.plot(xtest, ytest, c='r', label='theil-sen')
+pax1.plot(xtest, b1_ratio, c='g', label='barrel1')
+pax1.legend(loc='upper left')
 
 ## Disable axis offsets:
 #ax1.xaxis.get_major_formatter().set_useOffset(False)
@@ -479,23 +604,11 @@ skw = {'lw':0, 's':15}
 #ax1.set_xlim(nice_limits(xvec, pctiles=[1,99], pad=1.2))
 #ax1.set_ylim(nice_limits(yvec, pctiles=[1,99], pad=1.2))
 
-#ax1.legend(loc='best', prop={'size':24})
-
-#spts = ax1.scatter(x, y, lw=0, s=5)
-##cbar = fig.colorbar(spts, orientation='vertical')   # old way
-#cbnorm = mplcolors.Normalize(*spts.get_clim())
-#scm = plt.cm.ScalarMappable(norm=cbnorm, cmap=spts.cmap)
-#scm.set_array([])
-#cbar = fig.colorbar(scm, orientation='vertical')
-#cbar = fig.colorbar(scm, ticks=cs.levels, orientation='vertical') # contours
-#cbar.formatter.set_useOffset(False)
-#cbar.update_ticks()
-
 #fig.align_labels()
 #fig.align_xlabels()
 #fig.align_ylabels()
-fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
-rfig.tight_layout()
+for ff in fig_list:
+    ff.tight_layout()
 plt.draw()
 #fig.savefig(plot_name, bbox_inches='tight')
 
