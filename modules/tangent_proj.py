@@ -5,7 +5,7 @@
 #
 # Rob Siverd
 # Created:       2023-06-02
-# Last modified: 2023-10-24
+# Last modified: 2026-06-09
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ## Current version:
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 ## Modules:
 #import argparse
@@ -164,7 +164,7 @@ def xycd2radec(cdmat, rel_xx, rel_yy, crval1, crval2, debug=False):
     #relpix = np.vstack((rel_xx, rel_yy))   # rel time = 3.81 us
     #relpix = np.array((rel_xx, rel_yy))    # rel time = 1.10 us
     relpix = np.array((rel_xx, rel_yy))     # rel time = 1.05 us
-    prj_xx, prj_yy = np.matmul(thisCD, relpix)
+    #prj_xx, prj_yy = np.matmul(thisCD, relpix)
     return _wcs_tan_compute(thisCD, relpix, crval1, crval2, debug=debug)
 
 ## Convert RA, Dec back to relative X,Y using CD matrix and CRVAL pair:
