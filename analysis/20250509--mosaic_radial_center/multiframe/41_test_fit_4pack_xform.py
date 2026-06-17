@@ -8,13 +8,13 @@
 #
 # Rob Siverd
 # Created:       2026-05-05
-# Last modified: 2026-05-05
+# Last modified: 2026-06-09
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 ## Python version-agnostic module reloading:
 try:
@@ -29,13 +29,14 @@ except NameError:
 import argparse
 #import shutil
 import glob
+import ast
 import gc
 import os
 import sys
 import time
 import copy
 import pprint
-#import pickle
+import pickle
 #import vaex
 #import calendar
 #import ephem
@@ -61,6 +62,7 @@ import matplotlib.pyplot as plt
 #import matplotlib.gridspec as gridspec
 from functools import partial
 #np.set_printoptions(suppress=True, linewidth=160)
+np.set_printoptions(suppress=False, linewidth=120)
 import pandas as pd
 #import theil_sen as ts
 import itertools as itt
@@ -87,6 +89,17 @@ except ImportError:
 ## Helpers for this investigation:
 import helpers
 reload(helpers)
+
+## Solution parameter helpers:
+import slv_par_tools
+reload(slv_par_tools)
+spt = slv_par_tools
+quads = spt._quads
+
+## Next-gen 'uniform' models:
+import uniform_model
+reload(uniform_model)
+umod = uniform_model
 
 ##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
@@ -115,6 +128,18 @@ def load_pickled_object(filename):
     with open(filename, 'rb') as lpof:
         thing = pickle.load(lpof)
     return thing
+
+## Save object as string:
+def stash_as_stringrep(filename, thing):
+    with open(filename, 'w') as sasf:
+        sasf.write(str(thing) + '\n')
+        #pprint.pprint(thing, stream=sasf, width=120)  # pretty!
+    return
+
+## Stringified object load (ast):
+def load_stringrep_object(filename):
+    with open(filename, 'r') as srof:
+        return ast.literal_eval(srof.read())
 
 ##--------------------------------------------------------------------------##
 
@@ -339,9 +364,28 @@ ne_fpath, nw_fpath, se_fpath, sw_fpath = paths
 qrunid = chosen.qrunid.iloc[0]
 
 ## Dictify input paths:
-quads = ['NE', 'NW', 'SE', 'SW']
+#quads = ['NE', 'NW', 'SE', 'SW']  # NOW DEFINED JUST AFTER IMPORT
 cpath = dict(zip(quads, paths))
 sensor_order = quads
+
+## Look for pickled results from earlier iteration(s):
+result_dir = 'results/%s' % qrunid
+if not os.path.isdir(result_dir):
+    sys.stderr.write("Error: results folder not found: %s\n" % result_dir)
+    sys.exit(1)
+pickle_path = '%s/%s.pickle' % (result_dir, context.image)
+if not os.path.isfile(pickle_path):
+    sys.stderr.write("Pickled data not found: %s\n" % pickle_path)
+    sys.exit(1)
+
+##--------------------------------------------------------------------------##
+##------------------      Load Pickled Catalog Data         ----------------##
+##--------------------------------------------------------------------------##
+
+## Only keep columns from gstars we actually use to save space:
+#gstcols = ['x', 'y', 'flux', 'flag',
+#           'fwhm', 'dumbsnr', 'realerr', 'gid', 'gra', 'gde']
+solo_gstars, diag_data, solo_pars = load_pickled_object(pickle_path)
 
 ##--------------------------------------------------------------------------##
 ##------------------        External Coord Solution         ----------------##
@@ -360,7 +404,20 @@ if not par_flist:
     sys.stderr.write("No parameters file found for QRUNID=%s!\n" % qrunid)
     sys.exit(1)
 
-sys.exit(1)
+## Load parameters from file:
+jnt_params, jnt_inames = load_stringrep_object(par_flist[0])
+
+## Abort if image not handled:
+if not context.image in jnt_inames:
+    sys.stderr.write("Image %s is not part of the joint solution!\n"
+                     % context.image)
+    sys.exit(1)
+
+## Parameters for THIS IMAGE:
+sifted_jntpars = spt.sift_params_multi(jnt_params, jnt_inames)
+
+#jnt_ne_cdmat = 
+
 ##--------------------------------------------------------------------------##
 ##------------------        Detections and Metadata         ----------------##
 ##--------------------------------------------------------------------------##
@@ -387,6 +444,11 @@ gm.set_epoch(obs_time)
 ## Promote catalogs to DataFrame:
 stars = {qq:pd.DataFrame.from_records(tt) for qq,tt in cdata.items()}
 
+## Embed sensor ID and fake FWHM:
+for qq,ss in stars.items():
+    ss['sensor'] = qq
+
+
 ## Embed approximate SNR/uncertainty. Assume:
 ## * sky + rdnoise^2 =~ 1000.0     (RDNOISE ~ 30)
 ## * sigma =~ FWHM / SNR
@@ -411,9 +473,169 @@ for ss in stars.values():
     ss['realerr'] = ast_err * _rescale
 
 
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+
+def mkaffine(par):
+    return np.array([[par[0], par[1], par[4]],
+                     [par[2], par[3], par[5]],
+                     [   0.0,    0.0,    1.0]])
+
+
+
+#prior_NE_txpars = {
+#    'NW' : [1.000124526, -0.002267368, 0.002156214, 1.000196284, 2183.894275819,    -8.630648036],
+#    'SE' : [1.000025917, -0.001546018, 0.001321284, 1.000094652,   -0.749873709, -2195.462036770],
+#    'SW' : [0.999660396, -0.002515242, 0.002430764, 0.999601855, 2191.954336271, -2204.099507349],
+#}
+
+txpars_file = 'tx_params/txpars_med.4.par'
+prior_NE_txpars = load_stringrep_object(txpars_file)
+
+## Using fixed geometry transformation parameters, we can pre-calculate
+## detection positions in the NE frame for all sensors.
+ctag = '_ne'
+pos_cols = ['x', 'y', 'wx', 'wy']
+aug_cols = [cc+ctag for cc in pos_cols]
+
+## The NE sensor gets an alias (no math):
+#for cnew,cold in zip(aug_cols, pos_cols):
+#    stars['NE'][cnew] = stars['NE'][cold]
+#    pass
+ss = stars['NE'].copy()
+for pc in pos_cols:
+    ss[pc+ctag] = ss[pc]
+spieces = [ss]
+
+#more_cols = ['xmin', 'xmax', 'ymin', 'ymax', ...]
+#even_more = ['fwhm', etc ...]
+for qq,xfpars in prior_NE_txpars.items():
+    xform = mkaffine(xfpars)
+    ss = stars[qq].copy()
+    # standard coords:
+    cpair = ['x', 'y']
+    tx, ty = ss[cpair].T.values
+    ss['x_ne'], ss['y_ne'], _ = xform @ np.vstack((tx, ty, np.ones_like(tx)))
+    # windowed coords:
+    cpair = ['wx', 'wy']
+    tx, ty = ss[cpair].T.values
+    ss['wx_ne'], ss['wy_ne'], _ = xform @ np.vstack((tx, ty, np.ones_like(tx)))
+    spieces.append(ss)
+    pass
+
+smosaic = pd.concat(spieces).reset_index()
+
+##--------------------------------------------------------------------------##
+
+## Same thing, gstars subset ...
+ss = solo_gstars['NE'].copy()
+for pc in pos_cols:
+    ss[pc+ctag] = ss[pc]
+gpieces = [ss]
+
+for qq,xfpars in prior_NE_txpars.items():
+    xform = mkaffine(xfpars)
+    ss = solo_gstars[qq].copy()
+    # standard coords:
+    cpair = ['x', 'y']
+    tx, ty = ss[cpair].T.values
+    ss['x_ne'], ss['y_ne'], _ = xform @ np.vstack((tx, ty, np.ones_like(tx)))
+    # windowed coords:
+    cpair = ['wx', 'wy']
+    tx, ty = ss[cpair].T.values
+    ss['wx_ne'], ss['wy_ne'], _ = xform @ np.vstack((tx, ty, np.ones_like(tx)))
+    gpieces.append(ss)
+    pass
+
+gmosaic = pd.concat(gpieces).reset_index()
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
+
+## Fit and adjust:
+jnt_ne_cdmat = sifted_jntpars['cdmat']['NE']
+jnt_ne_crpix = sifted_jntpars['crpix']['NE']
+jnt_ne_crval = sifted_jntpars['crval'][context.image]
+
+## Pretty good guess for the distortion:
+guess_distmod = np.array([ 1.757279e-01,  1.175609e-03,  1.047979e-06,
+                           5.059445e-11,  4.450758e-13, -1.039322e-16])
+
+## Full set of xyr test parameters:
+test_llpars = np.concatenate((jnt_ne_cdmat, jnt_ne_crpix, 
+                              jnt_ne_crval, guess_distmod))
+
+## Test-eval:
+xdet, ydet, gra, gde = gmosaic[['x_ne', 'y_ne', 'gra', 'gde']].values.T
+txres, tyres = umod.xyr_calculator(test_llpars, xdet, ydet, gra, gde)
+#txres, tyres = umod.xyr_calculator(test_llpars, 
+#                                   gmosaic.x_ne.values, gmosaic.y_ne.values,
+#                                   gmosaic.gra.values, gmosaic.gde.values)
+trres = np.hypot(txres, tyres)
+
+wxdet, wydet = gmosaic[['wx_ne', 'wy_ne']].values.T
+wxres, wyres = umod.xyr_calculator(test_llpars, wxdet, wydet, gra, gde)
+
+werrx = xdet - wxdet
+werry = ydet - wydet
+
+bad_x = np.abs(werrx) > 1.0
+bad_y = np.abs(werry) > 1.0
+
+## Make a region file with std+win position pairs to illustrate issues:
+_DO_REGION = False
+if _DO_REGION:
+    import region_utils
+    rcolors = ['green', 'cyan']
+    print(gmosaic[bad_x|bad_y][['x', 'wx', 'xmin', 'xpeak', 'xcpeak', 'xmax',
+                                'y', 'wy', 'ymin', 'ypeak', 'ycpeak', 'ymax', 'flux']])
+    deviants = gmosaic[bad_x|bad_y]
+    rsave = 'window_fails_%s_xy.reg' % context.image
+    
+    ## Alternate x,y and wx,wy:
+    xstdxwin = deviants[['x', 'wx']].values.flatten()
+    ystdywin = deviants[['y', 'wy']].values.flatten()
+    region_utils.regify_ccd(rsave, xstdxwin, ystdywin, rpix=3, colors=rcolors)
+ 
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+## BIG TEST:
+#big_pars = []
+#for vv in prior_NE_txpars.values():
+#    big_pars.extend(vv)                 # start with 18 txpars up front
+
+flat_txp = [x for ss in prior_NE_txpars.values() for x in ss]
+big_pars = np.array(flat_txp + test_llpars.tolist())
+
+gstars_as_list = [solo_gstars[x] for x in sensor_order]
+
+res = umod.xyr_driver_single_txform(big_pars, gstars_as_list)
+
+
+## Perform minimization:
+driverkwargs = {'xcol':'x', 'ycol':'y', 'racol':'gra', 'decol':'gde',
+            'scale_nstars':False}
+#minimize_this = lambda x: umod.xyr_driver_single_txform(x, solo_gstars)
+xyr_routine = partial(umod.xyr_driver_single_txform, 
+                        data_arrays=gstars_as_list, **driverkwargs)
+minimize_this = partial(umod.ssr_scalarize, routine=xyr_routine)
+
+nmopts = {'maxiter':5000}
+sys.stderr.write("Starting minimization ... ")
+tik = time.time()
+#result = opti.minimize(minimize_this, big_pars, method='Nelder-Mead')
+#result = opti.minimize(minimize_this, big_pars, method='L-BFGS-B')
+#result = opti.minimize(minimize_this, big_pars, method='BFGS')
+#result = opti.minimize(minimize_this, big_pars, method='Newton-CG')
+result = opti.minimize(minimize_this, big_pars, method='Nelder-Mead', **nmopts)
+tok = time.time()
+taken = tok - tik
+sys.stderr.write("done.  Took %.3f seconds.\n" % taken)
+
+ 
+##--------------------------------------------------------------------------##
+##--------------------------------------------------------------------------##
+sys.exit(1)
 
 ## Calculate RA/DE, cross-match to Gaia, update star catalogs:
 sensor_mtol = {'NE':0.3, 'NW':0.3, 'SE':0.3, 'SW':0.5}

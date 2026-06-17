@@ -359,8 +359,8 @@ def argnear(vec, val):
 
 ##--------------------------------------------------------------------------##
 ## Tip/tilt demo:
-ytilt_mrad = 450.
-xtilt_mrad = 250.
+ytilt_mrad =   0.
+xtilt_mrad = 100.
 rmat_xtilt = frot.Rx(xtilt_mrad / 1e3)
 rmat_ytilt = frot.Ry(ytilt_mrad / 1e3)
 

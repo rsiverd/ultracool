@@ -123,7 +123,8 @@ def unsift_params_multi(msifted, iname_list):
 
 ## Organize the parameter list:
 def sift_params_multi(params, iname_list):
-    parsleft = params.copy()
+    #parsleft = params.copy()
+    parsleft = np.array(params).copy()
     cdmcrpix = parsleft[:24].reshape(-1, 6)
     parsleft = parsleft[24:]
     tmp_cdms = {qq:vv for qq,vv in zip(_quads, cdmcrpix[:, :4])}
