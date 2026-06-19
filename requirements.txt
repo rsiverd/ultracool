@@ -4,7 +4,7 @@ astroquery==0.4
 ephem==3.7.7.0
 fitsio==1.0.5
 matplotlib==3.0.3
-numpy==1.17.1
+numpy==1.22.0
 pandas==0.25.1
 pyvo==1.0
 reproject==0.5.1
