@@ -1,0 +1,21 @@
+Windowed centroids in SEP have a tendency to walk away from the target in
+cases where a brighter neighbor is present. SExtractor suffers from the same
+behavior but has an internal kill switch that halts the iteration process when
+the centroid has walked too far. In that case, SE returns the standard centroid
+(lower precision).
+
+Using SEP, I believe a middle ground is possible (and preferable) where the
+analysis and iteration is restricted to pixels that are part of the detection.
+This should exclude most flux from nearby neighbors. There are a number of
+ways to implement such a scheme and the 'easy' way might have poor performance.
+
+In this investigation I will:
+(a) implement this restricted windowing scheme using the 'mask' parameter
+(b) assess whether it prevents the walk-away-to-neighbor phenomenon
+(c) measure how much slower it is to run a separate mask on each target
+(d) using a working implementation, demonstrate with synthetic PSFs that the
+result is actually an improvement
+
+Basic workflow will be copied from my existing easy_sep module. I have chosen
+a typical J-band image (wircam_J_1325839p.fits.fz) as the test case.
+
