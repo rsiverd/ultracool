@@ -324,6 +324,17 @@ every_rerr = np.hypot(ddata['xerror'] - ddata['xnudge'],
                       ddata['yerror'] - ddata['ynudge'])
 every_rccd = ddata['rdmeas']
 
+## NOTES:
+## * every_rccd = every_rsep + every_rsep
+## * corrections that do every_rsep-->every_rccd are used to transform
+##      celestial catalog positions into CCD coordinates. This was important
+##      in the fitting process
+##      --> get these parameters by fitting rcorr(every_rsep)
+## * corrections that do every_rccd-->every_rsep are needed for data
+##      processing in production (i.e., measure rccd, compute rsep)
+##      --> get these parameters by fitting rcorr(every_rccd)
+
+
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
@@ -419,20 +430,20 @@ def cheb_eval(x, c0, c1, c2, c3, c4):
 ## https://www.imatest.com/imaging/distortion/
 ## https://www.researchgate.net/publication/228546868_A_real-time_FPGA_implementation_of_a_barrel_distortion_correction_algorithm_with_bilinear_interpolation/link/0c96051ef1ca6ee9ca000000/download
 
-def barrelize1(r, c1, c2):
-    x = r / 3100.0
+def barrelize1(x, c1, c2):
+    #x = r / 3100.0
     return x * (1.0 + c1*x + c2*x*x)
 
-def barrelize2(r, c1, c2):
-    x = r / 3100.0
+def barrelize2(x, c1, c2):
+    #x = r / 3100.0
     return x * (1.0 + c1*x*x + c2*x**4)
 
-def barrelize3(r, c1, c2, c3, c4):
-    x = r / 3100.0
+def barrelize3(x, c1, c2, c3, c4):
+    #x = r / 3100.0
     return x * (1.0 + x * (c1 + x * (c2 + x * (c3 + x * c4))))
 
-def barrelize4(r, c1, c2, c3, c4, c5):
-    x = r / 3100.0
+def barrelize4(x, c1, c2, c3, c4, c5):
+    #x = r / 3100.0
     return x * (1.0 + x * (c1 + x * (c2 + x * (c3 + x * (c4 + x*c5)))))
 
 #def barrelize4(x, c1, c2, c3, c4):
@@ -462,12 +473,17 @@ fracrad = every_rsep / _RMAX
 bestpar, bestcov = opti.curve_fit(dumb_poly_eval, 
                                   every_rsep, every_rerr, badguess)
 
+
 chebpar, chebcov = opti.curve_fit(cheb_eval, every_rsep, every_rerr)
 
 bar1par, bar1cov = opti.curve_fit(barrelize1, every_rsep, every_rccd)
 bar2par, bar2cov = opti.curve_fit(barrelize2, every_rsep, every_rccd)
 bar3par, bar3cov = opti.curve_fit(barrelize3, every_rsep, every_rccd)
 bar4par, bar4cov = opti.curve_fit(barrelize4, every_rsep, every_rccd)
+
+## Fit the reverse direction (ccd --> sky)
+rev_par, rev_cov = opti.curve_fit(dumb_poly_eval, 
+                                  every_rccd, every_rerr, badguess)
 
 ## Illustrate the best fit:
 showme_x = np.linspace(1.0, 3000.)
