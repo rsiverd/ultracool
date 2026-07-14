@@ -95,7 +95,9 @@ import numpy as np
 #import itertools as itt
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
-
+## File helpers:
+import file_helpers as fh
+reload(fh)
 
 ##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
@@ -329,18 +331,22 @@ fulldiv = '-' * 80
 ##--------------------------------------------------------------------------##
 
 ##--------------------------------------------------------------------------##
-## Method from filename:
-def method_from_filename(filename):
-    fbase = os.path.basename(filename)
-    return fbase.split('psf_')[1].split('.fits')[0].split('.cat')[0]
+### Method from filename:
+#def method_from_filename(filename):
+#    fbase = os.path.basename(filename)
+#    return fbase.split('psf_')[1].split('.fits')[0].split('.cat')[0]
 
 ## Find PSF images:
 psf_dir = 'PSF'
-if not os.path.isdir(psf_dir):
-    sys.stderr.write("Error: folder not found: %s\n" % psf_dir)
+psf_paths = fh.get_psfdir_imgdict(psf_dir)
+#if not os.path.isdir(psf_dir):
+#    sys.stderr.write("Error: folder not found: %s\n" % psf_dir)
+#    sys.exit(1)
+#psf_files = sorted(glob.glob('%s/psf_*.fits' % psf_dir))
+#psf_paths = {method_from_filename(x):x for x in psf_files}
+if not psf_paths:
+    sys.stderr.write("No PSF files found!\n")
     sys.exit(1)
-psf_files = sorted(glob.glob('%s/psf_*.fits' % psf_dir))
-psf_paths = {method_from_filename(x):x for x in psf_files}
 
 ## Load and normalize images:
 psf_data = {mm:pf.getdata(pp) for mm,pp in psf_paths.items()}
@@ -348,24 +354,12 @@ psf_data = {mm:pf.getdata(pp) for mm,pp in psf_paths.items()}
 
 ##--------------------------------------------------------------------------##
 
-## How to load SE catalog data:
-def load_se_catalog(filename):
-    with open(filename, 'r') as ff:
-        content = [x.strip() for x in ff.readlines()]
-    data = [x for x in content if not x.startswith('#')]
-    if len(data) != 1:
-        sys.stderr.write("Unexpected content!!\n")
-        sys.exit(1)
-    cols = ['XWIN_IMAGE', 'YWIN_IMAGE', 'MAG_ISO', 'FLUX_ISO',
-            'FWHM_IMAGE', 'BACKGROUND', 'ELLIPTICITY', 'FLAGS', 'FLAGS_WIN']
-    ctypes = [float]*7 + [int]*2
-    values = [kk(xx) for kk,xx in zip(ctypes, data[0].split())]
-    return dict(zip(cols, values))
-
 ## Also gather SE catalogs:
-cat_files = sorted(glob.glob('%s/Zpsf_*.cat' % psf_dir))
-cat_paths = {method_from_filename(x):x for x in cat_files}
-cat_data  = {mm:load_se_catalog(cc) for mm,cc in cat_paths.items()}
+cat_paths = fh.get_psfdir_catdict(psf_dir)
+if not cat_paths:
+    sys.stderr.write("No catalogs found!\n")
+    sys.exit(1)
+cat_data  = {mm:fh.load_se_catalog(cc) for mm,cc in cat_paths.items()}
 
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
