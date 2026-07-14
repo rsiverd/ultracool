@@ -19,3 +19,19 @@ result is actually an improvement
 Basic workflow will be copied from my existing easy_sep module. I have chosen
 a typical J-band image (wircam_J_1325839p.fits.fz) as the test case.
 
+-----------------------------------------------------------------------
+-----------------------------------------------------------------------
+
+# I am using synthetic images with realistic WIRCam PSFs to evaluate the
+# ability of the new algorithm to separate stars and preserve centroid
+# accuracy. The following commands produce sample PSFs for use:
+estimate-image-PSF ./wircam_J_1325839p.fits.fz -N  -o psf_nearestn.fits
+estimate-image-PSF ./wircam_J_1325839p.fits.fz -L2 -o psf_lanczos2.fits
+estimate-image-PSF ./wircam_J_1325839p.fits.fz -L3 -o psf_lanczos3.fits
+
+# Add stats to each of the images:
+for img in psf*fits; do cmde "kimstat -I $img"; done
+
+# Find centroids with SourceExtractor:
+for img in psf*fits; do cmde "runsex $img -o Z${img%.fits}.cat" ; done
+
