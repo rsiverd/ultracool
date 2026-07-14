@@ -1,0 +1,10 @@
+#   1 XWIN_IMAGE             Windowed position estimate along x                         [pixel]
+#   2 YWIN_IMAGE             Windowed position estimate along y                         [pixel]
+#   3 MAG_ISO                Isophotal magnitude                                        [mag]
+#   4 FLUX_ISO               Isophotal flux                                             [count]
+#   5 FWHM_IMAGE             FWHM assuming a gaussian core                              [pixel]
+#   6 BACKGROUND             Background at centroid position                            [count]
+#   7 ELLIPTICITY            1 - B_IMAGE/A_IMAGE                                       
+#   8 FLAGS                  Extraction flags                                          
+#   9 FLAGS_WIN              Flags for WINdowed parameters                             
+    23.039     22.922  24.7081      1.30848     2.97  2.86883e-05    0.018   0   3
