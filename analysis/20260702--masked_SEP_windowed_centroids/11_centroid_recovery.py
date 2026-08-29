@@ -78,6 +78,10 @@ import matplotlib.pyplot as plt
 #import itertools as itt
 _have_np_vers = float('.'.join(np.__version__.split('.')[:2]))
 
+## File helpers:
+import file_helpers as fh
+reload(fh)
+
 ##--------------------------------------------------------------------------##
 ## Disable buffering on stdout/stderr:
 class Unbuffered(object):
@@ -128,17 +132,6 @@ def load_stringrep_object(filename):
 #except ImportError:
 #    logger.error("module robust_stats not found!  Install and retry.")
 #    sys.stderr.write("\nError!  robust_stats module not found!\n"
-#           "Please install and try again ...\n\n")
-#    sys.exit(1)
-
-## Home-brew KDE:
-#try:
-#    import my_kde
-#    reload(my_kde)
-#    mk = my_kde
-#except ImportError:
-#    logger.error("module my_kde not found!  Install and retry.")
-#    sys.stderr.write("\nError!  my_kde module not found!\n"
 #           "Please install and try again ...\n\n")
 #    sys.exit(1)
 
@@ -201,8 +194,11 @@ def argnear(vec, val):
 ##--------------------------------------------------------------------------##
 
 ##--------------------------------------------------------------------------##
-## Get a list of available PSF stamps:
+## List and load available PSF stamps:
 psf_dir = 'PSF'
+psf_paths = fh.get_psfdir_imgdict(psf_dir)
+psf_data = {mm:pf.getdata(pp) for mm,pp in psf_paths.items()}
+
 if not os.path.isdir(psf_dir):
     sys.stderr.write("Directory not found: %s\n" % psf_dir)
     sys.exit(1)
