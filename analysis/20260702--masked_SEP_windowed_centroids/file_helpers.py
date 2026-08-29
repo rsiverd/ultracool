@@ -52,18 +52,6 @@ def get_psfdir_catdict(psf_dir):
     catfiles = get_psfdir_catlist(psf_dir)
     return {get_filemethod(x):x for x in catfiles}
 
-### Find PSF images:
-#psf_dir = 'PSF'
-#if not os.path.isdir(psf_dir):
-#    sys.stderr.write("Error: folder not found: %s\n" % psf_dir)
-#    sys.exit(1)
-#psf_files = sorted(glob.glob('%s/psf_*.fits' % psf_dir))
-#psf_paths = {method_from_filename(x):x for x in psf_files}
-#
-### Load and normalize images:
-#psf_data = {mm:pf.getdata(pp) for mm,pp in psf_paths.items()}
-##psf_norm = {mm:(pp / np.sum(pp)) for mm,pp in psf_data.items()}
-
 ##--------------------------------------------------------------------------##
 ##--------------------------------------------------------------------------##
 
