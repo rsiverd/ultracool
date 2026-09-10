@@ -11,13 +11,13 @@
 #
 # Rob Siverd
 # Created:       2026-01-27
-# Last modified: 2026-05-05
+# Last modified: 2026-09-10
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 ## Python version-agnostic module reloading:
 try:
@@ -421,14 +421,18 @@ sys.stderr.write("Gaia brights-only match count: %s\n" % str(agst_count))
 #min_gstars = 200
 min_gstars = 20     # very low bar for bright-stars-only matching
 fails_file = 'fails_detected.txt'
+agst_total = sum(list(agst_count.values()))
 for qq,gcount in agst_count.items():
     if gcount < min_gstars:
         sys.stderr.write("\nBAD SOLUTION DETECTED!\n")
         sys.stderr.write("%s quadrant has too few Gaia matches (%d < %d).\n"
                          % (qq, gcount, min_gstars))
         sys.stderr.write("Abort processing!\n")
+        agst_list = list(agst_count.values())
+        agst_list.append(sum(agst_list))
+        agst_fmsg = ' '.join(['%3d'%x for x in agst_list])
         with open(fails_file, 'a') as ff:
-            ff.write("%s\n" % context.image)
+            ff.write("%s %s\n" % (context.image, agst_fmsg))
         sys.exit(0)
 #if any([x<min_gstars for x in agst_count.values()]):
 #    sys.stderr.write("Bad solution: fewer than %d Gaia matches\n" % min_gstars)
