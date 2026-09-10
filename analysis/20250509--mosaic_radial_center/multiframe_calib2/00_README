@@ -19,6 +19,19 @@ probably warrants a significant rethink of the pipeline.
 
 -----------------------------------------------------------------------
 
+## The bit below is handled by 02_list_fcat_dirs.sh. imdirs_c2 is the
+## output folder, not an input folder.
+
+### Before executing, we need to make a list of imdirs:
+##mkdir -p imdirs_c2
+##find /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc -type d -mindepth 3 | grep by_runid | sort > tdirs
+##cat tdirs | rev | cut -d/ -f1 | rev | sort -u > trunids
+##for runid in `cat trunids`; do
+##   echo $runid
+##done
+
+-----------------------------------------------------------------------
+
 Steps to execute:
 # 1) Set up environment:
 source ~/anaconda3/bin/activate; conda activate astrom
@@ -27,13 +40,13 @@ source ENVIRONMENT.sh
 cd -
 
 # 2) Make lists of folders that can be scanned to make fcat listings.
-./02_list_fcat_dirs.sh imdirs_c1 --START
+./02_list_fcat_dirs.sh imdirs_c2 --START
 
 # 3) Build a list of available images. Associate full paths to catalogs from
 # all four sensors with each base name.
-./03_list_fcat_files.sh imdirs_11BQ02.txt
-./03_list_fcat_files.sh imdirs_11.txt
-./03_list_fcat_files.sh imdirs_c1/imdirs_all.txt
+#./03_list_fcat_files.sh imdirs_11BQ02.txt
+#./03_list_fcat_files.sh imdirs_11.txt
+./03_list_fcat_files.sh imdirs_c2/imdirs_all.txt
 
 # 3a) Mine headers for downstream seasonal effects analysis:
 ./04_mine_fcat_headers.sh fcat_paths.csv seasonal_data.csv

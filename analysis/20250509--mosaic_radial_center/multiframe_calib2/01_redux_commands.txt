@@ -67,3 +67,22 @@ for qq in NE NW SE SW; do
    cmde "./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_${qq}/by_runid/$RUNID -G /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/gaia_calib2_xx.DR2.0d4.csv"
 done
 
+----------------------------------------------------------------------- 
+Post processing ....
+----------------------------------------------------------------------- 
+
+## Before executing, we need to make a list of imdirs:
+#mkdir -p imdirs_c2
+#find /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc -type d -mindepth 3 | grep by_runid | sort > tdirs
+#cat tdirs | rev | cut -d/ -f1 | rev | sort -u > trunids
+#for runid in `cat trunids`; do
+#   echo $runid
+#   savefile="imdirs_c2/imdirs_${runid}.txt"
+#   echo $savefile
+#   grep $runid tdirs > $savefile
+#done
+#cat imdirs_c2/imdirs_??????.txt > imdirs_c2/imdirs_all.txt
+#rm tdirs trunids
+
+## RETURN TO 00_README for commands (FIXME we are out of order)
+
