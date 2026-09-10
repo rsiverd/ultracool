@@ -6,13 +6,13 @@
 #
 # Rob Siverd
 # Created:       2026-01-27
-# Last modified: 2026-05-05
+# Last modified: 2026-09-10
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 ## Modules:
 import gc
@@ -170,28 +170,34 @@ def register_catalogs_to_gaia(data, tol_arcsec, stream=sys.stderr):
         #matches = slvh.gm.twoway_gaia_matches(sra, sde, sensor_mtol.get(qq))
         matches = gm.twoway_gaia_matches(sra, sde, sensor_mtol.get(qq))
         idx, gra, gde, gid = matches
-        gcosdec = np.cos(np.radians(gde))
+
+        if idx.size > 0:
+            gcosdec = np.cos(np.radians(gde))
         #mismatch =
-        delta_ra_arcsec = 3600.0 * (gra - sra[idx]) * gcosdec
-        delta_de_arcsec = 3600.0 * (gde - sde[idx])
-        med_delta_ra, sig_delta_ra = rs.calc_ls_med_MAD(delta_ra_arcsec)
-        med_delta_de, sig_delta_de = rs.calc_ls_med_MAD(delta_de_arcsec)
-        sys.stderr.write("%s | RA~ %.3f +/- %.3f | DE~ %.3f +/- %.3f\n"
+            delta_ra_arcsec = 3600.0 * (gra - sra[idx]) * gcosdec
+            delta_de_arcsec = 3600.0 * (gde - sde[idx])
+            med_delta_ra, sig_delta_ra = rs.calc_ls_med_MAD(delta_ra_arcsec)
+            med_delta_de, sig_delta_de = rs.calc_ls_med_MAD(delta_de_arcsec)
+            sys.stderr.write("%s | RA~ %6.3f +/- %.3f | DE~ %6.3f +/- %.3f\n"
                 % (qq, med_delta_ra, sig_delta_ra, med_delta_de, sig_delta_de))
+        else:
+            sys.stderr.write("%s | NO MATCHES!\n" % qq)
     
         # also embed Gaia info:
         big_gid = np.zeros(len(xpos), dtype=gid.dtype)
         big_gra = np.zeros_like(sra) * np.nan
         big_gde = np.zeros_like(sde) * np.nan
-        big_gid[idx] = gid
-        big_gra[idx] = gra
-        big_gde[idx] = gde
+        if idx.size > 0:
+            big_gid[idx] = gid
+            big_gra[idx] = gra
+            big_gde[idx] = gde
         ss['gid'] = big_gid
         ss['gra'] = big_gra
         ss['gde'] = big_gde
         #break
         pass
-    sys.stderr.write("done.\n")
+    #sys.stderr.write("done.\n")
+    sys.stderr.write("\n")
     return stars
  
 
