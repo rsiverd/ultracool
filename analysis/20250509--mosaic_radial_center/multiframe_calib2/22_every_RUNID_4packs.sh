@@ -6,7 +6,7 @@
 #
 # Rob Siverd
 # Created:      2026-02-17
-# Last updated: 2026-02-17
+# Last updated: 2026-09-10
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
@@ -77,7 +77,7 @@ if [[ "$1" != "--START" ]]; then
    exit 1
 fi
 
-dirslist="imdirs_c1/imdirs_all.txt"
+dirslist="imdirs_c2/imdirs_all.txt"
 [[ -f $dirslist ]] || PauseAbort "Can't find file: $dirslist"
 imscript="./21_fit_4packs_to_RUNID.sh"
 [[ -f $imscript ]] || PauseAbort "Can't find file: $imscript"
