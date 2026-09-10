@@ -9,9 +9,12 @@ cd /home/rsiverd/ucd_project/ultracool/CFHT
 -----------------------------------------------------------------------
 
 ./02_get_CFHT_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_NE/by_runid -o /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_NE/cfht_eph_calib2_p_NE.csv
-./02_get_CFHT_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_NW/by_runid -o /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_NW/cfht_eph_calib2_p_NW.csv
-./02_get_CFHT_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_SE/by_runid -o /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_SE/cfht_eph_calib2_p_SE.csv
-./02_get_CFHT_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_SW/by_runid -o /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_SW/cfht_eph_calib2_p_SW.csv
+#./02_get_CFHT_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_NW/by_runid -o /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_NW/cfht_eph_calib2_p_NW.csv
+#./02_get_CFHT_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_SE/by_runid -o /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_SE/cfht_eph_calib2_p_SE.csv
+#./02_get_CFHT_ephemeris.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_SW/by_runid -o /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_SW/cfht_eph_calib2_p_SW.csv
+#cp -f /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_NE/cfht_eph_calib2_p_NE.csv /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_NW/cfht_eph_calib2_p_NW.csv
+#cp -f /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_NE/cfht_eph_calib2_p_NE.csv /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_SE/cfht_eph_calib2_p_SE.csv
+#cp -f /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_NE/cfht_eph_calib2_p_NE.csv /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_SW/cfht_eph_calib2_p_SW.csv
 
 ----------------------------------------------------------------------- 
 
@@ -51,16 +54,16 @@ done
 
 
 
-./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_NE/by_runid -G /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/gaia_calib2_NE.csv
-./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_NW/by_runid -G /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/gaia_calib2_NE.csv
-./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_SE/by_runid -G /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/gaia_calib2_NE.csv
-./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_SW/by_runid -G /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/gaia_calib2_NE.csv
+./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_NE/by_runid -G /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/gaia_calib2_xx.DR2.0d4.csv
+./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_NW/by_runid -G /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/gaia_calib2_xx.DR2.0d4.csv
+./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_SE/by_runid -G /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/gaia_calib2_xx.DR2.0d4.csv
+./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_SW/by_runid -G /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/gaia_calib2_xx.DR2.0d4.csv
 
-./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_NE/by_runid/$RUNID -G /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/gaia_calib2_NE.csv
-./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_NW/by_runid/$RUNID -G /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/gaia_calib2_NE.csv
-./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_SE/by_runid/$RUNID -G /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/gaia_calib2_NE.csv
-./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_SW/by_runid/$RUNID -G /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/gaia_calib2_NE.csv
+./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_NE/by_runid/$RUNID -G /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/gaia_calib2_xx.DR2.0d4.csv
+./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_NW/by_runid/$RUNID -G /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/gaia_calib2_xx.DR2.0d4.csv
+./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_SE/by_runid/$RUNID -G /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/gaia_calib2_xx.DR2.0d4.csv
+./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_SW/by_runid/$RUNID -G /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/gaia_calib2_xx.DR2.0d4.csv
 for qq in NE NW SE SW; do
-   cmde "./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_${qq}/by_runid/$RUNID -G /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/gaia_calib2_NE.csv"
+   cmde "./17_update_fcat_radec.py -W -I /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/calib2_p_${qq}/by_runid/$RUNID -G /home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/gaia_calib2_xx.DR2.0d4.csv"
 done
 
