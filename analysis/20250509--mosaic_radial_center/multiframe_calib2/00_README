@@ -53,20 +53,21 @@ cd -
 
 # 4) Run the script:
 #./11_test_fit_4pack.py -L fcat_paths.csv -I wircam_H2_1325861p
-./11_test_fit_4pack.py -L fcat_paths.csv -I wircam_J_1325839p
-./11_test_fit_4pack.py -L fcat_paths.csv -I wircam_J_1325850p
-./11_test_fit_4pack.py -L fcat_paths.csv -I wircam_J_1333371p
+./11_test_fit_4pack.py -L fcat_paths.csv -I wircam_J_1416410p
+./11_test_fit_4pack.py -L fcat_paths.csv -I wircam_J_1615018p
+./11_test_fit_4pack.py -L fcat_paths.csv -I wircam_J_1416917p
+#./11_test_fit_4pack.py -L fcat_paths.csv -I wircam_J_1333371p
 
 # 5) Run the script (factored, iterative version):
-./12_factor_fit_4pack.py -L fcat_paths.csv -I wircam_J_1333371p
-./12_factor_fit_4pack.py -L fcat_paths.csv -I wircam_H2_2626495p -O tmp.pickle
-./12_factor_fit_4pack.py -L fcat_paths.csv -I wircam_J_2887486p -O tmp.pickle     # 23AQ21 ...
+./12_factor_fit_4pack.py -L fcat_paths.csv -I wircam_J_1416410p -O tmp.pickle
+#./12_factor_fit_4pack.py -L fcat_paths.csv -I wircam_H2_2626495p -O tmp.pickle
+#./12_factor_fit_4pack.py -L fcat_paths.csv -I wircam_J_2887486p -O tmp.pickle     # 23AQ21 ...
 
 # 5a) Testing refit ability:
 #./15_test_refit_sensor.py -L fcat_paths.csv -I wircam_J_2887486p -O tmp.pickle
 
 # 6) Test-process a whole RUNID:
-./21_fit_4packs_to_RUNID.sh 11BQ02
+./21_fit_4packs_to_RUNID.sh 11BQ05
 ./21_fit_4packs_to_RUNID.sh 16AQ14
 ./21_fit_4packs_to_RUNID.sh 17AQ07
 ./21_fit_4packs_to_RUNID.sh 21AQ18

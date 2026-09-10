@@ -278,7 +278,8 @@ if not os.path.isfile(context.fcat_list):
 ## Load Gaia data:
 ## Gaia stuf:
 #gaia_csv_path = '/home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/gaia_calib1_NE.0d3.csv'
-gaia_csv_path = '/home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/gaia_calib1_NE.0d4.csv'
+#gaia_csv_path = '/home/rsiverd/ucd_project/ucd_cfh_data/calib1_proc/gaia_calib1_NE.0d4.csv'
+gaia_csv_path = '/home/rsiverd/ucd_project/ucd_cfh_data/calib2_proc/gaia_calib2_xx.DR2.0d4.csv'
 sys.stderr.write("Loading Gaia ... ")
 gm.load_sources_csv(gaia_csv_path)
 sys.stderr.write("done.\n")
