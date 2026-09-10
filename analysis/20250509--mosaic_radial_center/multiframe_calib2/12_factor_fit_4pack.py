@@ -421,7 +421,6 @@ sys.stderr.write("Gaia brights-only match count: %s\n" % str(agst_count))
 #min_gstars = 200
 min_gstars = 20     # very low bar for bright-stars-only matching
 fails_file = 'fails_detected.txt'
-agst_total = sum(list(agst_count.values()))
 for qq,gcount in agst_count.items():
     if gcount < min_gstars:
         sys.stderr.write("\nBAD SOLUTION DETECTED!\n")
@@ -677,8 +676,11 @@ for qq,gcount in this_agst_count.items():
         sys.stderr.write("%s quadrant has too few Gaia matches (%d < %d).\n"
                          % (qq, gcount, min_gstars))
         sys.stderr.write("Abort processing!\n")
+        agst_list = list(this_agst_count.values())
+        agst_list.append(sum(agst_list))
+        agst_fmsg = ' '.join(['%3d'%x for x in agst_list])
         with open(fails_file, 'a') as ff:
-            ff.write("%s\n" % context.image)
+            ff.write("%s %s\n" % (context.image, agst_fmsg))
         sys.exit(0)
 
 #prev_match_count = [len(x) for x in use_gstars.values()]
