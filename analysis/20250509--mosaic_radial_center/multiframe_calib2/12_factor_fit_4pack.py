@@ -301,10 +301,11 @@ this_filter = context.image.split('_')[1]
 ##--------------------------------------------------------------------------##
 ## Filter-dependent Gaia match parameters:
 gmag_limit = 19.0               # default
-gmag_bright_limit = 14.0
+#gmag_bright_limit = 14.0
+gmag_bright_limit = 15.0
 if this_filter == 'H2':
-    #gmag_limit = 18.0
-    gmag_limit = 17.0      # slightly worse
+    gmag_limit = 18.0
+    #gmag_limit = 17.0      # slightly worse
     #gmag_limit = 17.5
 #gmag_limit = 19.0               # default
 
