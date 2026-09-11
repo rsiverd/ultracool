@@ -304,7 +304,8 @@ gmag_limit = 19.0               # default
 #gmag_bright_limit = 14.0
 gmag_bright_limit = 15.0
 if this_filter == 'H2':
-    gmag_limit = 18.0
+    gmag_limit = 19.0
+    #gmag_limit = 18.0
     #gmag_limit = 17.0      # slightly worse
     #gmag_limit = 17.5
 #gmag_limit = 19.0               # default
@@ -669,7 +670,8 @@ sys.stderr.write("Previous Gaia matches: %s\n" % str(prev_agst_count))
 sys.stderr.write("Current  Gaia matches: %s\n" % str(this_agst_count))
 
 ## Abort if any sensor has too few matches (solution compromised):
-min_gstars = 200
+#min_gstars = 200
+min_gstars = 150
 fails_file = 'fails_detected.txt'
 for qq,gcount in this_agst_count.items():
     if gcount < min_gstars:
