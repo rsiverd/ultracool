@@ -4,14 +4,14 @@
 #
 # Rob Siverd
 # Created:      2026-03-03
-# Last updated: 2026-03-03
+# Last updated: 2026-09-10
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Default options:
 debug=0 ; clobber=0 ; force=0 ; timer=0 ; vlevel=0
-script_version="0.01"
+script_version="0.02"
 this_prog="${0##*/}"
 #shopt -s nullglob
 # Propagate errors through pipelines: set -o pipefail
@@ -75,7 +75,7 @@ if [[ "$1" != "--START" ]]; then
    exit 1
 fi
 
-dirslist="imdirs_c1/imdirs_all.txt"
+dirslist="imdirs_c2/imdirs_all.txt"
 [[ -f $dirslist ]] || PauseAbort "Can't find file: $dirslist"
 ftscript="./23_fine_tune_RUNID_WCS.py"
 [[ -f $ftscript ]] || PauseAbort "Can't find file: $ftscript"
