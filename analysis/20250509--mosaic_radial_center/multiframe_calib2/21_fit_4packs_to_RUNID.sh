@@ -12,14 +12,14 @@
 #
 # Rob Siverd
 # Created:      2026-01-27
-# Last updated: 2026-01-27
+# Last updated: 2026-09-10
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Default options:
 debug=0 ; clobber=0 ; force=0 ; timer=0 ; vlevel=0
-script_version="0.01"
+script_version="0.02"
 this_prog="${0##*/}"
 #shopt -s nullglob
 # Propagate errors through pipelines: set -o pipefail
@@ -113,6 +113,13 @@ have_bases=( $(shuffle ${have_bases[*]}) )
 save_dir="results/$runid"
 cmde "mkdir -p $save_dir" || exit $?
 
+## Ensure failures list exists (combine bad+new lists):
+fails_bad="fails_extreme.txt"
+fails_new="fails_detected.txt"
+touch $foo
+[[ -f $fails_bad ]] && cat $fails_bad >> $foo
+[[ -f $fails_new ]] && cat $fails_new >> $foo
+
 ## Iterate over each of the bases:
 count=0
 ntodo=0
@@ -121,6 +128,11 @@ for fbase in ${have_bases[*]}; do
    pickle="${save_dir}/${fbase}.pickle"
    if [[ -f $pickle ]]; then
       echo "Skipping image (output $pickle exists) ..."
+      continue
+   fi
+   nfail=$(grep $fbase $foo | wc -l)
+   if [[ $nfail -ge 1 ]]; then
+      echo "Skipping image (already failed) ..."
       continue
    fi
    cmde "$cfh_solver -L $fcat_table -I $fbase -O $pickle" || exit $?
@@ -134,7 +146,7 @@ done
 ##--------------------------------------------------------------------------##
 ## Clean up:
 #[[ -d $tmp_dir ]] && [[ -O $tmp_dir ]] && rm -rf $tmp_dir
-#[[ -f $foo ]] && rm -f $foo
+[[ -f $foo ]] && rm -f $foo
 #[[ -f $bar ]] && rm -f $bar
 #[[ -f $baz ]] && rm -f $baz
 #[[ -f $qux ]] && rm -f $qux
