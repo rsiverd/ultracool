@@ -6,3 +6,16 @@ Setup instructions:
 cp ~/ucd_project/ucd_cfh_data/calib1_proc/image_hdrs.txt headers_c1.txt
 cp ~/ucd_project/ucd_cfh_data/calib2_proc/image_hdrs.txt headers_c2.txt
 
+-----------------------------------------------------------------------
+
+FINDINGS:
+In QRUNID 12AQ05, on MJD-OBS 56021-56022,
+* calib1 observed in J  from UTC 2012-04-04  15:30 - 15:42  (56021.6461488 - 56021.6547446). Near end-of-night.
+* calib1 observed in H2 from UTC 2012-04-06  15:29 - 15:36  (56023.6451919 - 56023.6501719). Near end-of-night.
+   --> NOTE: J-band and H2-band data obtained on NON-CONSECUTIVE days rather than in single pointing
+   --> images are 1538227p.fits.fz - 1538247p.fits.fz
+* calib2 observed in J  from UTC 2012-04-04  05:05 - 05:23  (56021.2124955 - 56021.2243992). Near start-of-night. 
+* calib2 observed in H2 from UTC 2012-04-05  05:24 - 05:32  (56022.2256049 - 56022.2306351). Near start-of-night.
+   --> NOTE: J-band and H2-band data obtained on consecutive days rather than in single pointing
+   --> images are 1537826p.fits.fz - 1537849p.fits.fz
+
