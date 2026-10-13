@@ -1,0 +1,8 @@
+I want to determine whether calib1 and calib2 were ever observed on the same
+night. Barring that, I want a list of images for calib1/calib2 observations
+that occurred during the same QRUNID.
+
+Setup instructions:
+cp ~/ucd_project/ucd_cfh_data/calib1_proc/image_hdrs.txt headers_c1.txt
+cp ~/ucd_project/ucd_cfh_data/calib2_proc/image_hdrs.txt headers_c2.txt
+
