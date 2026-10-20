@@ -68,12 +68,12 @@ cd -
 
 # 6) Test-process a whole RUNID:
 ./21_fit_4packs_to_RUNID.sh 11BQ05
-./21_fit_4packs_to_RUNID.sh 16AQ14
+./21_fit_4packs_to_RUNID.sh 16AQ10
 ./21_fit_4packs_to_RUNID.sh 17AQ07
-./21_fit_4packs_to_RUNID.sh 21AQ18
-./21_fit_4packs_to_RUNID.sh 23AQ21
-./21_fit_4packs_to_RUNID.sh 18AQ15
-trouble=( 17AQ07 18AQ11 18AQ15 18BQ07 18BQ18 20BQ03 22BQ02 23AQ21 )
+./21_fit_4packs_to_RUNID.sh 18BQ15
+./21_fit_4packs_to_RUNID.sh 20AQ05
+./21_fit_4packs_to_RUNID.sh 23AQ04
+#trouble=( 17AQ07 18AQ11 18AQ15 18BQ07 18BQ18 20BQ03 22BQ02 23AQ21 )
 for badfit in ${trouble[*]}; do       cmde "./21_fit_4packs_to_RUNID.sh $badfit"  ; done
 for badfit in ${trouble[*]}; do echo "cmde './21_fit_4packs_to_RUNID.sh $badfit'" ; done
 
@@ -81,12 +81,12 @@ for badfit in ${trouble[*]}; do echo "cmde './21_fit_4packs_to_RUNID.sh $badfit'
 ./22_every_RUNID_4packs.sh --START
 
 # 8) Test-refine a whole RUNID:
-./23_fine_tune_RUNID_WCS.py -R 11BQ02
-./23_fine_tune_RUNID_WCS.py -R 16AQ14
+./23_fine_tune_RUNID_WCS.py -R 11BQ05
+./23_fine_tune_RUNID_WCS.py -R 16AQ10
 ./23_fine_tune_RUNID_WCS.py -R 17AQ07
-./23_fine_tune_RUNID_WCS.py -R 21AQ18
-./23_fine_tune_RUNID_WCS.py -R 21AQ18 --Jonly
-./23_fine_tune_RUNID_WCS.py -R 23AQ21 --Jonly
+./23_fine_tune_RUNID_WCS.py -R 18BQ15
+./23_fine_tune_RUNID_WCS.py -R 20AQ05 --Jonly
+./23_fine_tune_RUNID_WCS.py -R 23AQ04 --Jonly
 for badfit in ${trouble[*]}; do       cmde "./23_fine_tune_RUNID_WCS.py -R $badfit --Jonly"  ; done
 for badfit in ${trouble[*]}; do echo "cmde './23_fine_tune_RUNID_WCS.py -R $badfit --Jonly'" ; done
 

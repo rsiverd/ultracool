@@ -567,6 +567,12 @@ for ax in axs1.ravel():
 
 i = 0
 axs1[fts(i,0)].scatter(rst_yfrac[yfr_order], cd11[yfr_order])
+#axs1[fts(i,0)].scatter(rst_yfrac[yfr_order], ne_crpix1[yfr_order])
+#axs1[fts(i,0)].scatter(rst_yfrac[yfr_order], ne_crpix2[yfr_order])
+#axs1[fts(i,0)].scatter(rst_telaz[azm_order], ne_crpix1[azm_order])
+#axs1[fts(i,0)].scatter(rst_altit[alt_order], ne_crpix1[alt_order])
+#axs1[fts(i,0)].scatter(rst_paran[par_order], ne_crpix1[par_order])
+#axs1[fts(i,0)].scatter(vdotcalib1[vel_order], ne_crpix1[vel_order])
 axs1[fts(i,0)].set_ylabel("CD11")
 axs1[fts(i,0)].set_xlabel("Day of year")
 axs1[fts(i,1)].scatter(rst_yfrac[yfr_order], cd22[yfr_order])

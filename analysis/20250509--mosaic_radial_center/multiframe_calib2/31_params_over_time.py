@@ -5,13 +5,13 @@
 #
 # Rob Siverd
 # Created:       2026-03-03
-# Last modified: 2026-05-05
+# Last modified: 2026-09-15
 #--------------------------------------------------------------------------
 #**************************************************************************
 #--------------------------------------------------------------------------
 
 ## Current version:
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 ## Optional matplotlib control:
 #from matplotlib import use, rc, rcParams
@@ -428,8 +428,10 @@ if _FIXED_LIMITS:
     axs[3,0].set_ylim(-4.2, 1.0)
     axs[3,1].set_ylim(-2194.4, -2192.2)
 
-axs[4,0].plot(runid_list, par_stack[0,0,:])
-axs[4,1].plot(runid_list, par_stack[0,3,:])
+axs[4,0].plot(runid_list, par_stack[0,0,:]) # NE CD11
+axs[4,1].plot(runid_list, par_stack[0,3,:]) # NE CD22
+axs[4,0].set_ylabel('NE CD11')
+axs[4,1].set_ylabel('NE CD22')
 if _FIXED_LIMITS:
     axs[4,0].set_ylim(-8.5105e-5, -8.5075e-5)
     axs[4,1].set_ylim(8.5015e-5, 8.5105e-5)
@@ -441,6 +443,7 @@ for label in axs[-1,1].get_xticklabels():
     label.set_rotation(90)
     label.set_fontsize(8) 
 
+fig.align_ylabels()
 fig.tight_layout() # adjust boundaries sensibly, matplotlib v1.1+
 plt.draw()
 plot_name = 'delta_CRPIX_vs_QRUNID.png'
