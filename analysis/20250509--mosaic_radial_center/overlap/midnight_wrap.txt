@@ -1,0 +1,10 @@
+
+JDTDB noon ends with .0
+JDTDB midnight ends with 0.5
+
+local noon is 10 hours later
+
+local noon happens at JDTDB values .0 + 10/24 =~ 0.4167
+HST days since noon J2000 are:
+every_jdtdb - 2451545.0 - 10/24.
+

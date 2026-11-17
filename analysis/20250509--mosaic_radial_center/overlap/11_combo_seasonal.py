@@ -368,6 +368,9 @@ pars_dir = {ff:dd+'/joint_pars' for ff,dd in field_dir.items()}
 par_flist = {ff:sorted(glob.glob(dd + '/jpars_??????_J.txt')) \
                                     for ff,dd in pars_dir.items()}
 
+## Field keys for later use:
+#fields = field_dir.keys()
+
 ##--------------------------------------------------------------------------##
 ##------------------       Load and Analyze Parameters      ----------------##
 ##--------------------------------------------------------------------------##
@@ -419,7 +422,7 @@ cfht_lonEdeg = -155.468876
 fcat_base = 'fcat_paths.csv'
 season_base = 'seasonal_data.csv'
 #fcat_lists = {ff:'%s/%s'%(dd, fcat_list) for ff,dd in field_dir.items()}
-#season_files = {ff:'%s/%s'%(dd, season_data) for ff,dd in field_dir.items()}
+#seasnp.average(rro['CRVAL1'])on_files = {ff:'%s/%s'%(dd, season_data) for ff,dd in field_dir.items()}
 
 ## Load fcat tables and seasonal data:
 pdkwargs = {'skipinitialspace':True, 'low_memory':False}
@@ -434,6 +437,9 @@ for ff,dd in field_dir.items():
     sys.stderr.write("Loading '%s' ... " % season_data)
     seasonals[ff] = pd.read_csv(season_data, **pdkwargs)
     sys.stderr.write("done.\n")
+
+## An array with all of the JDTDB values in it:
+every_jdtdb = np.concatenate([x['JDTDB'].values for x in seasonals.values()])
 
 ##--------------------------------------------------------------------------##
 ##------------------         Seasonal Helper Routines       ----------------##
@@ -472,7 +478,8 @@ def xyz2equ(xyz_pts):
 
 ## Vector length:
 def veclen(vec):
-    return np.sqrt(np.sum(vec*vec, axis=0))
+    #return np.sqrt(np.sum(vec*vec, axis=0))
+    return np.sqrt(np.sum(vec*vec, axis=1))
 
 
 ##--------------------------------------------------------------------------##
@@ -513,18 +520,23 @@ statcols = ['JDTDB', 'AIRMASS', 'TELALT', 'TELAZ', 'CRVAL1', 'CRVAL2',
             'OBS_X', 'OBS_Y', 'OBS_Z', 'OBS_VX', 'OBS_VY', 'OBS_VZ', 'PARANG']
 
 frstats = {}
+maxdursec = 3600.0
 for ff,seasonal in seasonals.items():
     rstats = {}
     for runid,imlist in raw_inames[ff].items():
         subset = seasonal[seasonal.qrunid == runid]
+        dursec = np.ptp(subset.JDTDB)*86400.
+        #sys.stderr.write("%s %s lasted %.1f sec\n" % (ff, runid, dursec))
         things = {}
         for col in statcols:
             things[col] = (np.average(subset[col]), np.std(subset[col]))
+        things['dursec'] = (dursec, dursec)
         rstats[runid] = things
         pass
     frstats[ff] = rstats
 
 ## Reorganize stat averages into arrays ordered by runid:
+statcols.append('dursec')
 frstats_runid_order = {}
 for ff,rstats in frstats.items():
     frstats_runid_order[ff] = \
@@ -532,136 +544,142 @@ for ff,rstats in frstats.items():
                             for ss in statcols}
     pass
 
+##--------------------------------------------------------------------------##
+##------------------         Point Orders for Plotting      ----------------##
+##--------------------------------------------------------------------------##
+
+## Orderings for fractional year, az/alt, parang:
+j2k_epoch = 2451545.0
+frst_yfrac, fyfr_order = {}, {}
+fazm_order, falt_order = {}, {}
+fsub_night, fpar_order = {}, {}
+for ff,rro in frstats_runid_order.items():
+    frst_yfrac[ff] = (rro['JDTDB'] - j2k_epoch) % 365.25
+    fyfr_order[ff] = np.argsort(frst_yfrac[ff])   # fractional year
+    fazm_order[ff] = np.argsort(rro['TELAZ'])     # telescope azimuth
+    falt_order[ff] = np.argsort(rro['TELALT'])    # telescope azimuth
+    fpar_order[ff] = np.argsort(rro['PARANG'])    # parallactic angle
+    fsub_night[ff] = (rro['JDTDB'] - j2k_epoch - 10/24.) % 1.0
+    #fsub_night[ff] = (rro['JDTDB'] + 10/24.
+
+## Earth velocity ordering (perpendicular to aberration):
+fvel_order, fvdot_vals = {}, {}
+for ff,rro in frstats_runid_order.items():
+    xyzpos = np.column_stack([rro[x] for x in ['OBS_X', 'OBS_Y', 'OBS_Z']])
+    xyzvel = np.column_stack([rro[x] for x in ['OBS_VX', 'OBS_VY', 'OBS_VZ']])
+    rtotal = np.sum(xyzpos**2, axis=1)**0.5
+    vtotal = np.sum(xyzvel**2, axis=1)**0.5
+    u_xyzvel = xyzvel / veclen(xyzvel)[:, None]	# velocity unit vector
+
+    # dot product of target direction and Earth velocity:
+    avg_ra_rad = np.radians(np.average(rro['CRVAL1']))
+    avg_de_rad = np.radians(np.average(rro['CRVAL2']))
+    target_xyz = np.squeeze(rade2xyz(avg_ra_rad, avg_de_rad))
+    vdottarget = np.degrees(np.arccos([np.dot(target_xyz, x) for x in u_xyzvel]))
+    fvdot_vals[ff] = vdottarget
+    fvel_order[ff] = np.argsort(vdottarget)
+
+
+##--------------------------------------------------------------------------##
+##------------------         Plotting for the Win!          ----------------##
+##--------------------------------------------------------------------------##
+
+## Plot window config:
+fig_dims = (11, 9)
+
+## Plotting windows and axes. What they contain:
+## * fg1 - reproduces fg1 of previous seasonal plots (CD11/CD12 vs all)
+fg1, axs1 = plt.subplots(nrows=4, ncols=2, num=1, clear=True, figsize=fig_dims,
+#fig, axs = plt.subplots(nrows=2, ncols=6, num=1, clear=True, figsize=fig_dims,
+                        sharex=False, squeeze=True)
+fg2, axs2 = plt.subplots(nrows=4, ncols=2, num=2, clear=True, figsize=fig_dims,
+#fig, axs = plt.subplots(nrows=2, ncols=6, num=1, clear=True, figsize=fig_dims,
+                        sharex=False, squeeze=True)
+
+## Master fig/axis lists:
+every_axs = [axs1, axs2]
+every_fig = [ fg1,  fg2]
+
+## Grid lines:
+for axs in every_axs:
+    for ax in axs.ravel():
+        ax.grid(True)
+
+##--------------------------------------------------------------------------##
+
+## CD11 and CD22 vs:
+## * day of year
+## * vdot
+## * par angle
+for ff,rro in frstats_runid_order.items():
+    #cdinfo = fne_cdinfo
+    xscale, yscale, yangle, skew = fne_cdinfo.T
+    pstack = fpar_stack.get(ff)
+    cd11, cd22 = pstack[0,0,:], pstack[0,3,:]
+    #cd11, cd22 = pstack[0,1,:], pstack[0,2,:]
+    multi = rro['dursec'] > 3600.0  # these are multi-night
+    which = ~np.isinf(cd11)         # select everything
+    which = ~multi
+
+    # day-of-year ordering
+    order = fyfr_order.get(ff)[which]
+    yfrac = frst_yfrac.get(ff)
+    axs1[0,0].scatter(yfrac[order], cd11[order], label=ff)
+    axs1[0,1].scatter(yfrac[order], cd22[order], label=ff)
+    [axs1[0,x].set_xlabel("Day of Year") for x in (0,1)]
+
+    # velocity ordering:
+    vdata = fvdot_vals.get(ff)
+    order = fvel_order.get(ff)[which]
+    axs1[1,0].scatter(vdata[order], cd11[order], label=ff)
+    axs1[1,1].scatter(vdata[order], cd22[order], label=ff)
+    [axs1[1,x].set_xlabel("$v_E \cdot RA/DE$") for x in (0,1)]
+ 
+    # parallactic angle:
+    pdata = rro['PARANG']
+    #pdata = rro['TELAZ']
+    #pdata = rro['TELALT']
+    order = np.argsort(pdata)[which]
+    axs1[2,0].scatter(pdata[order], cd11[order], label=ff)
+    axs1[2,1].scatter(pdata[order], cd22[order], label=ff)
+    #[axs1[2,x].set_xlabel("TELALT (deg)") for x in (0,1)]
+    #[axs1[2,x].set_xlabel("TELAZ (deg)") for x in (0,1)]
+    [axs1[2,x].set_xlabel("PARANG (deg)") for x in (0,1)]
+
+    ## by fractional night progress
+    ndata = fsub_night.get(ff)
+    #axs1[3,0].scatter(ndata[multi], cd11[multi], c='r', s=255)
+    #axs1[3,1].scatter(ndata[multi], cd22[multi], c='r', s=255)
+    axs1[3,0].scatter(ndata[which], cd11[which], label=ff)
+    axs1[3,1].scatter(ndata[which], cd22[which], label=ff)
+    #axs1[3,0].scatter(ndata[which], xscale[which], label=ff)
+    #axs1[3,1].scatter(ndata[which], yscale[which], label=ff)
+    ##[axs1[3,x].set_xlabel("PARANG (deg)") for x in (0,1)]
+    [axs1[3,x].set_xlabel("Night fraction") for x in (0,1)]
+    [axs1[3,x].set_xlim(0, 1) for x in (0,1)]
+
+## Special handling (joint) for RUNID:
+
+
+[ax.set_ylabel("CD11") for ax in axs1[:, 0]]
+[ax.set_ylabel("CD22") for ax in axs1[:, 1]]
+
+axs1[0,0].legend(loc='lower left')
+axs1[1,0].legend(loc='upper left')
+
+## CD11 and CD22 in velocity order:
+#for ff,vdot in fvdot_data.items():
+
+
+##--------------------------------------------------------------------------##
+
+for fig in every_fig:
+    fig.tight_layout()
+plt.draw()
+
 sys.exit(0)
-
-##--------------------------------------------------------------------------##
-## Quick FITS I/O:
-#data_file = 'image.fits'
-#img_vals = pf.getdata(data_file)
-#hdr_keys = pf.getheader(data_file)
-#img_vals, hdr_keys = pf.getdata(data_file, header=True)
-#img_vals, hdr_keys = pf.getdata(data_file, header=True, uint=True) # USHORT
-#img_vals, hdr_keys = fitsio.read(data_file, header=True)
-
-#date_obs = hdr_keys['DATE-OBS']
-#site_lat = hdr_keys['LATITUDE']
-#site_lon = hdr_keys['LONGITUD']
-
-## Initialize time:
-#img_time = astt.Time(hdr_keys['DATE-OBS'], scale='utc', format='isot')
-#img_time += astt.TimeDelta(0.5 * hdr_keys['EXPTIME'], format='sec')
-#jd_image = img_time.jd
-
-## Initialize location:
-#observer = ephem.Observer()
-#observer.lat = np.radians(site_lat)
-#observer.lon = np.radians(site_lon)
-#observer.date = img_time.datetime
-
-#pf.writeto('new.fits', img_vals)
-#qsave('new.fits', img_vals)
-#qsave('new.fits', img_vals, header=hdr_keys)
-
-## Star extraction:
-#pse.set_image(img_vals, gain=3.6)
-#objlist = pse.analyze(sigthresh=5.0)
-
-##--------------------------------------------------------------------------##
-## Misc:
-#def log_10_product(x, pos):
-#   """The two args are the value and tick position.
-#   Label ticks with the product of the exponentiation."""
-#   return '%.2f' % (x)  # floating-point
-#
-#fptformat = plt.FuncFormatter(log_10_product) # wrap function for use
-
-## Convenient, percentile-based plot limits:
-#def nice_limits(vec, pctiles=[1,99], pad=1.2):
-#    ends = np.percentile(vec[~np.isnan(vec)], pctiles)
-#    middle = np.average(ends)
-#    return (middle + pad * (ends - middle))
-
-## Convenient plot limits for datetime/astropy.Time content:
-#def nice_time_limits(tvec, buffer=0.05):
-#    lower = tvec.min()
-#    upper = tvec.max()
-#    ndays = upper - lower
-#    return ((lower - 0.05*ndays).datetime, (upper + 0.05*ndays).datetime)
-
-## Convenient limits for datetime objects:
-#def dt_limits(vec, pad=0.1):
-#    tstart, tstop = vec.min(), vec.max()
-#    trange = (tstop - tstart).total_seconds()
-#    tpad = dt.timedelta(seconds=pad*trange)
-#    return (tstart - tpad, tstop + tpad)
-
-##--------------------------------------------------------------------------##
-## Solve prep:
-#ny, nx = img_vals.shape
-#x_list = (0.5 + np.arange(nx)) / nx - 0.5            # relative (centered)
-#y_list = (0.5 + np.arange(ny)) / ny - 0.5            # relative (centered)
-#xx, yy = np.meshgrid(x_list, y_list)                 # relative (centered)
-#xx, yy = np.meshgrid(nx*x_list, ny*y_list)           # absolute (centered)
-#xx, yy = np.meshgrid(np.arange(nx), np.arange(ny))   # absolute
-#yy, xx = np.meshgrid(np.arange(ny), np.arange(nx), indexing='ij') # absolute
-#yy, xx = np.nonzero(np.ones_like(img_vals))          # absolute
-#yy, xx = np.mgrid[0:ny,   0:nx].astype('uint16')     # absolute (array)
-#yy, xx = np.mgrid[1:ny+1, 1:nx+1].astype('uint16')   # absolute (pixel)
-
-## 1-D vectors:
-#x_pix, y_pix, ivals = xx.flatten(), yy.flatten(), img_vals.flatten()
-#w_vec = np.ones_like(ivals)            # start with uniform weights
-#design_matrix = np.column_stack((np.ones(x_pix.size), x_pix, y_pix))
-
-## Image fitting (statsmodels etc.):
-#data = sm.datasets.stackloss.load()
-#ols_res = sm.OLS(ivals, design_matrix).fit()
-#rlm_res = sm.RLM(ivals, design_matrix).fit()
-#rlm_model = sm.RLM(ivals, design_matrix, M=sm.robust.norms.HuberT())
-#rlm_res = rlm_model.fit()
-#data = pd.DataFrame({'xpix':x_pix, 'ypix':y_pix})
-#rlm_model = sm.RLM.from_formula("ivals ~ xpix + ypix", data)
-
-##--------------------------------------------------------------------------##
-## Theil-Sen line-fitting (linear):
-#model = ts.linefit(xvals, yvals)
-#icept, slope = ts.linefit(xvals, yvals)
-
-## Theil-Sen line-fitting (loglog):
-#xvals, yvals = np.log10(original_xvals), np.log10(original_yvals)
-#xvals, yvals = np.log10(df['x'].values), np.log10(df['y'].values)
-#llmodel = ts.linefit(np.log10(xvals), np.log10(yvals))
-#icept, slope = ts.linefit(xvals, yvals)
-#fit_exponent = slope
-#fit_multiplier = 10**icept
-#bestfit_x = np.arange(5000)
-#bestfit_y = fit_multiplier * bestfit_x**fit_exponent
-
-## Theil-Sen line-fitting variants:
-#linear_model = ts.linefit(xvals, yvals)
-#loglog_model = ts.linefit(np.log10(xvals), np.log10(yvals))
-#linlog_model = ts.linefit(xvals, np.log10(yvals))
-
-
-## Evaluators:
-#def loglog_eval(xvals, model):
-#    icept, slope = model
-#    return 10**icept * np.log10(xvals)**slope
-#def loglog_eval(xvals, icept, slope):
-#    return 10**icept * xvals**slope
-
-## Better evaluators (FIXME: this should go in a modele):
-#def linear_eval(xvals, icept, slope):
-#    return icept + slope*xvals                  # for y vs x fit
-#def loglog_eval(xvals, icept, slope):
-#    return 10**(icept + slope*xvals)            # for log(y) vs x fit
-#def loglog_eval(xvals, icept, slope):
-#    return 10**(icept + slope*np.log10(xvals))  # for log(y) vs log(x) fit
-
-
 ##--------------------------------------------------------------------------##
 #plt.style.use('bmh')   # Bayesian Methods for Hackers style
-fig_dims = (11, 9)
 fig = plt.figure(1, figsize=fig_dims)
 plt.gcf().clf()
 #fig, axs = plt.subplots(nrows=2, ncols=2, num=1, clear=True, figsize=fig_dims,
